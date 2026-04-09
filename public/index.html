@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fichajes · Reportes Diarios</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f11;
+    --bg2: #16181c;
+    --bg3: #1e2026;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0ee;
+    --text2: #8a8a8a;
+    --text3: #555;
+    --accent: #c8f542;
+    --accent-dim: rgba(200,245,66,0.12);
+    --accent-dim2: rgba(200,245,66,0.06);
+    --red: #ff5c5c;
+    --red-dim: rgba(255,92,92,0.1);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.1);
+    --blue: #5ca0ff;
+    --blue-dim: rgba(92,160,255,0.1);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── Layout ─── */
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .logo-mark {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    display: block;
+    line-height: 1.2;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav { padding: 0 12px; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--accent); background: var(--accent-dim); border-color: rgba(200,245,66,0.15); }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.6; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .nav-section { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 16px 10px 6px; }
+
+  .sidebar-footer {
+    padding: 16px 20px 0;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 15px; font-weight: 500; }
+  .topbar-meta { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 16px; }
+  .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-right: 4px; }
+
+  .content { flex: 1; padding: 32px; overflow-y: auto; }
+
+  /* ─── Upload ─── */
+  #page-upload { max-width: 560px; margin: 40px auto; }
+
+  .upload-hero { text-align: center; margin-bottom: 40px; }
+  .upload-hero h1 { font-family: 'Instrument Serif', serif; font-size: 42px; color: var(--text); line-height: 1.1; margin-bottom: 12px; }
+  .upload-hero h1 em { color: var(--accent); font-style: italic; }
+  .upload-hero p { color: var(--text2); font-size: 15px; }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg2);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.over {
+    border-color: var(--accent);
+    background: var(--accent-dim2);
+  }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon {
+    width: 48px; height: 48px; margin: 0 auto 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .drop-zone h3 { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .drop-zone p { color: var(--text2); font-size: 13px; }
+  .drop-zone .ext { display: inline-block; margin-top: 12px; padding: 3px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  .upload-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 24px; }
+  .info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .info-card .ic-num { font-size: 22px; font-weight: 500; color: var(--accent); font-family: 'DM Mono', monospace; }
+  .info-card .ic-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* ─── Pages ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── Controls bar ─── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+  }
+  .ctrl-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+  .ctrl-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); font-weight: 500; }
+  select, input {
+    height: 38px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 0 12px;
+    width: 100%;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+  select option { background: var(--bg2); }
+
+  .btn {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-ghost { background: transparent; color: var(--text2); }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+  .btn-accent { background: var(--accent); color: #0e0f11; border-color: var(--accent); font-weight: 600; }
+  .btn-accent:hover { opacity: 0.88; }
+  .btn-outline { background: transparent; color: var(--text); border-color: var(--border2); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+
+  /* ─── Stat cards ─── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stat-card .sc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 6px; }
+  .stat-card .sc-val { font-size: 28px; font-weight: 300; font-family: 'DM Mono', monospace; color: var(--text); }
+  .stat-card .sc-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .stat-card.accent { border-color: rgba(200,245,66,0.2); background: var(--accent-dim2); }
+  .stat-card.accent .sc-val { color: var(--accent); }
+
+  /* ─── Table ─── */
+  .table-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-header h3 { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .table-actions { display: flex; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--bg3); }
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .emp-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .emp-name { font-weight: 500; }
+  .time-val { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .badge-ok { background: rgba(200,245,66,0.1); color: var(--accent); border: 1px solid rgba(200,245,66,0.2); }
+  .badge-ok::before { background: var(--accent); }
+  .badge-warn { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+  .badge-warn::before { background: var(--amber); }
+  .badge-bad { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,92,92,0.2); }
+  .badge-bad::before { background: var(--red); }
+
+  .hours-bar { display: flex; align-items: center; gap: 8px; }
+  .hours-track { flex: 1; height: 4px; background: var(--bg3); border-radius: 99px; overflow: hidden; max-width: 80px; }
+  .hours-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.3s; }
+  .hours-fill.over { background: var(--amber); }
+  .hours-fill.under { background: var(--red); }
+  .hours-num { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  /* ─── Email section ─── */
+  .email-section { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+  .emp-list-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
+  }
+  .panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text3);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .emp-list { overflow-y: auto; flex: 1; }
+  .emp-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .emp-list-item:hover { background: var(--bg3); }
+  .emp-list-item.active { background: var(--accent-dim); }
+  .emp-list-item .eli-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .emp-list-item .eli-hours { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+  .email-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
+  }
+  .email-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .email-meta { flex: 1; }
+  .email-to { font-size: 13px; font-weight: 500; color: var(--text); }
+  .email-subject { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .email-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* ─── Search filter ─── */
+  .search-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    background-image: none;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ─── All emails view ─── */
+  .all-emails-view {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .all-emails-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .all-emails-body {
+    padding: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text2);
+    white-space: pre-wrap;
+    overflow-y: auto;
+    max-height: 500px;
+  }
+
+  /* ─── Tab switcher ─── */
+  .tab-row { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tab-btn {
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--border2); }
+  .tab-btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(200,245,66,0.25); }
+
+  /* ─── Toast ─── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast .t-icon { color: var(--accent); }
+
+  /* ─── Skeleton / empty ─── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-state .es-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .email-section { grid-template-columns: 1fr; }
+  }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ─── Animations ─── */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .animate-in { animation: fadeIn 0.3s ease both; }
+
+  .chip-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(200,245,66,0.2);
+    border-radius: 99px;
+    padding: 4px 14px 4px 8px;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .chip-file:hover { opacity: 0.8; }
+  .chip-file svg { width: 14px; height: 14px; }
+
+  .progress-bar-wrap { height: 2px; background: var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  .progress-bar { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+
+  .incidencia-count {
+    font-size: 10px;
+    background: var(--red-dim);
+    color: var(--red);
+    border-radius: 99px;
+    padding: 1px 6px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap"><div class="progress-bar" id="progress"></div></div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-mark">Fichajes</span>
+      <span class="logo-sub">Reportes diarios</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Módulos</div>
+      <a class="nav-item active" onclick="showPage('dashboard')" href="#">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Resumen diario
+      </a>
+      <a class="nav-item" onclick="showPage('emails')" href="#">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Correos
+      </a>
+      <a class="nav-item" onclick="showPage('all-emails')" href="#">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Todos los correos
+      </a>
+    </nav>
+    <div class="sidebar-footer" id="sidebar-file" style="display:none;">
+      <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Archivo cargado</div>
+      <div style="color:var(--text2);font-size:12px;word-break:break-all;" id="sf-name"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Carga tu archivo</span>
+      <div class="topbar-meta">
+        <span id="topbar-date" style="display:none;"><span class="dot-live"></span><span id="topbar-date-val"></span></span>
+        <button class="btn btn-ghost btn-sm" onclick="resetApp()" id="btn-reset" style="display:none;">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Cambiar archivo
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Upload page -->
+      <div id="page-upload" class="page active">
+        <div class="upload-hero animate-in">
+          <h1>Control de<br><em>fichajes</em> diarios</h1>
+          <p>Carga el Excel exportado y genera reportes<br>personalizados para cada empleado.</p>
+        </div>
+        <div class="drop-zone animate-in" id="drop-zone" style="animation-delay:0.1s;">
+          <input type="file" id="file-input" accept=".xlsx,.xls">
+          <div class="drop-icon">📊</div>
+          <h3>Arrastra tu archivo aquí</h3>
+          <p>o haz clic para explorar</p>
+          <span class="ext">.xlsx · .xls</span>
+        </div>
+        <div class="upload-info animate-in" style="animation-delay:0.2s;">
+          <div class="info-card">
+            <div class="ic-num">4</div>
+            <div class="ic-label">Hojas soportadas</div>
+          </div>
+          <div class="info-card">
+            <div class="ic-num">∞</div>
+            <div class="ic-label">Empleados</div>
+          </div>
+          <div class="info-card">
+            <div class="ic-num">100%</div>
+            <div class="ic-label">Local · sin servidor</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard page -->
+      <div id="page-dashboard" class="page">
+        <div id="chip-file" class="chip-file" onclick="resetApp()">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M9 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5L9 1z" stroke="currentColor" stroke-width="1.3"/><path d="M9 1v4h4" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span id="chip-file-name"></span>
+          <svg viewBox="0 0 16 16" fill="none"><path d="M5 8h6M8 5l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="controls animate-in">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Día</span>
+            <select id="day-select" onchange="applyFilters()"></select>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Empleado</span>
+            <select id="emp-filter" onchange="applyFilters()">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Estado</span>
+            <select id="status-filter" onchange="applyFilters()">
+              <option value="">Todos</option>
+              <option value="ok">Normal</option>
+              <option value="warn">Exceso jornada</option>
+              <option value="bad">Jornada corta</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="stat-grid animate-in" id="stat-grid"></div>
+
+        <div class="table-container animate-in">
+          <div class="table-header">
+            <h3 id="table-heading">Registros</h3>
+            <div class="table-actions">
+              <button class="btn btn-ghost btn-sm" onclick="exportCSV()">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Empleado</th>
+                  <th>Entrada</th>
+                  <th>Salida</th>
+                  <th>Horas</th>
+                  <th>Previsto</th>
+                  <th>Diferencia</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="main-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Emails page -->
+      <div id="page-emails" class="page">
+        <div class="controls animate-in" style="margin-bottom:20px;">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Día</span>
+            <select id="email-day-select" onchange="renderEmailList()"></select>
+          </div>
+          <button class="btn btn-accent" onclick="copyCurrentEmail()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Copiar correo
+          </button>
+          <button class="btn btn-outline" onclick="openMailClient()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Abrir en Mail
+          </button>
+        </div>
+
+        <div class="email-section animate-in">
+          <div class="emp-list-panel">
+            <div class="panel-header">
+              <span>Empleados</span>
+              <span id="emp-count-badge" class="incidencia-count" style="display:none;"></span>
+            </div>
+            <div style="padding:8px;">
+              <input class="search-input" type="text" placeholder="Buscar empleado..." oninput="filterEmpList(this.value)">
+            </div>
+            <div class="emp-list" id="emp-list"></div>
+          </div>
+          <div class="email-panel">
+            <div class="email-toolbar">
+              <div class="email-meta">
+                <div class="email-to" id="email-to-field">—</div>
+                <div class="email-subject" id="email-subject-field">—</div>
+              </div>
+            </div>
+            <div class="email-body" id="email-body-field">Selecciona un empleado para ver el correo.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All emails page -->
+      <div id="page-all-emails" class="page">
+        <div class="controls animate-in" style="margin-bottom:20px;">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Día</span>
+            <select id="all-email-day-select" onchange="renderAllEmails()"></select>
+          </div>
+          <button class="btn btn-accent" onclick="copyAllEmails()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Copiar todos
+          </button>
+          <button class="btn btn-outline" onclick="downloadAllEmailsTxt()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Descargar .txt
+          </button>
+        </div>
+        <div class="all-emails-view animate-in">
+          <div class="all-emails-toolbar">
+            <span style="font-size:13px;color:var(--text2);" id="all-emails-count">—</span>
+          </div>
+          <div class="all-emails-body" id="all-emails-body">Selecciona un día para ver todos los correos.</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast">
+  <span class="t-icon">✓</span>
+  <span id="toast-msg">Copiado al portapapeles</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let STATE = {
+  fileName: '',
+  days: {},        // { 'DD/MM/YYYY': [ {emp, entrada, salida, horas, previsto, incidencia} ] }
+  currentPage: 'upload',
+  filteredRows: [],
+  selectedEmp: null,
+};
+
+// ═══════════════════════════════════════════════
+// UPLOAD
+// ═══════════════════════════════════════════════
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+function handleFile(file) {
+  if (!file) return;
+  setProgress(20);
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      setProgress(60);
+      parseWorkbook(wb, file.name);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 600);
+    } catch(err) {
+      alert('Error al leer el archivo: ' + err.message);
+      setProgress(0);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setProgress(val) {
+  document.getElementById('progress').style.width = val + '%';
+}
+
+function parseWorkbook(wb, fname) {
+  STATE.fileName = fname;
+  const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('resumen diario')) || wb.SheetNames[1];
+  const ws = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+  const days = {};
+  let currentDate = null;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    const c0 = String(row[0] || '').trim();
+    // Detect day header rows
+    if (c0.includes('📅') || (c0.toUpperCase().includes(' DE ') && /20\d\d/.test(c0))) {
+      currentDate = row[1] ? excelDateToStr(row[1]) : parseDateFromHeader(c0);
+      if (!days[currentDate]) days[currentDate] = [];
+      continue;
+    }
+    // Data rows
+    if (currentDate && row[1] && row[2] && row[3]) {
+      const emp = String(row[0] || '').trim();
+      if (!emp || emp === 'Empleado' || emp.includes('INFORME') || emp.startsWith('📅')) continue;
+      const entrada = String(row[2] || '').trim();
+      const salida = String(row[3] || '').trim();
+      const horas = parseFloat(row[4]) || 0;
+      const previsto = parseFloat(row[5]) || 8;
+      const incidencia = String(row[6] || '').trim();
+      if (emp.length > 0 && /^[A-Za-z0-9]/.test(emp)) {
+        days[currentDate].push({ emp, fecha: currentDate, entrada, salida, horas, previsto, incidencia });
+      }
+    }
+  }
+
+  STATE.days = days;
+  initApp();
+}
+
+function excelDateToStr(val) {
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') {
+    const d = XLSX.SSF.parse_date_code(val);
+    return `${pad(d.d)}/${pad(d.m)}/${d.y}`;
+  }
+  return String(val);
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function parseDateFromHeader(str) {
+  const m = str.match(/(\d{2}\/\d{2}\/\d{4})/);
+  if (m) return m[1];
+  const months = {JANUARY:'01',FEBRUARY:'02',MARCH:'03',APRIL:'04',MAY:'05',JUNE:'06',JULY:'07',AUGUST:'08',SEPTEMBER:'09',OCTOBER:'10',NOVEMBER:'11',DECEMBER:'12',ENERO:'01',FEBRERO:'02',MARZO:'03',ABRIL:'04',MAYO:'05',JUNIO:'06',JULIO:'07',AGOSTO:'08',SEPTIEMBRE:'09',OCTUBRE:'10',NOVIEMBRE:'11',DICIEMBRE:'12'};
+  const m2 = str.match(/(\d+)\s+DE\s+(\w+)\s+DE\s+(\d{4})/i);
+  if (m2) return `${pad(m2[1])}/${months[m2[2].toUpperCase()]||'01'}/${m2[3]}`;
+  return str;
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function initApp() {
+  const sortedDays = Object.keys(STATE.days).sort((a,b) => parseDateRev(b) - parseDateRev(a));
+  const allEmps = [...new Set(Object.values(STATE.days).flat().map(r => r.emp))].sort();
+
+  // Populate selects
+  ['day-select','email-day-select','all-email-day-select'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = sortedDays.map(d => `<option value="${d}">${formatDayLabel(d)}</option>`).join('');
+  });
+
+  const empFilter = document.getElementById('emp-filter');
+  empFilter.innerHTML = '<option value="">Todos</option>' + allEmps.map(e => `<option value="${e}">${e}</option>`).join('');
+
+  document.getElementById('sf-name').textContent = STATE.fileName;
+  document.getElementById('sidebar-file').style.display = 'block';
+  document.getElementById('btn-reset').style.display = 'flex';
+  document.getElementById('topbar-date').style.display = 'flex';
+  document.getElementById('chip-file-name').textContent = STATE.fileName;
+
+  showPage('dashboard');
+  applyFilters();
+  renderEmailList();
+  renderAllEmails();
+}
+
+function parseDateRev(str) {
+  const [d,m,y] = str.split('/');
+  return new Date(+y, +m-1, +d);
+}
+
+function formatDayLabel(d) {
+  try {
+    const [dd,mm,yy] = d.split('/');
+    const date = new Date(+yy, +mm-1, +dd);
+    return date.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return d; }
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function showPage(name) {
+  STATE.currentPage = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const pageMap = { 'dashboard': 'page-dashboard', 'emails': 'page-emails', 'all-emails': 'page-all-emails', 'upload': 'page-upload' };
+  const titleMap = { 'dashboard': 'Resumen diario', 'emails': 'Correos individuales', 'all-emails': 'Todos los correos', 'upload': 'Carga tu archivo' };
+
+  document.getElementById(pageMap[name] || 'page-upload').classList.add('active');
+  document.getElementById('topbar-title').textContent = titleMap[name] || name;
+
+  const navItems = document.querySelectorAll('.nav-item');
+  const navMap = ['dashboard','emails','all-emails'];
+  navItems.forEach((item, i) => {
+    if (navMap[i] === name) item.classList.add('active');
+  });
+
+  if (name !== 'upload') {
+    const currentDay = document.getElementById('day-select').value;
+    document.getElementById('topbar-date-val').textContent = formatDayLabel(currentDay);
+  }
+}
+
+function resetApp() {
+  STATE = { fileName:'', days:{}, currentPage:'upload', filteredRows:[], selectedEmp:null };
+  document.getElementById('sidebar-file').style.display = 'none';
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('topbar-date').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  showPage('upload');
+  document.getElementById('file-input').value = '';
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function getStatus(row) {
+  const inc = (row.incidencia || '').trim();
+  if (!inc || inc === '—' || inc === '') return { key:'ok', label:'Normal', cls:'badge-ok' };
+  if (inc.includes('Exceso')) return { key:'warn', label:'Exceso jornada', cls:'badge-warn' };
+  return { key:'bad', label:'Jornada corta', cls:'badge-bad' };
+}
+
+function applyFilters() {
+  const day = document.getElementById('day-select').value;
+  const empF = document.getElementById('emp-filter').value;
+  const statusF = document.getElementById('status-filter').value;
+
+  let rows = STATE.days[day] || [];
+  if (empF) rows = rows.filter(r => r.emp === empF);
+  if (statusF) rows = rows.filter(r => getStatus(r).key === statusF);
+
+  STATE.filteredRows = rows;
+  document.getElementById('topbar-date-val').textContent = formatDayLabel(day);
+  renderStats(rows, day);
+  renderTable(rows, day);
+}
+
+function renderStats(rows, day) {
+  const total = rows.length;
+  const ok = rows.filter(r => getStatus(r).key === 'ok').length;
+  const incidents = total - ok;
+  const avgH = total > 0 ? (rows.reduce((s,r) => s+r.horas, 0)/total) : 0;
+  const totalH = rows.reduce((s,r) => s+r.horas, 0);
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card animate-in">
+      <div class="sc-label">Empleados</div>
+      <div class="sc-val">${total}</div>
+      <div class="sc-sub">registros ese día</div>
+    </div>
+    <div class="stat-card accent animate-in" style="animation-delay:0.05s;">
+      <div class="sc-label">Sin incidencias</div>
+      <div class="sc-val">${ok}</div>
+      <div class="sc-sub">${total > 0 ? Math.round(ok/total*100) : 0}% del total</div>
+    </div>
+    <div class="stat-card animate-in" style="animation-delay:0.1s;">
+      <div class="sc-label">Con incidencias</div>
+      <div class="sc-val" style="color:${incidents>0?'var(--red)':'var(--text)'}">${incidents}</div>
+      <div class="sc-sub">${total > 0 ? Math.round(incidents/total*100) : 0}% del total</div>
+    </div>
+    <div class="stat-card animate-in" style="animation-delay:0.15s;">
+      <div class="sc-label">Media horas</div>
+      <div class="sc-val">${avgH.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div>
+      <div class="sc-sub">${totalH.toFixed(1)}h en total</div>
+    </div>
+  `;
+}
+
+function renderTable(rows, day) {
+  document.getElementById('table-heading').textContent = `${rows.length} empleado(s) · ${formatDayLabel(day)}`;
+  const tbody = document.getElementById('main-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">🔍</div><p>No hay registros para este filtro</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => {
+    const st = getStatus(r);
+    const diff = r.horas - r.previsto;
+    const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2) + 'h';
+    const pct = Math.min(Math.round((r.horas / r.previsto) * 100), 100);
+    const fillCls = r.horas > r.previsto + 2 ? 'over' : r.horas < 7 ? 'under' : '';
+    return `<tr style="animation:fadeIn 0.2s ${i*0.02}s both;">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="emp-badge">${r.emp.substring(0,3)}</div>
+          <span class="emp-name">${r.emp}</span>
+        </div>
+      </td>
+      <td><span class="time-val">${r.entrada}</span></td>
+      <td><span class="time-val">${r.salida}</span></td>
+      <td>
+        <div class="hours-bar">
+          <div class="hours-track"><div class="hours-fill ${fillCls}" style="width:${pct}%"></div></div>
+          <span class="hours-num">${r.horas.toFixed(2)}h</span>
+        </div>
+      </td>
+      <td><span class="time-val">${r.previsto}h</span></td>
+      <td style="color:${diff<-1?'var(--red)':diff>2?'var(--amber)':'var(--text2)'};font-family:'DM Mono',monospace;font-size:12px;">${diffStr}</td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function exportCSV() {
+  const rows = STATE.filteredRows;
+  if (!rows.length) return showToast('No hay datos para exportar');
+  const header = 'Empleado,Fecha,Entrada,Salida,Horas,Previsto,Incidencia';
+  const lines = rows.map(r => `${r.emp},${r.fecha},${r.entrada},${r.salida},${r.horas},${r.previsto},"${r.incidencia||''}"`);
+  downloadText([header,...lines].join('\n'), `fichajes_${document.getElementById('day-select').value.replace(/\//g,'-')}.csv`);
+  showToast('CSV exportado');
+}
+
+// ═══════════════════════════════════════════════
+// EMAILS
+// ═══════════════════════════════════════════════
+function renderEmailList() {
+  const day = document.getElementById('email-day-select').value;
+  const rows = STATE.days[day] || [];
+  const list = document.getElementById('emp-list');
+  STATE.emailRows = rows;
+
+  const incidents = rows.filter(r => getStatus(r).key !== 'ok').length;
+  const badge = document.getElementById('emp-count-badge');
+  if (incidents > 0) { badge.textContent = incidents + ' incid.'; badge.style.display = 'inline'; }
+  else { badge.style.display = 'none'; }
+
+  renderFilteredEmpList(rows);
+  if (rows.length > 0) selectEmployee(rows[0].emp);
+}
+
+function renderFilteredEmpList(rows) {
+  const list = document.getElementById('emp-list');
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty-state"><p>Sin registros</p></div>`;
+    return;
+  }
+  list.innerHTML = rows.map(r => {
+    const st = getStatus(r);
+    const dotColor = st.key === 'ok' ? 'var(--accent)' : st.key === 'warn' ? 'var(--amber)' : 'var(--red)';
+    return `<div class="emp-list-item ${STATE.selectedEmp === r.emp ? 'active' : ''}" onclick="selectEmployee('${r.emp}')" data-emp="${r.emp}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;"></div>
+      <span class="eli-name">${r.emp}</span>
+      <span class="eli-hours">${r.horas.toFixed(1)}h</span>
+    </div>`;
+  }).join('');
+}
+
+function filterEmpList(query) {
+  const rows = (STATE.emailRows || []).filter(r => r.emp.toLowerCase().includes(query.toLowerCase()));
+  renderFilteredEmpList(rows);
+}
+
+function selectEmployee(emp) {
+  STATE.selectedEmp = emp;
+  document.querySelectorAll('.emp-list-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.emp === emp);
+  });
+  const day = document.getElementById('email-day-select').value;
+  const row = (STATE.days[day] || []).find(r => r.emp === emp);
+  if (!row) return;
+  document.getElementById('email-to-field').textContent = `Para: ${emp}@empresa.com`;
+  document.getElementById('email-subject-field').textContent = `Asunto: Informe de fichaje — ${row.fecha}`;
+  document.getElementById('email-body-field').textContent = buildEmailBody(row);
+}
+
+function buildEmailBody(row) {
+  const st = getStatus(row);
+  const diff = row.horas - row.previsto;
+  const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2) + 'h';
+  const incLine = (row.incidencia && row.incidencia !== '—' && row.incidencia !== '')
+    ? `\n⚠  Incidencia detectada: ${row.incidencia}\n` : '';
+  const closing = st.key === 'ok'
+    ? 'Tu jornada del día ha sido registrada correctamente. ¡Muchas gracias por tu puntualidad!'
+    : 'Si consideras que existe algún error en este registro, por favor contacta con el departamento de Recursos Humanos a la mayor brevedad posible.';
+
+  return `Estimado/a ${row.emp},
+
+A continuación encontrarás el resumen de tu registro de fichaje correspondiente al ${row.fecha}:
+
+  ┌─────────────────────────────────────┐
+  │  Entrada          ${row.entrada.padEnd(20,' ')}│
+  │  Salida           ${row.salida.padEnd(20,' ')}│
+  │  Horas trabajadas ${(row.horas.toFixed(2)+'h').padEnd(20,' ')}│
+  │  Jornada prevista ${(row.previsto+'h').padEnd(20,' ')}│
+  │  Diferencia       ${(diffStr).padEnd(20,' ')}│
+  │  Estado           ${st.label.padEnd(20,' ')}│
+  └─────────────────────────────────────┘
+${incLine}
+${closing}
+
+Un cordial saludo,
+Departamento de Recursos Humanos`;
+}
+
+function copyCurrentEmail() {
+  const day = document.getElementById('email-day-select').value;
+  const row = (STATE.days[day] || []).find(r => r.emp === STATE.selectedEmp);
+  if (!row) return showToast('Selecciona un empleado primero');
+  navigator.clipboard.writeText(buildEmailBody(row));
+  showToast('Correo copiado al portapapeles');
+}
+
+function openMailClient() {
+  const day = document.getElementById('email-day-select').value;
+  const row = (STATE.days[day] || []).find(r => r.emp === STATE.selectedEmp);
+  if (!row) return showToast('Selecciona un empleado primero');
+  const subject = encodeURIComponent(`Informe de fichaje — ${row.fecha}`);
+  const body = encodeURIComponent(buildEmailBody(row));
+  window.open(`mailto:${row.emp}@empresa.com?subject=${subject}&body=${body}`);
+}
+
+// ═══════════════════════════════════════════════
+// ALL EMAILS
+// ═══════════════════════════════════════════════
+function renderAllEmails() {
+  const day = document.getElementById('all-email-day-select').value;
+  const rows = STATE.days[day] || [];
+  document.getElementById('all-emails-count').textContent = `${rows.length} correos · ${formatDayLabel(day)}`;
+  document.getElementById('all-emails-body').textContent = buildAllEmailsText(rows);
+}
+
+function buildAllEmailsText(rows) {
+  if (!rows.length) return 'Sin registros para este día.';
+  const sep = '─'.repeat(62);
+  return rows.map(r =>
+    `${sep}\nPARA: ${r.emp}@empresa.com\nASUNTO: Informe de fichaje — ${r.fecha}\n${sep}\n\n${buildEmailBody(r)}\n`
+  ).join('\n\n');
+}
+
+function copyAllEmails() {
+  const text = document.getElementById('all-emails-body').textContent;
+  navigator.clipboard.writeText(text);
+  showToast('Todos los correos copiados');
+}
+
+function downloadAllEmailsTxt() {
+  const day = document.getElementById('all-email-day-select').value;
+  const text = document.getElementById('all-emails-body').textContent;
+  downloadText(text, `correos_fichajes_${day.replace(/\//g,'-')}.txt`);
+  showToast('Archivo descargado');
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

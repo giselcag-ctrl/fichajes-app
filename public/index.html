@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fichajes · Reportes</title>
+<title>Fichajes · SIMECAL</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -12,9 +12,11 @@
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 .shell{display:flex;min-height:100vh}
 .sidebar{width:240px;min-width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh}
-.logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:20px}
-.logo-mark{font-family:'Instrument Serif',serif;font-size:20px;color:var(--accent);display:block;line-height:1.2}
-.logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px}
+.logo-area{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.simecal-logo{width:72px;height:72px;object-fit:contain;border-radius:8px}
+.logo-text{text-align:center}
+.logo-mark{font-family:'Instrument Serif',serif;font-size:17px;color:var(--accent);display:block;line-height:1.2}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px}
 .nav{padding:0 12px;flex:1}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all 0.15s;margin-bottom:2px;border:1px solid transparent;text-decoration:none}
 .nav-item:hover{color:var(--text);background:var(--bg3)}
@@ -31,6 +33,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .content{flex:1;padding:32px;overflow-y:auto}
 #page-upload{max-width:560px;margin:40px auto}
 .upload-hero{text-align:center;margin-bottom:40px}
+.upload-hero .hero-logo{width:90px;height:90px;object-fit:contain;margin:0 auto 16px;display:block}
 .upload-hero h1{font-family:'Instrument Serif',serif;font-size:42px;color:var(--text);line-height:1.1;margin-bottom:12px}
 .upload-hero h1 em{color:var(--accent);font-style:italic}
 .upload-hero p{color:var(--text2);font-size:15px}
@@ -126,6 +129,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .incidencia-count{font-size:10px;background:var(--red-dim);color:var(--red);border-radius:99px;padding:1px 6px;font-weight:600}
 .present-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
 .absent-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block}
+.inc-detail{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.inc-day{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
+.inc-day-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
@@ -138,7 +144,13 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 <div class="progress-bar-wrap"><div class="progress-bar" id="progress"></div></div>
 <div class="shell">
 <aside class="sidebar">
-  <div class="logo"><span class="logo-mark">Fichajes</span><span class="logo-sub">Reportes</span></div>
+  <div class="logo-area">
+    <img class="simecal-logo" src="data:image/jpeg;base64,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" alt="SIMECAL">
+    <div class="logo-text">
+      <span class="logo-mark">Fichajes</span>
+      <span class="logo-sub">Reportes · SIMECAL</span>
+    </div>
+  </div>
   <nav class="nav">
     <div class="nav-section">Módulos</div>
     <a class="nav-item active" onclick="showPage('dashboard')" href="#">
@@ -183,6 +195,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <!-- Upload -->
     <div id="page-upload" class="page active">
       <div class="upload-hero animate-in">
+        <img class="hero-logo" src="data:image/jpeg;base64,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" alt="SIMECAL">
         <h1>Control de<br><em>fichajes</em></h1>
         <p>Carga el Excel y genera reportes diarios<br>y semanales para cada empleado.</p>
       </div>
@@ -228,7 +241,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <div class="stat-grid animate-in" id="weekly-stat-grid"></div>
       <div class="table-container animate-in">
         <div class="table-header"><h3 id="weekly-table-heading">Resumen semanal</h3></div>
-        <div style="overflow-x:auto;"><table><thead><tr><th>Empleado</th><th>Días trabajados</th><th>Total horas</th><th>Media diaria</th><th>Incidencias</th><th>En centro hoy</th><th>Estado</th></tr></thead><tbody id="weekly-tbody"></tbody></table></div>
+        <div style="overflow-x:auto;"><table><thead><tr><th>Empleado</th><th>Días trabajados</th><th>Total horas</th><th>Media diaria</th><th>Incidencias</th><th>Días con incidencia</th><th>En centro</th><th>Estado</th></tr></thead><tbody id="weekly-tbody"></tbody></table></div>
       </div>
     </div>
 
@@ -314,17 +327,32 @@ function parseWB(wb,fname){
   if(ws){
     const wr=XLSX.utils.sheet_to_json(wb.Sheets[ws],{header:1});
     const wd={};let wl='';
-    for(let i=0;i<wr.length;i++){const row=wr[i];if(!row||!row.length)continue;const c0=String(row[0]||'').trim();if(c0.toUpperCase().includes('SEMANA')||c0.toUpperCase().includes('RESUMEN')){wl=c0;if(!wd[wl])wd[wl]=[];continue}if(row[1]!==undefined&&c0&&c0!=='Empleado'&&/^[A-Za-z0-9]/.test(c0)&&wl)wd[wl].push({emp:c0,diasTrabajados:parseInt(row[1])||0,totalHoras:parseFloat(row[2])||0,mediaHoras:parseFloat(row[3])||0,incidencias:String(row[4]||'').trim(),enCentro:String(row[5]||'').trim()})}
+    for(let i=0;i<wr.length;i++){const row=wr[i];if(!row||!row.length)continue;const c0=String(row[0]||'').trim();if(c0.toUpperCase().includes('SEMANA')||c0.toUpperCase().includes('RESUMEN')){wl=c0;if(!wd[wl])wd[wl]=[];continue}if(row[1]!==undefined&&c0&&c0!=='Empleado'&&/^[A-Za-z0-9]/.test(c0)&&wl)wd[wl].push({emp:c0,diasTrabajados:parseInt(row[1])||0,totalHoras:parseFloat(row[2])||0,mediaHoras:parseFloat(row[3])||0,incidencias:String(row[4]||'').trim(),enCentro:String(row[5]||'').trim(),diasIncidencias:[]})}
     S.weeklyData=wd;S.weeks=Object.keys(wd);
   }
   if(!S.weeks.length)buildWeekly();
+  enrichWeeklyWithDays();
   initApp();
+}
+function enrichWeeklyWithDays(){
+  S.weeks.forEach(w=>{
+    S.weeklyData[w].forEach(empRow=>{
+      const dias=[];
+      Object.entries(S.days).forEach(([fecha,dayRows])=>{
+        const dr=dayRows.find(r=>r.emp===empRow.emp);
+        if(dr&&dr.incidencia&&dr.incidencia!=='—'&&dr.incidencia!==''){
+          dias.push({fecha,tipo:dr.incidencia});
+        }
+      });
+      empRow.diasIncidencias=dias;
+    });
+  });
 }
 function buildWeekly(){
   const em={};
   Object.entries(S.days).forEach(([d,rows])=>rows.forEach(r=>{if(!em[r.emp])em[r.emp]={emp:r.emp,dias:0,totalHoras:0,incidencias:0};em[r.emp].dias++;em[r.emp].totalHoras+=r.horas;if(r.incidencia&&r.incidencia!=='—'&&r.incidencia!=='')em[r.emp].incidencias++}));
   const lbl='Semana completa';
-  S.weeklyData[lbl]=Object.values(em).map(e=>({emp:e.emp,diasTrabajados:e.dias,totalHoras:parseFloat(e.totalHoras.toFixed(2)),mediaHoras:parseFloat((e.totalHoras/e.dias).toFixed(2)),incidencias:e.incidencias>0?String(e.incidencias):'—',enCentro:'N/D'}));
+  S.weeklyData[lbl]=Object.values(em).map(e=>({emp:e.emp,diasTrabajados:e.dias,totalHoras:parseFloat(e.totalHoras.toFixed(2)),mediaHoras:parseFloat((e.totalHoras/e.dias).toFixed(2)),incidencias:e.incidencias>0?String(e.incidencias):'—',enCentro:'N/D',diasIncidencias:[]}));
   S.weeks=[lbl];
 }
 function eDate(v){if(typeof v==='string')return v;if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);return pad(d.d)+'/'+pad(d.m)+'/'+d.y}return String(v)}
@@ -359,9 +387,7 @@ function showPage(name){
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
 function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
 function applyFilters(){
-  const day=document.getElementById('day-select').value;
-  const empF=document.getElementById('emp-filter').value;
-  const stF=document.getElementById('status-filter').value;
+  const day=document.getElementById('day-select').value,empF=document.getElementById('emp-filter').value,stF=document.getElementById('status-filter').value;
   let rows=S.days[day]||[];
   if(empF)rows=rows.filter(r=>r.emp===empF);
   if(stF)rows=rows.filter(r=>gSt(r).key===stF);
@@ -392,13 +418,15 @@ function renderWeeklyStats(rows,week){
 }
 function renderWeeklyTable(rows){
   const tb=document.getElementById('weekly-tbody');
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin registros</p></div></td></tr>`;return}
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin registros</p></div></td></tr>`;return}
   tb.innerHTML=rows.map((r,i)=>{
     const inc=parseInt(r.incidencias)||0,ic=inc>2?'badge-bad':inc>0?'badge-warn':'badge-ok',il=inc>0?`${inc} incidencia${inc>1?'s':''}`:'Sin incidencias',ec=r.enCentro&&(r.enCentro.includes('Sí')||r.enCentro.includes('✓')),mc=r.mediaHoras<7?'var(--red)':r.mediaHoras>10?'var(--amber)':'var(--accent)';
-    return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;"><td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td><td><span class="time-val">${r.diasTrabajados} día${r.diasTrabajados!==1?'s':''}</span></td><td><div class="hours-bar"><div class="hours-track"><div class="hours-fill" style="width:${Math.min(Math.round(r.totalHoras/40*100),100)}%;background:var(--accent)"></div></div><span class="hours-num">${r.totalHoras.toFixed(1)}h</span></div></td><td><span style="font-family:'DM Mono',monospace;font-size:13px;color:${mc}">${r.mediaHoras.toFixed(1)}h/día</span></td><td><span class="badge ${ic}">${il}</span></td><td><span class="${ec?'present-dot':'absent-dot'}" style="margin-right:6px;"></span>${ec?'Sí':r.enCentro==='N/D'?'N/D':'No'}</td><td><span class="badge ${r.mediaHoras>=7&&inc===0?'badge-ok':inc>2?'badge-bad':'badge-warn'}">${r.mediaHoras>=7&&inc===0?'Correcto':inc>2?'Revisar':'Atención'}</span></td></tr>`;
+    const diasInc=r.diasIncidencias||[];
+    const diasHtml=diasInc.length>0?`<div class="inc-detail">${diasInc.map(d=>{const clr=d.tipo.includes('Exceso')?'var(--amber)':'var(--red)';return`<div class="inc-day"><span class="inc-day-dot" style="background:${clr}"></span>${d.fecha} — ${d.tipo.length>25?d.tipo.substring(0,25)+'...':d.tipo}</div>`}).join('')}</div>`:'<span style="color:var(--text3);font-size:11px;">—</span>';
+    return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;"><td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td><td><span class="time-val">${r.diasTrabajados} día${r.diasTrabajados!==1?'s':''}</span></td><td><div class="hours-bar"><div class="hours-track"><div class="hours-fill" style="width:${Math.min(Math.round(r.totalHoras/40*100),100)}%;background:var(--accent)"></div></div><span class="hours-num">${r.totalHoras.toFixed(1)}h</span></div></td><td><span style="font-family:'DM Mono',monospace;font-size:13px;color:${mc}">${r.mediaHoras.toFixed(1)}h/día</span></td><td><span class="badge ${ic}">${il}</span></td><td>${diasHtml}</td><td><span class="${ec?'present-dot':'absent-dot'}" style="margin-right:6px;"></span>${ec?'Sí':r.enCentro==='N/D'?'N/D':'No'}</td><td><span class="badge ${r.mediaHoras>=7&&inc===0?'badge-ok':inc>2?'badge-bad':'badge-warn'}">${r.mediaHoras>=7&&inc===0?'Correcto':inc>2?'Revisar':'Atención'}</span></td></tr>`;
   }).join('');
 }
-function exportWeeklyCSV(){const w=document.getElementById('week-select').value,rows=S.weeklyData[w]||[];if(!rows.length)return showToast('Sin datos');const h='Empleado,Días,Total horas,Media diaria,Incidencias,En centro';downloadText([h,...rows.map(r=>`${r.emp},${r.diasTrabajados},${r.totalHoras},${r.mediaHoras},"${r.incidencias}","${r.enCentro}"`)].join('\n'),'resumen_semanal.csv');showToast('CSV exportado')}
+function exportWeeklyCSV(){const w=document.getElementById('week-select').value,rows=S.weeklyData[w]||[];if(!rows.length)return showToast('Sin datos');const h='Empleado,Días,Total horas,Media diaria,Incidencias,Días con incidencia,En centro';downloadText([h,...rows.map(r=>`${r.emp},${r.diasTrabajados},${r.totalHoras},${r.mediaHoras},"${r.incidencias}","${(r.diasIncidencias||[]).map(d=>d.fecha+': '+d.tipo).join(' | ')}","${r.enCentro}"`)].join('\n'),'resumen_semanal.csv');showToast('CSV exportado')}
 function renderEmailList(){
   const day=document.getElementById('email-day-select').value,rows=S.days[day]||[];
   S.emailRows=rows;
@@ -422,8 +450,8 @@ function selEmp(emp){
   document.getElementById('email-body-field').textContent=buildEmail(row);
 }
 function buildEmail(row){
-  const st=gSt(row),diff=row.horas-row.previsto,ds=(diff>=0?'+':'')+diff.toFixed(2)+'h',il=(row.incidencia&&row.incidencia!=='—'&&row.incidencia!=='')?`\n⚠  Incidencia: ${row.incidencia}\n`:'';
-  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje del ${row.fecha}:\n\n  ┌─────────────────────────────────────┐\n  │  Entrada          ${row.entrada.padEnd(20,' ')}│\n  │  Salida           ${row.salida.padEnd(20,' ')}│\n  │  Horas trabajadas ${(row.horas.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Jornada prevista ${(row.previsto+'h').padEnd(20,' ')}│\n  │  Diferencia       ${ds.padEnd(20,' ')}│\n  │  Estado           ${st.label.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${il}\n${st.key==='ok'?'Tu jornada ha sido registrada correctamente. ¡Gracias por tu puntualidad!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos`;
+  const st=gSt(row),diff=row.horas-row.previsto,ds=(diff>=0?'+':'')+diff.toFixed(2)+'h',il=(row.incidencia&&row.incidencia!=='—'&&row.incidencia!=='')?'\n⚠  Incidencia: '+row.incidencia+'\n':'';
+  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje del ${row.fecha}:\n\n  ┌─────────────────────────────────────┐\n  │  Entrada          ${row.entrada.padEnd(20,' ')}│\n  │  Salida           ${row.salida.padEnd(20,' ')}│\n  │  Horas trabajadas ${(row.horas.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Jornada prevista ${(row.previsto+'h').padEnd(20,' ')}│\n  │  Diferencia       ${ds.padEnd(20,' ')}│\n  │  Estado           ${st.label.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${il}\n${st.key==='ok'?'Tu jornada ha sido registrada correctamente. ¡Gracias por tu puntualidad!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
 }
 function copyCurrentEmail(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildEmail(row));showToast('Correo copiado')}
 function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${row.emp}@empresa.com?subject=${encodeURIComponent('Informe de fichaje — '+row.fecha)}&body=${encodeURIComponent(buildEmail(row))}`)}
@@ -447,8 +475,10 @@ function selWeeklyEmp(emp){
   document.getElementById('weekly-email-body').textContent=buildWeeklyEmail(row,w);
 }
 function buildWeeklyEmail(row,week){
-  const inc=parseInt(row.incidencias)||0,il=inc>0?`\n⚠  Incidencias registradas: ${inc}\n   Contacta con RRHH si necesitas aclaración.\n`:'',ec=row.enCentro&&(row.enCentro.includes('Sí')||row.enCentro.includes('✓'))?'Sí ✓':row.enCentro==='N/D'?'N/D':'No';
-  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje semanal:\n${week}\n\n  ┌─────────────────────────────────────┐\n  │  Días trabajados  ${String(row.diasTrabajados).padEnd(20,' ')}│\n  │  Total horas      ${(row.totalHoras.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Media diaria     ${(row.mediaHoras.toFixed(2)+'h/día').padEnd(20,' ')}│\n  │  Incidencias      ${String(row.incidencias||'—').padEnd(20,' ')}│\n  │  En centro hoy    ${ec.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${il}\n${inc===0?'Tu registro semanal es correcto. ¡Gracias por tu compromiso!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos`;
+  const inc=parseInt(row.incidencias)||0,ec=row.enCentro&&(row.enCentro.includes('Sí')||row.enCentro.includes('✓'))?'Sí ✓':row.enCentro==='N/D'?'N/D':'No';
+  const diasInc=row.diasIncidencias||[];
+  const incDetalle=diasInc.length>0?'\n  Detalle de incidencias:\n'+diasInc.map(d=>'  → '+d.fecha+' — '+d.tipo).join('\n')+'\n':'';
+  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje semanal:\n${week}\n\n  ┌─────────────────────────────────────┐\n  │  Días trabajados  ${String(row.diasTrabajados).padEnd(20,' ')}│\n  │  Total horas      ${(row.totalHoras.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Media diaria     ${(row.mediaHoras.toFixed(2)+'h/día').padEnd(20,' ')}│\n  │  Incidencias      ${String(row.incidencias||'—').padEnd(20,' ')}│\n  │  En centro hoy    ${ec.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${incDetalle}\n${inc===0?'Tu registro semanal es correcto. ¡Gracias por tu compromiso!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
 }
 function copyCurrentWeeklyEmail(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildWeeklyEmail(row,w));showToast('Correo semanal copiado')}
 function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${row.emp}@empresa.com?subject=${encodeURIComponent('Resumen semanal — '+w)}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}

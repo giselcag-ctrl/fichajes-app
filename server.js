@@ -23,12 +23,13 @@ Cobertura Nacional – Oficinas e Inspectores en todo el territorio
 
 // ─── Configuración SMTP ────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: 'smtp-mail.outlook.com',
   port: 587,
   secure: false,
+  tls: { ciphers: 'SSLv3' },
   auth: {
-    user: 'giselcag@gmail.com',
-    pass: process.env.SMTP_PASS   // App Password de Google (16 caracteres)
+    user: 'cgs@simecal.com',
+    pass: process.env.SMTP_PASS
   }
 });
 
@@ -161,7 +162,7 @@ app.post('/send-email', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Faltan campos: to, subject, body' });
   try {
     const info = await transporter.sendMail({
-      from: '"Carolina González – SIMECAL" <giselcag@gmail.com>',
+      from: '"Carolina González – SIMECAL" <cgs@simecal.com>',
       to, subject, text: body + FIRMA
     });
     res.json({ ok: true, messageId: info.messageId });
@@ -180,7 +181,7 @@ app.post('/send-all-emails', async (req, res) => {
   for (const mail of emails) {
     try {
       const info = await transporter.sendMail({
-        from: '"Carolina González – SIMECAL" <giselcag@gmail.com>',
+        from: '"Carolina González – SIMECAL" <cgs@simecal.com>',
         to: mail.to, subject: mail.subject, text: mail.body + FIRMA
       });
       results.push({ to: mail.to, ok: true, messageId: info.messageId });

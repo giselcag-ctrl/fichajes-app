@@ -348,8 +348,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="dir-fmt">
           <div>💡</div>
           <div>
-            Sube un Excel con dos columnas: <code>SIGLAS</code> y <code>EMAIL</code> (o <code>Nombre</code> y <code>Email</code>).<br>
-            Las siglas deben coincidir <strong>exactamente</strong> con el identificador que aparece en el Excel de fichajes.<br>
+            Formatos aceptados — 2 columnas: <code>SIGLAS · EMAIL</code> &nbsp;|&nbsp; 3 columnas: <code>SIGLAS · NOMBRE · EMAIL</code><br>
+            Con 3 columnas la app reconoce tanto las siglas como el nombre completo del empleado.<br>
             Los emails quedan guardados en este navegador de forma permanente.
           </div>
         </div>
@@ -615,14 +615,30 @@ function handleDirectorioFile(f){
       const wb=XLSX.read(e.target.result,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      if(!rows.length)return showToast('El archivo está vacío');
+      // Detectar si hay cabecera (ninguna celda de la fila 0 contiene '@')
+      const row0=rows[0].map(c=>String(c||''));
+      const hasHeader=!row0.some(c=>c.includes('@'));
+      const startRow=hasHeader?1:0;
+      // Detectar si hay 3 columnas (SIGLAS, NOMBRE, EMAIL) o 2 (SIGLAS/NOMBRE, EMAIL)
+      const has3cols=rows[startRow]&&rows[startRow][2]!==undefined&&String(rows[startRow][2]).includes('@');
       let added=0;
-      // Saltar cabecera si la 2ª columna no tiene '@' (es un header como SIGLAS/EMAIL/Nombre)
-      const firstEmail=String(rows[0]&&rows[0][1]||'');
-      const startRow=firstEmail.includes('@')?0:1;
       for(let i=startRow;i<rows.length;i++){
-        const nombre=String(rows[i][0]||'').trim();
-        const email=String(rows[i][1]||'').trim();
-        if(nombre&&email&&email.includes('@')){S.empleados[nombre]=email;added++;}
+        const col0=String(rows[i][0]||'').trim(); // siglas o nombre
+        const col1=String(rows[i][1]||'').trim(); // nombre (si 3 cols) o email
+        const col2=String(rows[i][2]||'').trim(); // email (si 3 cols)
+        if(has3cols){
+          // 3 columnas: SIGLAS | NOMBRE | EMAIL
+          const siglas=col0, nombre=col1, email=col2;
+          if(email.includes('@')){
+            if(siglas){S.empleados[siglas]=email;added++;}
+            if(nombre){S.empleados[nombre]=email;} // mismo email para nombre completo
+          }
+        } else {
+          // 2 columnas: SIGLAS/NOMBRE | EMAIL
+          const clave=col0, email=col1;
+          if(clave&&email.includes('@')){S.empleados[clave]=email;added++;}
+        }
       }
       localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
       renderDirectorioTable();

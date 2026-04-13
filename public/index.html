@@ -348,8 +348,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="dir-fmt">
           <div>💡</div>
           <div>
-            Sube un Excel con dos columnas: <code>Nombre</code> y <code>Email</code>.<br>
-            El nombre debe coincidir <strong>exactamente</strong> con el que aparece en el Excel de fichajes.<br>
+            Sube un Excel con dos columnas: <code>SIGLAS</code> y <code>EMAIL</code> (o <code>Nombre</code> y <code>Email</code>).<br>
+            Las siglas deben coincidir <strong>exactamente</strong> con el identificador que aparece en el Excel de fichajes.<br>
             Los emails quedan guardados en este navegador de forma permanente.
           </div>
         </div>
@@ -616,8 +616,9 @@ function handleDirectorioFile(f){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1});
       let added=0;
-      // Busca cabeceras o empieza desde fila 0
-      const startRow=rows[0]&&String(rows[0][0]).toLowerCase().includes('nombre')?1:0;
+      // Saltar cabecera si la 2ª columna no tiene '@' (es un header como SIGLAS/EMAIL/Nombre)
+      const firstEmail=String(rows[0]&&rows[0][1]||'');
+      const startRow=firstEmail.includes('@')?0:1;
       for(let i=startRow;i<rows.length;i++){
         const nombre=String(rows[i][0]||'').trim();
         const email=String(rows[i][1]||'').trim();
@@ -625,7 +626,7 @@ function handleDirectorioFile(f){
       }
       localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
       renderDirectorioTable();
-      showToast(added+' empleados guardados');
+      showToast(added+' empleados guardados ✓');
     }catch(err){showToast('Error al leer el archivo');}
   };
   r.readAsArrayBuffer(f);

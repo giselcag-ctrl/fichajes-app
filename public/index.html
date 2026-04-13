@@ -402,68 +402,123 @@ fi.addEventListener('change',e=>handleFile(e.target.files[0]));
 function handleFile(f){
   if(!f)return;
   setP(10);
-  showLoading('Leyendo archivo…');
-  const r=new FileReader();
-  r.onload=e=>{
-    setP(30);
-    // Diferir el procesado para que el navegador pueda actualizar la UI
-    setTimeout(()=>{
-      try{
-        showLoading('Procesando datos…');
-        // Carga solo las hojas por índice 1 y 2 (Resumen Diario + Resumen por Empleado)
-        // Evita cargar la hoja 0 (Fichajes Detalle ~14K filas) que no se usa
-        const wb=XLSX.read(e.target.result,{type:'array',sheets:[1,2]});
-        setP(70);
-        showLoading('Generando reportes…');
-        setTimeout(()=>{
-          try{
-            parseWB(wb,f.name);
-            setP(100);
-            hideLoading();
-            setTimeout(()=>setP(0),600);
-          }catch(err){
-            hideLoading();
-            setP(0);
-            alert('Error al procesar: '+err.message);
-          }
-        },50);
-      }catch(err){
-        hideLoading();
-        setP(0);
-        alert('Error al leer el archivo: '+err.message);
-      }
-    },50);
-  };
-  r.onerror=()=>{hideLoading();setP(0);alert('No se pudo leer el archivo.')};
-  r.readAsArrayBuffer(f);
+  showLoading('Subiendo archivo…');
+  const fd=new FormData();
+  fd.append('file',f);
+  setP(30);
+  fetch('/parse-fichajes',{method:'POST',body:fd})
+    .then(r=>{
+      setP(70);
+      showLoading('Generando reportes…');
+      return r.json();
+    })
+    .then(data=>{
+      if(!data.ok)throw new Error(data.error||'Error desconocido');
+      S.days=data.days;
+      S.weeklyData=data.weeklyData;
+      S.weeks=data.weeks;
+      S.fileName=data.fileName;
+      if(!S.weeks||!S.weeks.length)buildWeekly();
+      enrichWeeklyWithDays();
+      setP(100);
+      hideLoading();
+      setTimeout(()=>setP(0),600);
+      initApp();
+    })
+    .catch(err=>{
+      hideLoading();
+      setP(0);
+      alert('Error: '+err.message);
+    });
 }
 function setP(v){document.getElementById('progress').style.width=v+'%'}
 function parseWB(wb,fname){
   S.fileName=fname;
-  // Busca la hoja de resumen diario por nombre parcial, o toma la primera disponible
   const allNames=wb.SheetNames;
-  const dsName=allNames.find(n=>n.toLowerCase().includes('diario'))
-    ||allNames.find(n=>n.toLowerCase().includes('resumen'))
-    ||allNames[0];
-  if(!dsName||!wb.Sheets[dsName])throw new Error('No se encontró la hoja de Resumen Diario. Hojas disponibles: '+allNames.join(', '));
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets[dsName],{header:1});
+
+  // ── 1. Buscar hoja Resumen Diario ──────────────────────────────────────
+  // Formato real: Sheet 0=Fichajes Detalle, Sheet 1=Resumen Diario, Sheet 2=Resumen por Empleado
+  const dsName=allNames.find(n=>/diario/i.test(n))
+    ||allNames.find(n=>/resumen/i.test(n)&&!/empleado/i.test(n))
+    ||allNames[1]||allNames[0];
+  if(!dsName||!wb.Sheets[dsName])
+    throw new Error('No se encontró "Resumen Diario". Hojas: '+allNames.join(', '));
+
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[dsName],{header:1,defval:''});
   const days={};let cd=null;
+
   for(let i=0;i<rows.length;i++){
-    const row=rows[i];if(!row||!row.length)continue;
+    const row=rows[i];
+    if(!row||!row.length)continue;
     const c0=String(row[0]||'').trim();
-    if(c0.includes('📅')||(c0.toUpperCase().includes(' DE ')&&/20\d\d/.test(c0))){cd=row[1]?eDate(row[1]):pHeader(c0);if(!days[cd])days[cd]=[];continue}
-    if(cd&&row[1]&&row[2]&&row[3]){const emp=String(row[0]||'').trim();if(!emp||emp==='Empleado'||emp.includes('INFORME')||emp.startsWith('📅'))continue;if(emp.length>0&&/^[A-Za-z0-9]/.test(emp))days[cd].push({emp,fecha:cd,entrada:String(row[2]||'').trim(),salida:String(row[3]||'').trim(),horas:parseFloat(row[4])||0,previsto:parseFloat(row[5])||8,incidencia:String(row[6]||'').trim()})}
+    if(!c0)continue;
+
+    // Fila separadora de día: contiene 📅 o patrón "XX DE MES DE YYYY"
+    const esSeparador=c0.includes('📅')||(/\d+\s+DE\s+\w+\s+DE\s+\d{4}/i.test(c0));
+    if(esSeparador){
+      // La fecha puede estar en col B (row[1]) como número Excel, o extraerse del texto
+      const rawFecha=row[1];
+      cd=rawFecha?eDate(rawFecha):pHeader(c0);
+      if(cd&&!days[cd])days[cd]=[];
+      continue;
+    }
+
+    // Saltar cabeceras y filas de título
+    if(!cd)continue;
+    if(c0==='Empleado'||/informe|resumen|fichaje/i.test(c0))continue;
+    if(!/^[A-Za-z0-9]/.test(c0))continue;
+
+    // Fila de datos: Empleado | Fecha | Entrada | Salida | Horas | Previsto | Incidencia
+    const emp=c0;
+    const fechaRaw=row[1];
+    const fecha=fechaRaw?eDate(fechaRaw):cd;
+    const entrada=String(row[2]||'').trim();
+    const salida=String(row[3]||'').trim();
+    const horas=parseFloat(String(row[4]||'0').replace(',','.'))||0;
+    const previsto=parseFloat(String(row[5]||'8').replace(',','.'))||8;
+    const incidencia=String(row[6]||'').trim();
+
+    if(emp&&entrada&&salida){
+      if(!days[cd])days[cd]=[];
+      days[cd].push({emp,fecha,entrada,salida,horas,previsto,incidencia});
+    }
   }
   S.days=days;
-  const wsName=allNames.find(n=>n.toLowerCase().includes('empleado')||n.toLowerCase().includes('semanal'));
-  const ws=wsName&&wb.Sheets[wsName]?wsName:null;
-  if(ws){
-    const wr=XLSX.utils.sheet_to_json(wb.Sheets[ws],{header:1});
+
+  // ── 2. Buscar hoja Resumen por Empleado ───────────────────────────────
+  const wsName=allNames.find(n=>/empleado/i.test(n))
+    ||allNames.find(n=>/semanal/i.test(n))
+    ||allNames[2]||null;
+
+  if(wsName&&wb.Sheets[wsName]){
+    const wr=XLSX.utils.sheet_to_json(wb.Sheets[wsName],{header:1,defval:''});
     const wd={};let wl='';
-    for(let i=0;i<wr.length;i++){const row=wr[i];if(!row||!row.length)continue;const c0=String(row[0]||'').trim();if(c0.toUpperCase().includes('SEMANA')||c0.toUpperCase().includes('RESUMEN')){wl=c0;if(!wd[wl])wd[wl]=[];continue}if(row[1]!==undefined&&c0&&c0!=='Empleado'&&/^[A-Za-z0-9]/.test(c0)&&wl)wd[wl].push({emp:c0,diasTrabajados:parseInt(row[1])||0,totalHoras:parseFloat(row[2])||0,mediaHoras:parseFloat(row[3])||0,incidencias:String(row[4]||'').trim(),enCentro:String(row[5]||'').trim(),diasIncidencias:[]})}
-    S.weeklyData=wd;S.weeks=Object.keys(wd);
+    for(let i=0;i<wr.length;i++){
+      const row=wr[i];
+      if(!row||!row.length)continue;
+      const c0=String(row[0]||'').trim();
+      if(!c0)continue;
+      // Fila de título/cabecera de sección → usar como etiqueta de semana
+      if(/resumen|semana/i.test(c0)||c0==='Empleado'){
+        if(c0!=='Empleado'){wl=c0;if(!wd[wl])wd[wl]=[];}
+        continue;
+      }
+      if(!wl||!/^[A-Za-z0-9]/.test(c0))continue;
+      wd[wl].push({
+        emp:c0,
+        diasTrabajados:parseInt(String(row[1]||'0'))||0,
+        totalHoras:parseFloat(String(row[2]||'0').replace(',','.'))||0,
+        mediaHoras:parseFloat(String(row[3]||'0').replace(',','.'))||0,
+        incidencias:String(row[4]||'—').trim(),
+        enCentro:String(row[5]||'').trim(),
+        diasIncidencias:[]
+      });
+    }
+    S.weeklyData=wd;
+    S.weeks=Object.keys(wd);
   }
-  if(!S.weeks.length)buildWeekly();
+
+  if(!S.weeks||!S.weeks.length)buildWeekly();
   enrichWeeklyWithDays();
   initApp();
 }

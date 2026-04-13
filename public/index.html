@@ -711,13 +711,15 @@ function sendCurrentEmail(){
   if(!to.includes('@'))return showToast('Email del destinatario no válido');
   const btn=document.getElementById('btn-send-daily');
   btn.disabled=true;btn.textContent='Enviando…';
-  fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body})})
+  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
+  fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
     .then(r=>r.json())
     .then(d=>{
+      clearTimeout(tid);
       if(d.ok){showToast('✓ Correo enviado a '+to);}
       else{showToast('Error: '+d.error);}
     })
-    .catch(()=>showToast('Error de conexión'))
+    .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
 function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildEmail(row))}`)}
@@ -760,13 +762,15 @@ function sendCurrentWeeklyEmail(){
   if(!to.includes('@'))return showToast('Email del destinatario no válido');
   const btn=document.getElementById('btn-send-weekly');
   btn.disabled=true;btn.textContent='Enviando…';
-  fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body})})
+  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
+  fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
     .then(r=>r.json())
     .then(d=>{
+      clearTimeout(tid);
       if(d.ok){showToast('✓ Correo enviado a '+to);}
       else{showToast('Error: '+d.error);}
     })
-    .catch(()=>showToast('Error de conexión'))
+    .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
 function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}

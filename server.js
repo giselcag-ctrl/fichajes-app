@@ -26,7 +26,10 @@ const transporter = nodemailer.createTransport({
   host: 'smtp-mail.outlook.com',
   port: 587,
   secure: false,
-  tls: { ciphers: 'SSLv3' },
+  connectionTimeout: 10000,  // 10 segundos máximo
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  tls: { ciphers: 'SSLv3', rejectUnauthorized: false },
   auth: {
     user: 'cgs@simecal.com',
     pass: process.env.SMTP_PASS

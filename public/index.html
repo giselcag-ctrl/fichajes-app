@@ -378,6 +378,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 </main>
 </div>
 <div id="toast"><span class="t-icon">✓</span><span id="toast-msg">Copiado</span></div>
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,27,46,0.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="width:48px;height:48px;border:3px solid rgba(76,175,80,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div id="loading-msg" style="font-size:14px;color:var(--text2);">Procesando…</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <script>
 let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[],empleados:{}};
 // Cargar directorio de empleados guardado en el navegador
@@ -394,7 +399,43 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')})
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFile(e.dataTransfer.files[0])});
 fi.addEventListener('change',e=>handleFile(e.target.files[0]));
-function handleFile(f){if(!f)return;setP(20);const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});setP(60);parseWB(wb,f.name);setP(100);setTimeout(()=>setP(0),600)}catch(err){alert('Error: '+err.message);setP(0)}};r.readAsArrayBuffer(f)}
+function handleFile(f){
+  if(!f)return;
+  setP(10);
+  showLoading('Leyendo archivo…');
+  const r=new FileReader();
+  r.onload=e=>{
+    setP(30);
+    // Diferir el procesado para que el navegador pueda actualizar la UI
+    setTimeout(()=>{
+      try{
+        showLoading('Procesando datos…');
+        // Solo carga las hojas necesarias — ignora "Fichajes Detalle" (14K filas)
+        const wb=XLSX.read(e.target.result,{type:'array',sheets:['Resumen Diario','Resumen por Empleado']});
+        setP(70);
+        showLoading('Generando reportes…');
+        setTimeout(()=>{
+          try{
+            parseWB(wb,f.name);
+            setP(100);
+            hideLoading();
+            setTimeout(()=>setP(0),600);
+          }catch(err){
+            hideLoading();
+            setP(0);
+            alert('Error al procesar: '+err.message);
+          }
+        },50);
+      }catch(err){
+        hideLoading();
+        setP(0);
+        alert('Error al leer el archivo: '+err.message);
+      }
+    },50);
+  };
+  r.onerror=()=>{hideLoading();setP(0);alert('No se pudo leer el archivo.')};
+  r.readAsArrayBuffer(f);
+}
 function setP(v){document.getElementById('progress').style.width=v+'%'}
 function parseWB(wb,fname){
   S.fileName=fname;
@@ -665,6 +706,8 @@ function renderDirectorioTable(){
 }
 function deleteEmpleado(nombre){delete S.empleados[nombre];localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));renderDirectorioTable();showToast('Eliminado')}
 function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
+function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
+function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
 </script>

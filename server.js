@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
   secure: true,    // true para puerto 465, false para 587
   auth: {
     user: 'cgs@simecal.com',
-    pass: 'zsF;y^ZE[COY'
+    pass: process.env.SMTP_PASS
   }
 });
 

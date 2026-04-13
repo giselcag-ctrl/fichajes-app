@@ -410,8 +410,9 @@ function handleFile(f){
     setTimeout(()=>{
       try{
         showLoading('Procesando datos…');
-        // Solo carga las hojas necesarias — ignora "Fichajes Detalle" (14K filas)
-        const wb=XLSX.read(e.target.result,{type:'array',sheets:['Resumen Diario','Resumen por Empleado']});
+        // Carga solo las hojas por índice 1 y 2 (Resumen Diario + Resumen por Empleado)
+        // Evita cargar la hoja 0 (Fichajes Detalle ~14K filas) que no se usa
+        const wb=XLSX.read(e.target.result,{type:'array',sheets:[1,2]});
         setP(70);
         showLoading('Generando reportes…');
         setTimeout(()=>{
@@ -439,8 +440,13 @@ function handleFile(f){
 function setP(v){document.getElementById('progress').style.width=v+'%'}
 function parseWB(wb,fname){
   S.fileName=fname;
-  const ds=wb.SheetNames.find(n=>n.toLowerCase().includes('resumen diario'))||wb.SheetNames[1];
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets[ds],{header:1});
+  // Busca la hoja de resumen diario por nombre parcial, o toma la primera disponible
+  const allNames=wb.SheetNames;
+  const dsName=allNames.find(n=>n.toLowerCase().includes('diario'))
+    ||allNames.find(n=>n.toLowerCase().includes('resumen'))
+    ||allNames[0];
+  if(!dsName||!wb.Sheets[dsName])throw new Error('No se encontró la hoja de Resumen Diario. Hojas disponibles: '+allNames.join(', '));
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[dsName],{header:1});
   const days={};let cd=null;
   for(let i=0;i<rows.length;i++){
     const row=rows[i];if(!row||!row.length)continue;
@@ -449,7 +455,8 @@ function parseWB(wb,fname){
     if(cd&&row[1]&&row[2]&&row[3]){const emp=String(row[0]||'').trim();if(!emp||emp==='Empleado'||emp.includes('INFORME')||emp.startsWith('📅'))continue;if(emp.length>0&&/^[A-Za-z0-9]/.test(emp))days[cd].push({emp,fecha:cd,entrada:String(row[2]||'').trim(),salida:String(row[3]||'').trim(),horas:parseFloat(row[4])||0,previsto:parseFloat(row[5])||8,incidencia:String(row[6]||'').trim()})}
   }
   S.days=days;
-  const ws=wb.SheetNames.find(n=>n.toLowerCase().includes('empleado')||n.toLowerCase().includes('semanal'));
+  const wsName=allNames.find(n=>n.toLowerCase().includes('empleado')||n.toLowerCase().includes('semanal'));
+  const ws=wsName&&wb.Sheets[wsName]?wsName:null;
   if(ws){
     const wr=XLSX.utils.sheet_to_json(wb.Sheets[ws],{header:1});
     const wd={};let wl='';

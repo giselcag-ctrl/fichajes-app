@@ -145,6 +145,19 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .animate-in{animation:fadeIn 0.3s ease both}
 @media(max-width:900px){.sidebar{display:none}.stat-grid{grid-template-columns:1fr 1fr}.email-section{grid-template-columns:1fr}}
 
+/* ── Directorio ── */
+.dir-drop{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg2);position:relative;margin-bottom:20px}
+.dir-drop:hover,.dir-drop.over{border-color:var(--accent);background:var(--accent-dim2)}
+.dir-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dir-drop-icon{font-size:28px;margin-bottom:8px}
+.dir-drop h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.dir-drop p{font-size:12px;color:var(--text2)}
+.dir-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dir-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(76,175,80,0.2)}
+.dir-table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.dir-empty{padding:40px;text-align:center;color:var(--text3);font-size:13px}
+.dir-fmt{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;font-size:12px;color:var(--text2);margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.dir-fmt code{font-family:'DM Mono',monospace;background:var(--bg2);padding:1px 6px;border-radius:4px;color:var(--accent);font-size:11px}
 .weekly-row{cursor:pointer;transition:background 0.15s}
 .weekly-row:hover td{background:rgba(255,255,255,0.03)}
 .weekly-row.expanded td{background:var(--bg3)}
@@ -198,6 +211,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <a class="nav-item" onclick="showPage('all-emails')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Todos los correos
+    </a>
+    <div class="nav-section">Configuración</div>
+    <a class="nav-item" onclick="showPage('directorio')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Directorio empleados
     </a>
   </nav>
   <div class="sidebar-footer" id="sidebar-file" style="display:none;">
@@ -324,13 +342,54 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
+    <!-- Directorio de empleados -->
+    <div id="page-directorio" class="page">
+      <div class="animate-in">
+        <div class="dir-fmt">
+          <div>💡</div>
+          <div>
+            Sube un Excel con dos columnas: <code>Nombre</code> y <code>Email</code>.<br>
+            El nombre debe coincidir <strong>exactamente</strong> con el que aparece en el Excel de fichajes.<br>
+            Los emails quedan guardados en este navegador de forma permanente.
+          </div>
+        </div>
+        <div class="dir-drop" id="dir-drop-zone">
+          <input type="file" id="dir-file-input" accept=".xlsx,.xls">
+          <div class="dir-drop-icon">👥</div>
+          <h3>Arrastra el Excel del directorio</h3>
+          <p>o haz clic para seleccionarlo · .xlsx · .xls</p>
+        </div>
+        <div class="dir-meta">
+          <span class="dir-badge" id="dir-count-badge">0 empleados configurados</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearDirectorio()" id="dir-clear-btn" style="display:none;">Borrar todo</button>
+        </div>
+        <div class="dir-table-wrap">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Nombre (fichajes)</th><th>Email</th><th style="width:50px;"></th></tr></thead>
+              <tbody id="dir-tbody"><tr><td colspan="3"><div class="dir-empty">Aún no hay empleados configurados.<br>Sube el Excel para empezar.</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </main>
 </div>
 <div id="toast"><span class="t-icon">✓</span><span id="toast-msg">Copiado</span></div>
 <script>
-let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};
+let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[],empleados:{}};
+// Cargar directorio de empleados guardado en el navegador
+try{const saved=localStorage.getItem('simecal_empleados');if(saved)S.empleados=JSON.parse(saved);}catch(e){}
 const dz=document.getElementById('drop-zone'),fi=document.getElementById('file-input');
+// Drop zone del directorio
+const ddz=document.getElementById('dir-drop-zone'),dfi=document.getElementById('dir-file-input');
+ddz.addEventListener('dragover',e=>{e.preventDefault();ddz.classList.add('over')});
+ddz.addEventListener('dragleave',()=>ddz.classList.remove('over'));
+ddz.addEventListener('drop',e=>{e.preventDefault();ddz.classList.remove('over');handleDirectorioFile(e.dataTransfer.files[0])});
+dfi.addEventListener('change',e=>handleDirectorioFile(e.target.files[0]));
+renderDirectorioTable();
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFile(e.dataTransfer.files[0])});
@@ -402,8 +461,8 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload'};
-  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo'};
+  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio'};
+  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
@@ -505,7 +564,7 @@ function selEmp(emp){
   document.querySelectorAll('#emp-list .emp-list-item').forEach(el=>el.classList.toggle('active',el.dataset.emp===emp));
   const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===emp);
   if(!row)return;
-  document.getElementById('email-to-field').textContent=`Para: ${emp}@empresa.com`;
+  document.getElementById('email-to-field').textContent=`Para: ${getEmail(emp)}`;
   document.getElementById('email-subject-field').textContent=`Asunto: Informe de fichaje — ${row.fecha}`;
   document.getElementById('email-body-field').textContent=buildEmail(row);
 }
@@ -514,7 +573,7 @@ function buildEmail(row){
   return`Estimado/a ${row.emp},\n\nResumen de tu fichaje del ${row.fecha}:\n\n  ┌─────────────────────────────────────┐\n  │  Entrada          ${row.entrada.padEnd(20,' ')}│\n  │  Salida           ${row.salida.padEnd(20,' ')}│\n  │  Horas trabajadas ${(row.horas.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Jornada prevista ${(row.previsto+'h').padEnd(20,' ')}│\n  │  Diferencia       ${ds.padEnd(20,' ')}│\n  │  Estado           ${st.label.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${il}\n${st.key==='ok'?'Tu jornada ha sido registrada correctamente. ¡Gracias por tu puntualidad!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
 }
 function copyCurrentEmail(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildEmail(row));showToast('Correo copiado')}
-function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${row.emp}@empresa.com?subject=${encodeURIComponent('Informe de fichaje — '+row.fecha)}&body=${encodeURIComponent(buildEmail(row))}`)}
+function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Informe de fichaje — '+row.fecha)}&body=${encodeURIComponent(buildEmail(row))}`)}
 function renderWeeklyEmailList(){
   const w=document.getElementById('weekly-email-select').value,rows=S.weeklyData[w]||[];
   S.weeklyEmailRows=rows;renderWeeklyEmpList(rows);if(rows.length>0)selWeeklyEmp(rows[0].emp);
@@ -530,7 +589,7 @@ function selWeeklyEmp(emp){
   document.querySelectorAll('#weekly-emp-list .emp-list-item').forEach(el=>el.classList.toggle('active',el.dataset.emp===emp));
   const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===emp);
   if(!row)return;
-  document.getElementById('weekly-email-to').textContent=`Para: ${emp}@empresa.com`;
+  document.getElementById('weekly-email-to').textContent=`Para: ${getEmail(emp)}`;
   document.getElementById('weekly-email-subject').textContent=`Asunto: Resumen semanal — ${w}`;
   document.getElementById('weekly-email-body').textContent=buildWeeklyEmail(row,w);
 }
@@ -541,11 +600,54 @@ function buildWeeklyEmail(row,week){
   return`Estimado/a ${row.emp},\n\nResumen de tu fichaje semanal:\n${week}\n\n  ┌─────────────────────────────────────┐\n  │  Días trabajados  ${String(row.diasTrabajados).padEnd(20,' ')}│\n  │  Total horas      ${(row.totalHoras.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Media diaria     ${(row.mediaHoras.toFixed(2)+'h/día').padEnd(20,' ')}│\n  │  Incidencias      ${String(row.incidencias||'—').padEnd(20,' ')}│\n  │  En centro hoy    ${ec.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${incDetalle}\n${inc===0?'Tu registro semanal es correcto. ¡Gracias por tu compromiso!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
 }
 function copyCurrentWeeklyEmail(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildWeeklyEmail(row,w));showToast('Correo semanal copiado')}
-function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${row.emp}@empresa.com?subject=${encodeURIComponent('Resumen semanal — '+w)}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}
-function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${r.emp}@empresa.com\nASUNTO: Informe de fichaje — ${r.fecha}\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
+function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Resumen semanal — '+w)}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}
+function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${getEmail(r.emp)}\nASUNTO: Informe de fichaje — ${r.fecha}\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
 function copyAllEmails(){navigator.clipboard.writeText(document.getElementById('all-emails-body').textContent);showToast('Todos los correos copiados')}
 function downloadAllEmailsTxt(){const day=document.getElementById('all-email-day-select').value;downloadText(document.getElementById('all-emails-body').textContent,`correos_${day.replace(/\//g,'-')}.txt`);showToast('Descargado')}
 function exportCSV(){const rows=S.filteredRows;if(!rows.length)return showToast('Sin datos');downloadText(['Empleado,Fecha,Entrada,Salida,Horas,Previsto,Incidencia',...rows.map(r=>`${r.emp},${r.fecha},${r.entrada},${r.salida},${r.horas},${r.previsto},"${r.incidencia||''}"`)].join('\n'),`fichajes_${document.getElementById('day-select').value.replace(/\//g,'-')}.csv`);showToast('CSV exportado')}
+// ── Directorio de empleados ──────────────────────────────────────────────
+function getEmail(nombre){return S.empleados[nombre]||nombre+'@empresa.com'}
+function handleDirectorioFile(f){
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      let added=0;
+      // Busca cabeceras o empieza desde fila 0
+      const startRow=rows[0]&&String(rows[0][0]).toLowerCase().includes('nombre')?1:0;
+      for(let i=startRow;i<rows.length;i++){
+        const nombre=String(rows[i][0]||'').trim();
+        const email=String(rows[i][1]||'').trim();
+        if(nombre&&email&&email.includes('@')){S.empleados[nombre]=email;added++;}
+      }
+      localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
+      renderDirectorioTable();
+      showToast(added+' empleados guardados');
+    }catch(err){showToast('Error al leer el archivo');}
+  };
+  r.readAsArrayBuffer(f);
+}
+function renderDirectorioTable(){
+  const entries=Object.entries(S.empleados);
+  const badge=document.getElementById('dir-count-badge');
+  const clearBtn=document.getElementById('dir-clear-btn');
+  if(badge)badge.textContent=entries.length+' empleado'+(entries.length!==1?'s':'')+' configurado'+(entries.length!==1?'s':'');
+  if(clearBtn)clearBtn.style.display=entries.length?'flex':'none';
+  const tb=document.getElementById('dir-tbody');
+  if(!tb)return;
+  if(!entries.length){tb.innerHTML='<tr><td colspan="3"><div class="dir-empty">Aún no hay empleados configurados.<br>Sube el Excel para empezar.</div></td></tr>';return;}
+  tb.innerHTML=entries.sort((a,b)=>a[0].localeCompare(b[0])).map(([nombre,email])=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${nombre.substring(0,3)}</div><span class="emp-name">${nombre}</span></div></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${email}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteEmpleado('${nombre.replace(/'/g,"\\'")}')">✕</button></td>
+    </tr>`).join('');
+}
+function deleteEmpleado(nombre){delete S.empleados[nombre];localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));renderDirectorioTable();showToast('Eliminado')}
+function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
 </script>

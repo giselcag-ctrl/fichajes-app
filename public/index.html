@@ -668,15 +668,17 @@ function selEmp(emp){
   const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===emp);
   if(!row)return;
   document.getElementById('email-to-field').textContent=`Para: ${getEmail(emp)}`;
-  document.getElementById('email-subject-field').textContent=`Asunto: Informe de fichaje — ${row.fecha}`;
+  document.getElementById('email-subject-field').textContent=`Asunto: Revisión de Fichajes`;
   document.getElementById('email-body-field').textContent=buildEmail(row);
 }
+const FIRMA_CORREO=`\n\nAtenta a cualquier inquietud,\n\nGracias.\n\nCarolina González Serrano\nDelegado Comercial – SIMECAL\n📧 cgs@simecal.com | 📞 604 56 16 20 | 📲 WhatsApp: 673 42 68 34\nCobertura Nacional – Oficinas e Inspectores en todo el territorio\n<< Detectamos riesgos para evitar accidentes >>`;
 function buildEmail(row){
-  const st=gSt(row),diff=row.horas-row.previsto,ds=(diff>=0?'+':'')+diff.toFixed(2)+'h',il=(row.incidencia&&row.incidencia!=='—'&&row.incidencia!=='')?'\n⚠  Incidencia: '+row.incidencia+'\n':'';
-  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje del ${row.fecha}:\n\n  ┌─────────────────────────────────────┐\n  │  Entrada          ${row.entrada.padEnd(20,' ')}│\n  │  Salida           ${row.salida.padEnd(20,' ')}│\n  │  Horas trabajadas ${(row.horas.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Jornada prevista ${(row.previsto+'h').padEnd(20,' ')}│\n  │  Diferencia       ${ds.padEnd(20,' ')}│\n  │  Estado           ${st.label.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${il}\n${st.key==='ok'?'Tu jornada ha sido registrada correctamente. ¡Gracias por tu puntualidad!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
+  const inc=(row.incidencia&&row.incidencia!=='—'&&row.incidencia!=='')?row.incidencia:'Registro correcto';
+  const bullet=`  • ${row.fecha}: ${inc} (Entrada: ${row.entrada} · Salida: ${row.salida} · ${row.horas.toFixed(2)}h de ${row.previsto}h previstas)`;
+  return`Estimado/a ${row.emp},\n\nTras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, estos son los fichajes que se deben corregir:\n\n${bullet}${FIRMA_CORREO}`;
 }
 function copyCurrentEmail(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildEmail(row));showToast('Correo copiado')}
-function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Informe de fichaje — '+row.fecha)}&body=${encodeURIComponent(buildEmail(row))}`)}
+function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildEmail(row))}`)}
 function renderWeeklyEmailList(){
   const w=document.getElementById('weekly-email-select').value,rows=S.weeklyData[w]||[];
   S.weeklyEmailRows=rows;renderWeeklyEmpList(rows);if(rows.length>0)selWeeklyEmp(rows[0].emp);
@@ -693,18 +695,22 @@ function selWeeklyEmp(emp){
   const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===emp);
   if(!row)return;
   document.getElementById('weekly-email-to').textContent=`Para: ${getEmail(emp)}`;
-  document.getElementById('weekly-email-subject').textContent=`Asunto: Resumen semanal — ${w}`;
+  document.getElementById('weekly-email-subject').textContent=`Asunto: Revisión de Fichajes`;
   document.getElementById('weekly-email-body').textContent=buildWeeklyEmail(row,w);
 }
 function buildWeeklyEmail(row,week){
-  const inc=parseInt(row.incidencias)||0,ec=row.enCentro&&(row.enCentro.includes('Sí')||row.enCentro.includes('✓'))?'Sí ✓':row.enCentro==='N/D'?'N/D':'No';
   const diasInc=row.diasIncidencias||[];
-  const incDetalle=diasInc.length>0?'\n  Detalle de incidencias:\n'+diasInc.map(d=>'  → '+d.fecha+' — '+d.tipo).join('\n')+'\n':'';
-  return`Estimado/a ${row.emp},\n\nResumen de tu fichaje semanal:\n${week}\n\n  ┌─────────────────────────────────────┐\n  │  Días trabajados  ${String(row.diasTrabajados).padEnd(20,' ')}│\n  │  Total horas      ${(row.totalHoras.toFixed(2)+'h').padEnd(20,' ')}│\n  │  Media diaria     ${(row.mediaHoras.toFixed(2)+'h/día').padEnd(20,' ')}│\n  │  Incidencias      ${String(row.incidencias||'—').padEnd(20,' ')}│\n  │  En centro hoy    ${ec.padEnd(20,' ')}│\n  └─────────────────────────────────────┘\n${incDetalle}\n${inc===0?'Tu registro semanal es correcto. ¡Gracias por tu compromiso!':'Si hay algún error contacta con Recursos Humanos.'}\n\nUn cordial saludo,\nRecursos Humanos — SIMECAL`;
+  let bullets='';
+  if(diasInc.length>0){
+    bullets=diasInc.map(d=>`  • ${d.fecha}: ${d.tipo}`).join('\n');
+  } else {
+    bullets='  • Sin incidencias registradas en el periodo';
+  }
+  return`Estimado/a ${row.emp},\n\nTras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, estos son los fichajes que se deben corregir:\n\n${bullets}${FIRMA_CORREO}`;
 }
 function copyCurrentWeeklyEmail(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');navigator.clipboard.writeText(buildWeeklyEmail(row,w));showToast('Correo semanal copiado')}
-function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Resumen semanal — '+w)}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}
-function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${getEmail(r.emp)}\nASUNTO: Informe de fichaje — ${r.fecha}\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
+function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}
+function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${getEmail(r.emp)}\nASUNTO: Revisión de Fichajes\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
 function copyAllEmails(){navigator.clipboard.writeText(document.getElementById('all-emails-body').textContent);showToast('Todos los correos copiados')}
 function downloadAllEmailsTxt(){const day=document.getElementById('all-email-day-select').value;downloadText(document.getElementById('all-emails-body').textContent,`correos_${day.replace(/\//g,'-')}.txt`);showToast('Descargado')}
 function exportCSV(){const rows=S.filteredRows;if(!rows.length)return showToast('Sin datos');downloadText(['Empleado,Fecha,Entrada,Salida,Horas,Previsto,Incidencia',...rows.map(r=>`${r.emp},${r.fecha},${r.entrada},${r.salida},${r.horas},${r.previsto},"${r.incidencia||''}"`)].join('\n'),`fichajes_${document.getElementById('day-select').value.replace(/\//g,'-')}.csv`);showToast('CSV exportado')}

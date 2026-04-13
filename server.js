@@ -11,11 +11,14 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 // ─── Firma corporativa ─────────────────────────────────────────────────────
 const FIRMA = `
 
---
+Atenta a cualquier inquietud,
+
+Gracias.
+
 Carolina González Serrano
 Delegado Comercial – SIMECAL
 📧 cgs@simecal.com | 📞 604 56 16 20 | 📲 WhatsApp: 673 42 68 34
-Cobertura Nacional – Oficinas e inspectores en todo el territorio
+Cobertura Nacional – Oficinas e Inspectores en todo el territorio
 << Detectamos riesgos para evitar accidentes >>`;
 
 // ─── Configuración SMTP ────────────────────────────────────────────────────

@@ -175,6 +175,54 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .weekly-row.expanded .expand-icon{transform:rotate(180deg)}
 .no-inc{font-size:12px;color:var(--text3);font-style:italic;padding:8px 0}
 
+/* ── Vacaciones ── */
+.vac-year-nav{display:flex;align-items:center;gap:12px;}
+.vac-year-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all 0.15s;}
+.vac-year-btn:hover{border-color:var(--accent);color:var(--accent);}
+.vac-emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px;}
+.vac-emp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all 0.15s;}
+.vac-emp-card:hover{border-color:var(--accent);background:var(--accent-dim2);}
+.vac-emp-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+.vac-emp-name{font-size:14px;font-weight:500;margin-bottom:8px;}
+.vac-bar-wrap{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px;}
+.vac-bar-fill{height:100%;border-radius:99px;transition:width 0.4s;}
+.vac-bar-ok{background:var(--accent);}
+.vac-bar-warn{background:var(--amber);}
+.vac-bar-over{background:var(--red);}
+.vac-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);}
+.vac-calendar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.vac-cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.vac-cal-months{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);}
+.vac-month{background:var(--bg2);padding:12px;}
+.vac-month-name{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px;font-weight:500;}
+.vac-days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.vac-day-label{font-size:9px;color:var(--text3);text-align:center;padding:2px 0;font-weight:500;}
+.vac-day{width:100%;aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'DM Mono',monospace;cursor:default;transition:all 0.1s;}
+.vac-day.empty{background:transparent;}
+.vac-day.normal{background:var(--bg3);color:var(--text3);}
+.vac-day.vacacion{background:rgba(76,175,80,0.25);color:var(--accent);font-weight:600;border:1px solid rgba(76,175,80,0.3);}
+.vac-day.festivo{background:rgba(245,166,35,0.15);color:var(--amber);}
+.vac-day.finde{background:transparent;color:var(--text3);opacity:0.35;}
+.vac-day.hoy{outline:1.5px solid var(--accent);outline-offset:1px;}
+.vac-legend{display:flex;gap:16px;padding:10px 16px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.vac-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
+.vac-legend-dot{width:12px;height:12px;border-radius:3px;}
+.vac-sol-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.vac-sol-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:13px;}
+.vac-sol-item.pendiente{border-color:rgba(245,166,35,0.3);}
+.vac-sol-item.aprobada{border-color:rgba(76,175,80,0.3);}
+.vac-sol-item.rechazada{border-color:rgba(255,92,92,0.3);}
+.vac-sol-dates{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);flex:1;}
+.vac-sol-dias{font-weight:600;color:var(--accent);margin-right:8px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px;width:420px;max-width:95vw;}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:20px;}
+.modal-field{margin-bottom:14px;}
+.modal-label{font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:5px;}
+.modal-field input[type=date]{background-image:none;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+
 /* ── Calendario ── */
 .cal-wrap{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -645,9 +693,9 @@ function handleFile(f){
     })
     .then(data=>{
       if(!data.ok)throw new Error(data.error||'Error desconocido');
-      S.days=data.days;
-      S.weeklyData=data.weeklyData;
-      S.weeks=data.weeks;
+      S.days=data.days||{};
+      S.weeklyData=data.weeklyData||{};
+      S.weeks=data.weeks||[];
       S.fileName=data.fileName;
       if(!S.weeks||!S.weeks.length)buildWeekly();
       enrichWeeklyWithDays();
@@ -754,8 +802,9 @@ function parseWB(wb,fname){
   initApp();
 }
 function enrichWeeklyWithDays(){
+  if(!S.weeklyData)return;
   S.weeks.forEach(w=>{
-    S.weeklyData[w].forEach(empRow=>{
+    (S.weeklyData[w]||[]).forEach(empRow=>{
       const dias=[];
       Object.entries(S.days).forEach(([fecha,dayRows])=>{
         const dr=dayRows.find(r=>r.emp===empRow.emp);

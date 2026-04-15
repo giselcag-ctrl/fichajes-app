@@ -425,7 +425,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <div class="table-actions"><button class="btn btn-ghost btn-sm" onclick="exportPedidosCSV()">Exportar CSV</button></div>
               </div>
               <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
-                <table><thead><tr><th>Pedido</th><th>Cliente</th><th>Servicio</th><th>Creador</th><th>Incidencias</th><th>Estado</th></tr></thead>
+                <table><thead><tr><th>Nº SAP</th><th>Pedido</th><th>Cliente</th><th>Servicio</th><th>Creador</th><th>Incidencias</th><th>Estado</th></tr></thead>
                 <tbody id="ped-tbody"></tbody></table>
               </div>
             </div>
@@ -1038,11 +1038,12 @@ function procesarPedidos(){
       const servicio=String(row['Servicio']||'').trim();
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
       const errores=validarLinea(row,tipo);
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
+      const numSAP=String(row['Número SAP']||'').trim();
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
     });
-    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>b.erroresTotales-a.erroresTotales);
+    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>a.numeroSAP.localeCompare(b.numeroSAP,undefined,{numeric:true}));
     PS.filtrados=[...PS.pedidos];
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';
@@ -1062,6 +1063,7 @@ function renderPedidosTable(){
     const tieneError=p.erroresTotales>0,sel=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
     const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${sel?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.numeroSAP||'—'}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.codigo}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
       <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>

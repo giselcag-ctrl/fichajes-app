@@ -470,7 +470,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
                 <table>
                   <thead><tr>
-                    <th>Pedido</th>
+                    <th>Nº SAP</th>
                     <th>Cliente</th>
                     <th>Servicio</th>
                     <th>Creador</th>
@@ -916,7 +916,7 @@ function renderPedidosTable(){
     const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
     const selected=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
-      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.codigo}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.numeroSAP||p.codigo}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
       <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.creador||'—'}</span></td>

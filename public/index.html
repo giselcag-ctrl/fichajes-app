@@ -961,9 +961,10 @@ function seleccionarPedido(codigo){
   if(!PS.selectedPedido)return;
   const p=PS.selectedPedido;renderPedidosTable();
   const erroresStr=p.lineas.flatMap(l=>l.errores.map(e=>`  • Línea (${l.tipo}): ${e}`)).join('\n');
-  const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${p.codigo} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${p.codigo} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
+  const refPedido=p.numeroSAP||p.codigo;
+  const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${refPedido} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${refPedido} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
   document.getElementById('ped-email-to').value=p.emailCreador||'';
-  document.getElementById('ped-email-subject').value=`Pedido ${p.codigo} – datos requeridos`;
+  document.getElementById('ped-email-subject').value=`Pedido ${refPedido} – datos requeridos`;
   document.getElementById('ped-email-body').value=cuerpo;
   document.getElementById('btn-ped-send').style.display=p.erroresTotales>0?'flex':'none';
 }

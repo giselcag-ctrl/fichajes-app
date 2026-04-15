@@ -889,12 +889,12 @@ function procesarPedidos(){
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
       const errores=validarLinea(row,tipo);
       const numSAP=String(row['Número SAP']||'').trim();
-      const fechaRaw=String(row['Fecha']||row['Fecha Creación']||row['Fecha Pedido']||row['F. Creación']||row['Fecha pedido']||'').trim();
+      const fechaRaw=String(row['Fecha Contratación']||row['Fecha']||row['Fecha Creación']||row['Fecha Pedido']||row['F. Creación']||row['Fecha pedido']||'').trim();
       if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
     });
-    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>parseInt(b.numeroSAP)||0-(parseInt(a.numeroSAP)||0));
+    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>(parseInt(b.numeroSAP)||0)-(parseInt(a.numeroSAP)||0));
     PS.filtrados=[...PS.pedidos];
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';

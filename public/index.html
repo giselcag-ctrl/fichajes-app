@@ -894,7 +894,7 @@ function procesarPedidos(){
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
     });
-    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>b.erroresTotales-a.erroresTotales);
+    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>parseInt(b.numeroSAP)||0-(parseInt(a.numeroSAP)||0));
     PS.filtrados=[...PS.pedidos];
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';

@@ -212,10 +212,19 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Todos los correos
     </a>
+    <a class="nav-item" onclick="showPage('pedidos')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="10" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.3 10l.5.5.9-.9" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Auditoría pedidos
+    </a>
     <div class="nav-section">Configuración</div>
     <a class="nav-item" onclick="showPage('directorio')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Directorio empleados
+    </a>
+    <a class="nav-item" onclick="showPage('smtp')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="13" cy="12" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.2"/><path d="M13 11v1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="13" cy="13.2" r="0.4" fill="currentColor"/></svg>
+      Config. SMTP
+      <span id="smtp-nav-badge" style="margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--red);display:none;flex-shrink:0;"></span>
     </a>
   </nav>
   <div class="sidebar-footer" id="sidebar-file" style="display:none;">
@@ -363,6 +372,142 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <div class="all-emails-view animate-in">
         <div class="all-emails-toolbar"><span style="font-size:13px;color:var(--text2);" id="all-emails-count">—</span></div>
         <div class="all-emails-body" id="all-emails-body">Selecciona un día.</div>
+      </div>
+    </div>
+
+    <!-- Auditoría de Pedidos -->
+    <div id="page-pedidos" class="page">
+      <div class="animate-in" style="max-width:100%;">
+        <div id="pedidos-upload-zone" style="display:block;">
+          <div style="margin-bottom:24px;">
+            <h2 style="font-size:20px;font-weight:400;margin-bottom:6px;">Auditoría de <span style="color:var(--accent)">pedidos</span></h2>
+            <p style="color:var(--text2);font-size:13px;">Sube los dos Excel exportados del ERP para detectar campos incompletos y generar correos de reclamación.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+            <div class="dir-drop" id="ped-drop-cabeceras" style="margin-bottom:0;">
+              <input type="file" id="ped-file-cabeceras" accept=".xlsx,.xls">
+              <div class="dir-drop-icon" id="ped-icon-cab">📋</div>
+              <h3 id="ped-label-cab">Excel de Pedidos</h3>
+              <p id="ped-sub-cab">Listado resumen de pedidos · .xlsx</p>
+            </div>
+            <div class="dir-drop" id="ped-drop-lineas" style="margin-bottom:0;">
+              <input type="file" id="ped-file-lineas" accept=".xlsx,.xls">
+              <div class="dir-drop-icon" id="ped-icon-lin">📄</div>
+              <h3 id="ped-label-lin">Excel de Líneas de Pedido</h3>
+              <p id="ped-sub-lin">Detalle por línea con JSON · .xlsx</p>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="procesarPedidos()" id="btn-procesar-ped" style="display:none;width:100%;justify-content:center;height:44px;font-size:14px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l1.5 1.5L10 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Analizar pedidos
+          </button>
+        </div>
+        <div id="pedidos-results" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="resetPedidos()">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Cargar nuevos archivos
+            </button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input class="search-input" style="width:220px;height:32px;background-image:none;" type="text" placeholder="Buscar pedido o cliente…" oninput="filtrarPedidos(this.value)" id="ped-search">
+              <select id="ped-filter-estado" onchange="filtrarPedidos(document.getElementById('ped-search').value)" style="height:32px;width:160px;font-size:12px;">
+                <option value="">Todos los estados</option>
+                <option value="error">Con errores</option>
+                <option value="ok">Completos</option>
+              </select>
+            </div>
+          </div>
+          <div class="stat-grid animate-in" id="ped-stat-grid" style="margin-bottom:20px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 420px;gap:16px;align-items:start;">
+            <div class="table-container animate-in" style="overflow:hidden;">
+              <div class="table-header">
+                <h3 id="ped-table-title">Pedidos</h3>
+                <div class="table-actions"><button class="btn btn-ghost btn-sm" onclick="exportPedidosCSV()">Exportar CSV</button></div>
+              </div>
+              <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
+                <table><thead><tr><th>Pedido</th><th>Cliente</th><th>Servicio</th><th>Creador</th><th>Incidencias</th><th>Estado</th></tr></thead>
+                <tbody id="ped-tbody"></tbody></table>
+              </div>
+            </div>
+            <div class="email-panel animate-in" style="max-height:none;position:sticky;top:80px;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:8px;">Borrador de correo</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Para</span>
+                  <input id="ped-email-to" class="search-input" style="flex:1;height:30px;background-image:none;" placeholder="email@destinatario.com">
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Asunto</span>
+                  <input id="ped-email-subject" class="search-input" style="flex:1;height:30px;background-image:none;" value="Pedido incompleto – datos requeridos">
+                </div>
+              </div>
+              <textarea id="ped-email-body" style="width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:16px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un pedido para generar el correo.</textarea>
+              <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="copiarCorreoPedido()">Copiar</button>
+                <button class="btn btn-accent btn-sm" onclick="enviarCorreoPedido()" id="btn-ped-send" style="display:none;">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuración SMTP -->
+    <div id="page-smtp" class="page">
+      <div class="animate-in" style="max-width:520px;">
+        <div id="smtp-status-banner" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:var(--radius);font-size:13px;"></div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;">
+          <div style="margin-bottom:20px;">
+            <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Servidor de correo (SMTP)</div>
+            <div style="font-size:12px;color:var(--text2);">Configura las credenciales para enviar correos directamente desde la app.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Servidor (host)</span>
+              <input id="cfg-host" type="text" placeholder="smtp-mail.outlook.com" value="smtp-mail.outlook.com" style="background-image:none;">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Puerto</span>
+                <select id="cfg-port" style="">
+                  <option value="587">587 (STARTTLS)</option>
+                  <option value="465">465 (SSL)</option>
+                  <option value="25">25 (sin cifrar)</option>
+                </select>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">Estado</span>
+                <div id="smtp-status-pill" style="height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text3);">
+                  <span id="smtp-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;"></span>
+                  <span id="smtp-status-text">Sin verificar</span>
+                </div>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Usuario (correo remitente)</span>
+              <input id="cfg-user" type="email" placeholder="cgs@simecal.com" value="cgs@simecal.com" style="background-image:none;">
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Contraseña</span>
+              <div style="position:relative;">
+                <input id="cfg-pass" type="password" placeholder="Contraseña o contraseña de aplicación" style="background-image:none;padding-right:44px;">
+                <button onclick="togglePassVis()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;" title="Mostrar/ocultar">
+                  <svg id="eye-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;">
+              <strong style="color:var(--text);">Outlook / Microsoft 365:</strong> si la cuenta tiene MFA activada, necesitas una <strong>contraseña de aplicación</strong> (App Password) en <code style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">account.microsoft.com → Seguridad → Contraseñas de aplicación</code>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="btn btn-accent" onclick="saveSmtpConfig()">Guardar</button>
+            <button class="btn btn-outline" onclick="testSmtp()" id="btn-test-smtp">Probar conexión</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -588,13 +733,14 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio'};
-  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados'};
+  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',smtp:'page-smtp'};
+  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',smtp:'Configuración SMTP'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['dashboard','weekly','emails','weekly-emails','all-emails'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['dashboard','weekly','emails','weekly-emails','all-emails','pedidos','directorio','smtp'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
+  if(name==='smtp')loadSmtpConfig();
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
 function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
@@ -842,6 +988,194 @@ function showLoading(msg){const o=document.getElementById('loading-overlay');doc
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
+
+// ══════════════════════════════════════════════════════════════════════
+// MÓDULO DE AUDITORÍA DE PEDIDOS
+// ══════════════════════════════════════════════════════════════════════
+const PS={cabeceras:null,lineas:null,pedidos:[],filtrados:[],selectedPedido:null};
+function tipoServicio(c){c=(c||'').toUpperCase();if(/OCAAE|EICIAE|AE/.test(c))return'AE';if(/OCAREBT24007|GARAJE/.test(c))return'REBT_GARAJE';if(/OCAREBT24010|ZONAS.COMUNES|CP.REBT/.test(c))return'REBT_ZC';if(/OCAREBT24002|REBT.*GASOL|GASOL/.test(c))return'REBT_IP';if(/OCAREBT|REBT/.test(c)||/EICIREBT/.test(c))return'REBT';if(/OCAAP|AP/.test(c))return'AP';if(/ECAPC001|VOLQUET/.test(c))return'SMMIN_VOLQUETE';if(/ECAPC009|PALA/.test(c))return'SMMIN_PALA';if(/SM24|SM/.test(c))return'SM';if(/REAT/.test(c))return'REAT';if(/OCAIP|^IP/.test(c))return'IP';if(/RITE/.test(c))return'RITE';if(/RIPCI/.test(c))return'PI_RIPCI';if(/RSCIEI/.test(c))return'PI_RSCIEI';if(/AEGT/.test(c))return'AEGT';if(/AEGA/.test(c))return'AEGA';if(/ESTANTER/.test(c))return'ESTANTERIAS';if(/LINEAS.VIDA|LVIDA/.test(c))return'LINEAS_VIDA';if(/REBT.PF|PF/.test(c))return'REBT_PF';return'GENERAL';}
+function validarLinea(linea,tipo){
+  const errores=[];const d=linea._json||{};
+  const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
+  const precio=parseFloat(linea['Tot. Contratado']||0);if(!precio||precio<=0)errores.push('Precio unitario = 0');
+  const trabajo=(d.trabajoRealizar||'').trim();if(!trabajo)errores.push('Características del trabajo vacías');
+  const tpce=parseFloat(linea['TPCE']||0);if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
+  const tpie=parseFloat(linea['TPIE']||0);if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
+  if(tipo==='AE'){if(!(d.mantenedor&&d.mantenedor.razonSocial))errores.push('Mantenedor no asignado');if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');}
+  if((tipo==='REBT_ZC'||tipo==='REBT_GARAJE')&&!(d.administrador&&d.administrador.razonSocial))errores.push('Administrador no asignado');
+  if(['SMMIN_VOLQUETE','SMMIN_PALA'].includes(tipo)&&trabajo&&!/SERIE|Nº SERIE/i.test(trabajo))errores.push('Falta Nº de serie en características');
+  if(tipo==='AP'&&trabajo&&!/NIVEL|PRESION|VOLUMEN|COMPRESOR|CALDERA/i.test(trabajo))errores.push('Faltan datos técnicos en características');
+  if(tipo==='REAT'&&trabajo&&!/CT|TRANSFORMADOR|SUBESTACION|LINEA|AÉREO|SUBTERR/i.test(trabajo))errores.push('Faltan datos técnicos del tipo de instalación REAT');
+  return errores;
+}
+function extraerJSON(row){const keys=Object.keys(row);for(let i=keys.length-1;i>=0;i--){const val=String(row[keys[i]]||'');if(val.startsWith('{')&&val.includes('cliente')){try{return JSON.parse(val);}catch(e){return{};}}}return{};}
+(function initPedidosDrops(){
+  const dropCab=document.getElementById('ped-drop-cabeceras'),fileCab=document.getElementById('ped-file-cabeceras');
+  const dropLin=document.getElementById('ped-drop-lineas'),fileLin=document.getElementById('ped-file-lineas');
+  dropCab.addEventListener('dragover',e=>{e.preventDefault();dropCab.classList.add('over')});dropCab.addEventListener('dragleave',()=>dropCab.classList.remove('over'));dropCab.addEventListener('drop',e=>{e.preventDefault();dropCab.classList.remove('over');handlePedFile(e.dataTransfer.files[0],'cab')});fileCab.addEventListener('change',e=>handlePedFile(e.target.files[0],'cab'));
+  dropLin.addEventListener('dragover',e=>{e.preventDefault();dropLin.classList.add('over')});dropLin.addEventListener('dragleave',()=>dropLin.classList.remove('over'));dropLin.addEventListener('drop',e=>{e.preventDefault();dropLin.classList.remove('over');handlePedFile(e.dataTransfer.files[0],'lin')});fileLin.addEventListener('change',e=>handlePedFile(e.target.files[0],'lin'));
+})();
+function handlePedFile(f,tipo){
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=e=>{try{
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    if(tipo==='cab'){PS.cabeceras=rows;document.getElementById('ped-icon-cab').textContent='✅';document.getElementById('ped-label-cab').textContent=f.name;document.getElementById('ped-sub-cab').textContent=rows.length+' pedidos cargados';}
+    else{PS.lineas=rows;document.getElementById('ped-icon-lin').textContent='✅';document.getElementById('ped-label-lin').textContent=f.name;document.getElementById('ped-sub-lin').textContent=rows.length+' líneas cargadas';}
+    if(PS.cabeceras&&PS.lineas)document.getElementById('btn-procesar-ped').style.display='flex';
+  }catch(err){showToast('Error leyendo archivo: '+err.message);}};
+  reader.readAsArrayBuffer(f);
+}
+function procesarPedidos(){
+  if(!PS.lineas)return showToast('Falta el Excel de líneas de pedido');
+  showLoading('Analizando pedidos…');
+  setTimeout(()=>{try{
+    const pedidosMap={};
+    PS.lineas.forEach(row=>{
+      const codigo=String(row['Código']||'').trim();if(!codigo)return;
+      const jsonData=extraerJSON(row);row._json=jsonData;
+      const servicio=String(row['Servicio']||'').trim();
+      const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
+      const errores=validarLinea(row,tipo);
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
+      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
+      pedidosMap[codigo].erroresTotales+=errores.length;
+    });
+    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>b.erroresTotales-a.erroresTotales);
+    PS.filtrados=[...PS.pedidos];
+    hideLoading();
+    document.getElementById('pedidos-upload-zone').style.display='none';
+    document.getElementById('pedidos-results').style.display='block';
+    renderPedidosStats();renderPedidosTable();
+  }catch(err){hideLoading();showToast('Error: '+err.message);}},50);
+}
+function renderPedidosStats(){
+  const total=PS.pedidos.length,conError=PS.pedidos.filter(p=>p.erroresTotales>0).length,ok=total-conError,totalLineas=PS.pedidos.reduce((s,p)=>s+p.lineas.length,0);
+  document.getElementById('ped-stat-grid').innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Total pedidos</div><div class="sc-val">${total}</div><div class="sc-sub">${totalLineas} líneas en total</div></div><div class="stat-card animate-in" style="border-color:rgba(255,92,92,0.2);background:var(--red-dim)"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:var(--red)">${conError}</div><div class="sc-sub">${total>0?Math.round(conError/total*100):0}% requieren corrección</div></div><div class="stat-card accent animate-in"><div class="sc-label">Completos</div><div class="sc-val">${ok}</div><div class="sc-sub">${total>0?Math.round(ok/total*100):0}% sin errores</div></div><div class="stat-card animate-in"><div class="sc-label">Mostrando</div><div class="sc-val">${PS.filtrados.length}</div><div class="sc-sub">de ${total} pedidos</div></div>`;
+}
+function renderPedidosTable(){
+  const tb=document.getElementById('ped-tbody');
+  document.getElementById('ped-table-title').textContent=PS.filtrados.length+' pedidos';
+  if(!PS.filtrados.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin resultados</p></div></td></tr>`;return;}
+  tb.innerHTML=PS.filtrados.map((p,i)=>{
+    const tieneError=p.erroresTotales>0,sel=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
+    const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
+    return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${sel?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.codigo}</span></td>
+      <td><span style="font-size:12px;">${p.cliente}</span></td>
+      <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.creador||'—'}</span></td>
+      <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
+      <td><span class="badge ${tieneError?'badge-bad':'badge-ok'}">${tieneError?p.erroresTotales+' error'+(p.erroresTotales>1?'es':''):'Completo'}</span></td>
+    </tr>`;
+  }).join('');
+}
+function filtrarPedidos(q){
+  const estado=document.getElementById('ped-filter-estado').value;q=(q||'').toLowerCase();
+  PS.filtrados=PS.pedidos.filter(p=>{
+    const matchQ=!q||p.codigo.toLowerCase().includes(q)||p.cliente.toLowerCase().includes(q)||p.creador.toLowerCase().includes(q);
+    const matchE=!estado||(estado==='error'?p.erroresTotales>0:p.erroresTotales===0);
+    return matchQ&&matchE;
+  });
+  renderPedidosStats();renderPedidosTable();
+}
+function seleccionarPedido(codigo){
+  PS.selectedPedido=PS.pedidos.find(p=>p.codigo===codigo);if(!PS.selectedPedido)return;
+  const p=PS.selectedPedido;renderPedidosTable();
+  const erroresStr=p.lineas.flatMap(l=>l.errores.map(e=>`  • Línea (${l.tipo}): ${e}`)).join('\n');
+  const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${p.codigo} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${p.codigo} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
+  document.getElementById('ped-email-to').value=p.emailCreador||'';
+  document.getElementById('ped-email-subject').value=`Pedido ${p.codigo} – datos requeridos`;
+  document.getElementById('ped-email-body').value=cuerpo;
+  document.getElementById('btn-ped-send').style.display=p.erroresTotales>0?'flex':'none';
+}
+function copiarCorreoPedido(){const body=document.getElementById('ped-email-body').value;if(!body||body.startsWith('Selecciona'))return showToast('Selecciona un pedido');navigator.clipboard.writeText(body);showToast('Correo copiado');}
+function enviarCorreoPedido(){
+  const to=document.getElementById('ped-email-to').value.trim(),subject=document.getElementById('ped-email-subject').value.trim(),body=document.getElementById('ped-email-body').value.trim();
+  if(!to||!to.includes('@'))return showToast('Introduce un email válido');
+  const btn=document.getElementById('btn-ped-send');btn.disabled=true;btn.textContent='Enviando…';
+  const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),20000);
+  fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
+    .then(r=>r.json()).then(d=>{clearTimeout(tid);showToast(d.ok?'✓ Correo enviado a '+to:'Error: '+d.error);})
+    .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado':'Error de conexión');})
+    .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> Enviar';});
+}
+function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map(l=>`"${p.codigo}","${p.cliente}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
+function resetPedidos(){PS.cabeceras=null;PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Pedidos';document.getElementById('ped-sub-cab').textContent='Listado resumen de pedidos · .xlsx';document.getElementById('ped-icon-lin').textContent='📄';document.getElementById('ped-label-lin').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-lin').textContent='Detalle por línea con JSON · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';document.getElementById('ped-file-lineas').value='';}
+
+// ── SMTP config ──────────────────────────────────────────────────────────
+function loadSmtpConfig(){
+  fetch('/smtp-config').then(r=>r.json()).then(d=>{
+    document.getElementById('cfg-host').value=d.host||'smtp-mail.outlook.com';
+    document.getElementById('cfg-port').value=String(d.port||'587');
+    document.getElementById('cfg-user').value=d.user||'cgs@simecal.com';
+    document.getElementById('cfg-pass').value='';
+    document.getElementById('cfg-pass').placeholder=d.hasPass?'(guardada — escribe para cambiar)':'Contraseña o contraseña de aplicación';
+    setSmtpStatusUI(d.hasPass?'pending':'missing');
+  }).catch(()=>{});
+}
+function setSmtpStatusUI(state){
+  const dot=document.getElementById('smtp-status-dot');
+  const txt=document.getElementById('smtp-status-text');
+  const navBadge=document.getElementById('smtp-nav-badge');
+  const colors={ok:'var(--accent)',missing:'var(--red)',pending:'var(--amber)',error:'var(--red)'};
+  const labels={ok:'Conexión OK','missing':'Sin contraseña','pending':'Sin verificar','error':'Error de conexión'};
+  dot.style.background=colors[state]||'var(--text3)';
+  txt.textContent=labels[state]||state;
+  navBadge.style.display=(state==='missing'||state==='error')?'block':'none';
+}
+function saveSmtpConfig(){
+  const host=document.getElementById('cfg-host').value.trim();
+  const port=document.getElementById('cfg-port').value;
+  const user=document.getElementById('cfg-user').value.trim();
+  const pass=document.getElementById('cfg-pass').value;
+  if(!pass){showToast('Escribe la contraseña para guardar');return;}
+  fetch('/smtp-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host,port,user,pass})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){showToast('Configuración guardada');setSmtpStatusUI('pending');document.getElementById('cfg-pass').value='';document.getElementById('cfg-pass').placeholder='(guardada — escribe para cambiar)';}
+      else showToast('Error: '+d.error);
+    }).catch(()=>showToast('Error al guardar'));
+}
+function testSmtp(){
+  const btn=document.getElementById('btn-test-smtp');
+  btn.disabled=true;btn.textContent='Probando…';
+  const banner=document.getElementById('smtp-status-banner');
+  fetch('/test-smtp')
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){
+        setSmtpStatusUI('ok');
+        banner.style.display='block';
+        banner.style.background='rgba(76,175,80,0.1)';
+        banner.style.border='1px solid rgba(76,175,80,0.2)';
+        banner.style.color='var(--accent)';
+        banner.textContent='✓ '+d.message;
+      } else {
+        setSmtpStatusUI('error');
+        banner.style.display='block';
+        banner.style.background='var(--red-dim)';
+        banner.style.border='1px solid rgba(255,92,92,0.2)';
+        banner.style.color='var(--red)';
+        banner.textContent='✕ '+d.error;
+      }
+    }).catch(e=>{
+      setSmtpStatusUI('error');
+      banner.style.display='block';
+      banner.style.background='var(--red-dim)';
+      banner.style.border='1px solid rgba(255,92,92,0.2)';
+      banner.style.color='var(--red)';
+      banner.textContent='✕ No se pudo conectar con el servidor';
+    })
+    .finally(()=>{btn.disabled=false;btn.textContent='Probar conexión';});
+}
+function togglePassVis(){
+  const inp=document.getElementById('cfg-pass');
+  inp.type=inp.type==='password'?'text':'password';
+}
+// Verificar estado SMTP al cargar
+fetch('/smtp-config').then(r=>r.json()).then(d=>{
+  if(!d.hasPass)document.getElementById('smtp-nav-badge').style.display='block';
+}).catch(()=>{});
 </script>
 </body>
 </html>

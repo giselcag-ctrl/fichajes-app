@@ -1,5 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const XLSX = require('xlsx');
@@ -22,19 +24,26 @@ Cobertura Nacional – Oficinas e Inspectores en todo el territorio
 << Detectamos riesgos para evitar accidentes >>`;
 
 // ─── Configuración SMTP ────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  host: 'smtp-mail.outlook.com',
-  port: 587,
-  secure: false,
-  connectionTimeout: 10000,  // 10 segundos máximo
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  tls: { ciphers: 'SSLv3', rejectUnauthorized: false },
-  auth: {
-    user: 'cgs@simecal.com',
-    pass: process.env.SMTP_PASS
-  }
-});
+let smtpConfig = {
+  host:  process.env.SMTP_HOST || 'smtp-mail.outlook.com',
+  port:  parseInt(process.env.SMTP_PORT || '587'),
+  user:  process.env.SMTP_USER || 'cgs@simecal.com',
+  pass:  process.env.SMTP_PASS || ''
+};
+
+function makeTransporter() {
+  return nodemailer.createTransport({
+    host: smtpConfig.host,
+    port: smtpConfig.port,
+    secure: smtpConfig.port === 465,
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
+    tls: { rejectUnauthorized: false },
+    auth: { user: smtpConfig.user, pass: smtpConfig.pass }
+  });
+}
+let transporter = makeTransporter();
 
 // ─── Middleware ────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -154,6 +163,50 @@ app.post('/parse-fichajes', upload.single('file'), (req, res) => {
 
   } catch (err) {
     console.error('Error parseando fichajes:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── Endpoint: obtener config SMTP (sin contraseña) ───────────────────────
+app.get('/smtp-config', (req, res) => {
+  res.json({
+    host: smtpConfig.host,
+    port: smtpConfig.port,
+    user: smtpConfig.user,
+    hasPass: !!smtpConfig.pass
+  });
+});
+
+// ─── Endpoint: guardar config SMTP ────────────────────────────────────────
+app.post('/smtp-config', (req, res) => {
+  const { host, port, user, pass } = req.body;
+  if (!host || !port || !user || !pass)
+    return res.status(400).json({ ok: false, error: 'Faltan campos: host, port, user, pass' });
+
+  smtpConfig = { host, port: parseInt(port), user, pass };
+  transporter = makeTransporter();
+
+  // Persistir en .env
+  const envPath = path.join(__dirname, '.env');
+  const lines = [
+    `SMTP_HOST=${host}`,
+    `SMTP_PORT=${port}`,
+    `SMTP_USER=${user}`,
+    `SMTP_PASS=${pass}`
+  ].join('\n') + '\n';
+  try { fs.writeFileSync(envPath, lines); } catch (e) { /* no fatal */ }
+
+  res.json({ ok: true });
+});
+
+// ─── Endpoint: probar conexión SMTP ───────────────────────────────────────
+app.get('/test-smtp', async (req, res) => {
+  if (!smtpConfig.pass)
+    return res.status(400).json({ ok: false, error: 'Contraseña SMTP no configurada' });
+  try {
+    await transporter.verify();
+    res.json({ ok: true, message: 'Conexión SMTP correcta' });
+  } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });

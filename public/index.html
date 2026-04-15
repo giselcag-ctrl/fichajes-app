@@ -174,85 +174,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .expand-icon{margin-left:auto;font-size:11px;color:var(--text3);transition:transform 0.2s;display:inline-block}
 .weekly-row.expanded .expand-icon{transform:rotate(180deg)}
 .no-inc{font-size:12px;color:var(--text3);font-style:italic;padding:8px 0}
-
-/* ── Vacaciones ── */
-.vac-year-nav{display:flex;align-items:center;gap:12px;}
-.vac-year-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all 0.15s;}
-.vac-year-btn:hover{border-color:var(--accent);color:var(--accent);}
-.vac-emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px;}
-.vac-emp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all 0.15s;}
-.vac-emp-card:hover{border-color:var(--accent);background:var(--accent-dim2);}
-.vac-emp-card.selected{border-color:var(--accent);background:var(--accent-dim);}
-.vac-emp-name{font-size:14px;font-weight:500;margin-bottom:8px;}
-.vac-bar-wrap{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:6px;}
-.vac-bar-fill{height:100%;border-radius:99px;transition:width 0.4s;}
-.vac-bar-ok{background:var(--accent);}
-.vac-bar-warn{background:var(--amber);}
-.vac-bar-over{background:var(--red);}
-.vac-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);}
-.vac-calendar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
-.vac-cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
-.vac-cal-months{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);}
-.vac-month{background:var(--bg2);padding:12px;}
-.vac-month-name{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px;font-weight:500;}
-.vac-days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
-.vac-day-label{font-size:9px;color:var(--text3);text-align:center;padding:2px 0;font-weight:500;}
-.vac-day{width:100%;aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'DM Mono',monospace;cursor:default;transition:all 0.1s;}
-.vac-day.empty{background:transparent;}
-.vac-day.normal{background:var(--bg3);color:var(--text3);}
-.vac-day.vacacion{background:rgba(76,175,80,0.25);color:var(--accent);font-weight:600;border:1px solid rgba(76,175,80,0.3);}
-.vac-day.festivo{background:rgba(245,166,35,0.15);color:var(--amber);}
-.vac-day.finde{background:transparent;color:var(--text3);opacity:0.35;}
-.vac-day.hoy{outline:1.5px solid var(--accent);outline-offset:1px;}
-.vac-legend{display:flex;gap:16px;padding:10px 16px;border-top:1px solid var(--border);flex-wrap:wrap;}
-.vac-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
-.vac-legend-dot{width:12px;height:12px;border-radius:3px;}
-.vac-sol-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
-.vac-sol-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:13px;}
-.vac-sol-item.pendiente{border-color:rgba(245,166,35,0.3);}
-.vac-sol-item.aprobada{border-color:rgba(76,175,80,0.3);}
-.vac-sol-item.rechazada{border-color:rgba(255,92,92,0.3);}
-.vac-sol-dates{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);flex:1;}
-.vac-sol-dias{font-weight:600;color:var(--accent);margin-right:8px;}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
-.modal-overlay.open{opacity:1;pointer-events:all;}
-.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px;width:420px;max-width:95vw;}
-.modal-title{font-size:16px;font-weight:500;margin-bottom:20px;}
-.modal-field{margin-bottom:14px;}
-.modal-label{font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:5px;}
-.modal-field input[type=date]{background-image:none;}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
-
-/* ── Calendario ── */
-.cal-wrap{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.cal-title{font-size:16px;font-weight:500;font-family:'DM Sans',sans-serif;text-transform:capitalize}
-.cal-nav{display:flex;gap:6px}
-.cal-nav-btn{width:32px;height:32px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
-.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal-day-name{text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:6px 0;font-weight:500}
-.cal-day{min-height:68px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 6px;cursor:pointer;transition:all 0.15s;position:relative}
-.cal-day:hover{border-color:var(--border2);background:var(--bg3)}
-.cal-day.has-data{border-color:rgba(76,175,80,0.25);background:rgba(76,175,80,0.04)}
-.cal-day.has-incidents{border-color:rgba(255,92,92,0.25)}
-.cal-day.selected{border-color:var(--accent)!important;background:var(--accent-dim)!important}
-.cal-day.other-month{opacity:0.25;pointer-events:none}
-.cal-day.today .cal-day-num{color:var(--accent);font-weight:600}
-.cal-day-num{font-size:12px;font-family:'DM Mono',monospace;color:var(--text3);line-height:1}
-.cal-day.has-data .cal-day-num{color:var(--text)}
-.cal-day-count{font-size:10px;color:var(--text2);margin-top:4px}
-.cal-day-dots{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}
-.cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.cal-dot-ok{background:var(--accent)}
-.cal-dot-inc{background:var(--red)}
-.cal-detail{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:sticky;top:80px}
-.cal-detail-header{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500}
-.cal-detail-empty{padding:40px 20px;text-align:center;color:var(--text3);font-size:13px}
-.cal-detail-list{overflow-y:auto;max-height:520px}
-.cal-detail-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px}
-.cal-detail-item:last-child{border-bottom:none}
-@media(max-width:900px){.cal-wrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -265,8 +186,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     </div>
     <div class="logo-divider"></div>
     <div class="logo-text">
-      <span class="logo-sub">Reportes</span>
       <span class="logo-mark">Fichajes</span>
+      <span class="logo-sub">Reportes · RRHH</span>
     </div>
   </div>
   <nav class="nav">
@@ -291,10 +212,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Todos los correos
     </a>
-    <a class="nav-item" onclick="showPage('calendario')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="5" cy="11" r="1" fill="currentColor"/><circle cx="8" cy="11" r="1" fill="currentColor"/><circle cx="11" cy="11" r="1" fill="currentColor"/></svg>
-      Calendario
-    </a>
     <a class="nav-item" onclick="showPage('pedidos')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="10" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.3 10l.5.5.9-.9" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Auditoría pedidos
@@ -303,11 +220,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <a class="nav-item" onclick="showPage('directorio')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Directorio empleados
-    </a>
-    <a class="nav-item" onclick="showPage('smtp')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="13" cy="12" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.2"/><path d="M13 11v1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="13" cy="13.2" r="0.4" fill="currentColor"/></svg>
-      Config. SMTP
-      <span id="smtp-nav-badge" style="margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--red);display:none;flex-shrink:0;"></span>
     </a>
   </nav>
   <div class="sidebar-footer" id="sidebar-file" style="display:none;">
@@ -458,169 +370,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- Calendario -->
-    <div id="page-calendario" class="page">
-      <div class="animate-in">
-        <div class="cal-wrap">
-          <div>
-            <div class="cal-header">
-              <span class="cal-title" id="cal-title">—</span>
-              <div class="cal-nav">
-                <button class="cal-nav-btn" onclick="calNav(-1)" title="Mes anterior">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <button class="cal-nav-btn" onclick="calNav(0)" title="Hoy">Hoy</button>
-                <button class="cal-nav-btn" onclick="calNav(1)" title="Mes siguiente">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-              </div>
-            </div>
-            <div class="cal-grid" id="cal-grid"></div>
-          </div>
-          <div class="cal-detail" id="cal-detail">
-            <div class="cal-detail-header" id="cal-detail-title">Selecciona un día</div>
-            <div id="cal-detail-body"><div class="cal-detail-empty">Haz clic en un día con datos para ver los registros.</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Auditoría de Pedidos -->
-    <div id="page-pedidos" class="page">
-      <div class="animate-in" style="max-width:100%;">
-        <div id="pedidos-upload-zone" style="display:block;">
-          <div style="margin-bottom:24px;">
-            <h2 style="font-size:20px;font-weight:400;margin-bottom:6px;">Auditoría de <span style="color:var(--accent)">pedidos</span></h2>
-            <p style="color:var(--text2);font-size:13px;">Sube los dos Excel exportados del ERP para detectar campos incompletos y generar correos de reclamación.</p>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-            <div class="dir-drop" id="ped-drop-cabeceras" style="margin-bottom:0;">
-              <input type="file" id="ped-file-cabeceras" accept=".xlsx,.xls">
-              <div class="dir-drop-icon" id="ped-icon-cab">📋</div>
-              <h3 id="ped-label-cab">Excel de Pedidos</h3>
-              <p id="ped-sub-cab">Listado resumen de pedidos · .xlsx</p>
-            </div>
-            <div class="dir-drop" id="ped-drop-lineas" style="margin-bottom:0;">
-              <input type="file" id="ped-file-lineas" accept=".xlsx,.xls">
-              <div class="dir-drop-icon" id="ped-icon-lin">📄</div>
-              <h3 id="ped-label-lin">Excel de Líneas de Pedido</h3>
-              <p id="ped-sub-lin">Detalle por línea con JSON · .xlsx</p>
-            </div>
-          </div>
-          <button class="btn btn-accent" onclick="procesarPedidos()" id="btn-procesar-ped" style="display:none;width:100%;justify-content:center;height:44px;font-size:14px;">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l1.5 1.5L10 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Analizar pedidos
-          </button>
-        </div>
-        <div id="pedidos-results" style="display:none;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-            <button class="btn btn-ghost btn-sm" onclick="resetPedidos()">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Cargar nuevos archivos
-            </button>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <input class="search-input" style="width:220px;height:32px;background-image:none;" type="text" placeholder="Buscar pedido o cliente…" oninput="filtrarPedidos(this.value)" id="ped-search">
-              <select id="ped-filter-estado" onchange="filtrarPedidos(document.getElementById('ped-search').value)" style="height:32px;width:160px;font-size:12px;">
-                <option value="">Todos los estados</option>
-                <option value="error">Con errores</option>
-                <option value="ok">Completos</option>
-              </select>
-            </div>
-          </div>
-          <div class="stat-grid animate-in" id="ped-stat-grid" style="margin-bottom:20px;"></div>
-          <div style="display:grid;grid-template-columns:1fr 420px;gap:16px;align-items:start;">
-            <div class="table-container animate-in" style="overflow:hidden;">
-              <div class="table-header">
-                <h3 id="ped-table-title">Pedidos</h3>
-                <div class="table-actions"><button class="btn btn-ghost btn-sm" onclick="exportPedidosCSV()">Exportar CSV</button></div>
-              </div>
-              <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
-                <table><thead><tr><th>Nº SAP</th><th>Pedido</th><th>Cliente</th><th>Servicio</th><th>Creador</th><th>Incidencias</th><th>Estado</th></tr></thead>
-                <tbody id="ped-tbody"></tbody></table>
-              </div>
-            </div>
-            <div class="email-panel animate-in" style="max-height:none;position:sticky;top:80px;">
-              <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:8px;">Borrador de correo</div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Para</span>
-                  <input id="ped-email-to" class="search-input" style="flex:1;height:30px;background-image:none;" placeholder="email@destinatario.com">
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Asunto</span>
-                  <input id="ped-email-subject" class="search-input" style="flex:1;height:30px;background-image:none;" value="Pedido incompleto – datos requeridos">
-                </div>
-              </div>
-              <textarea id="ped-email-body" style="width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:16px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un pedido para generar el correo.</textarea>
-              <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
-                <button class="btn btn-ghost btn-sm" onclick="copiarCorreoPedido()">Copiar</button>
-                <button class="btn btn-accent btn-sm" onclick="enviarCorreoPedido()" id="btn-ped-send" style="display:none;">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-                  Enviar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Configuración SMTP -->
-    <div id="page-smtp" class="page">
-      <div class="animate-in" style="max-width:520px;">
-        <div id="smtp-status-banner" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:var(--radius);font-size:13px;"></div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;">
-          <div style="margin-bottom:20px;">
-            <div style="font-size:15px;font-weight:500;margin-bottom:4px;">Servidor de correo (SMTP)</div>
-            <div style="font-size:12px;color:var(--text2);">Configura las credenciales para enviar correos directamente desde la app.</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div class="ctrl-group">
-              <span class="ctrl-label">Servidor (host)</span>
-              <input id="cfg-host" type="text" placeholder="smtp-mail.outlook.com" value="smtp-mail.outlook.com" style="background-image:none;">
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div class="ctrl-group">
-                <span class="ctrl-label">Puerto</span>
-                <select id="cfg-port" style="">
-                  <option value="587">587 (STARTTLS)</option>
-                  <option value="465">465 (SSL)</option>
-                  <option value="25">25 (sin cifrar)</option>
-                </select>
-              </div>
-              <div class="ctrl-group">
-                <span class="ctrl-label">Estado</span>
-                <div id="smtp-status-pill" style="height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text3);">
-                  <span id="smtp-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;"></span>
-                  <span id="smtp-status-text">Sin verificar</span>
-                </div>
-              </div>
-            </div>
-            <div class="ctrl-group">
-              <span class="ctrl-label">Usuario (correo remitente)</span>
-              <input id="cfg-user" type="email" placeholder="cgs@simecal.com" value="cgs@simecal.com" style="background-image:none;">
-            </div>
-            <div class="ctrl-group">
-              <span class="ctrl-label">Contraseña</span>
-              <div style="position:relative;">
-                <input id="cfg-pass" type="password" placeholder="Contraseña o contraseña de aplicación" style="background-image:none;padding-right:44px;">
-                <button onclick="togglePassVis()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;" title="Mostrar/ocultar">
-                  <svg id="eye-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
-                </button>
-              </div>
-            </div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;">
-              <strong style="color:var(--text);">Outlook / Microsoft 365:</strong> si la cuenta tiene MFA activada, necesitas una <strong>contraseña de aplicación</strong> (App Password) en <code style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">account.microsoft.com → Seguridad → Contraseñas de aplicación</code>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:20px;">
-            <button class="btn btn-accent" onclick="saveSmtpConfig()">Guardar</button>
-            <button class="btn btn-outline" onclick="testSmtp()" id="btn-test-smtp">Probar conexión</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Directorio de empleados -->
     <div id="page-directorio" class="page">
       <div class="animate-in">
@@ -650,6 +399,110 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             </table>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── Auditoría de Pedidos ── -->
+    <div id="page-pedidos" class="page">
+      <div class="animate-in" style="max-width:100%;">
+
+        <!-- Upload zone para pedidos -->
+        <div id="pedidos-upload-zone" style="display:block;">
+          <div style="margin-bottom:24px;">
+            <h2 style="font-size:20px;font-weight:400;margin-bottom:6px;">Auditoría de <span style="color:var(--accent)">pedidos</span></h2>
+            <p style="color:var(--text2);font-size:13px;">Sube los dos Excel exportados del ERP para detectar campos incompletos y generar correos de reclamación.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+            <div class="dir-drop" id="ped-drop-cabeceras" style="margin-bottom:0;">
+              <input type="file" id="ped-file-cabeceras" accept=".xlsx,.xls">
+              <div class="dir-drop-icon" id="ped-icon-cab">📋</div>
+              <h3 id="ped-label-cab">Excel de Pedidos</h3>
+              <p id="ped-sub-cab">Listado resumen de pedidos · .xlsx</p>
+            </div>
+            <div class="dir-drop" id="ped-drop-lineas" style="margin-bottom:0;">
+              <input type="file" id="ped-file-lineas" accept=".xlsx,.xls">
+              <div class="dir-drop-icon" id="ped-icon-lin">📄</div>
+              <h3 id="ped-label-lin">Excel de Líneas de Pedido</h3>
+              <p id="ped-sub-lin">Detalle por línea con JSON · .xlsx</p>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="procesarPedidos()" id="btn-procesar-ped" style="display:none;width:100%;justify-content:center;height:44px;font-size:14px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l1.5 1.5L10 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Analizar pedidos
+          </button>
+        </div>
+
+        <!-- Resultados de auditoría -->
+        <div id="pedidos-results" style="display:none;">
+          <!-- Botón volver + stats -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="resetPedidos()">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Cargar nuevos archivos
+            </button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input class="search-input" style="width:220px;height:32px;background-image:none;" type="text" placeholder="Buscar pedido o cliente…" oninput="filtrarPedidos(this.value)" id="ped-search">
+              <select id="ped-filter-estado" onchange="filtrarPedidos(document.getElementById('ped-search').value)" style="height:32px;width:160px;font-size:12px;">
+                <option value="">Todos los estados</option>
+                <option value="error">Con errores</option>
+                <option value="ok">Completos</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="stat-grid animate-in" id="ped-stat-grid" style="margin-bottom:20px;"></div>
+
+          <!-- Vista: lista pedidos + panel correo -->
+          <div style="display:grid;grid-template-columns:1fr 420px;gap:16px;align-items:start;">
+            <!-- Tabla pedidos -->
+            <div class="table-container animate-in" style="overflow:hidden;">
+              <div class="table-header">
+                <h3 id="ped-table-title">Pedidos</h3>
+                <div class="table-actions">
+                  <button class="btn btn-ghost btn-sm" onclick="exportPedidosCSV()">Exportar CSV</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
+                <table>
+                  <thead><tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Creador</th>
+                    <th>Incidencias</th>
+                    <th>Estado</th>
+                  </tr></thead>
+                  <tbody id="ped-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Panel correo -->
+            <div class="email-panel animate-in" style="max-height:none;position:sticky;top:80px;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:8px;">Borrador de correo</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Para</span>
+                  <input id="ped-email-to" class="search-input" style="flex:1;height:30px;background-image:none;" placeholder="email@destinatario.com">
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:11px;color:var(--text3);min-width:48px;">Asunto</span>
+                  <input id="ped-email-subject" class="search-input" style="flex:1;height:30px;background-image:none;" value="Pedido incompleto – datos requeridos">
+                </div>
+              </div>
+              <textarea id="ped-email-body" style="width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:16px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un pedido para generar el correo.</textarea>
+              <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="copiarCorreoPedido()">Copiar</button>
+                <button class="btn btn-accent btn-sm" onclick="enviarCorreoPedido()" id="btn-ped-send" style="display:none;">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -707,100 +560,10 @@ function handleFile(f){
     .catch(err=>{
       hideLoading();
       setP(0);
-      alert('Error: '+err.message);
+      showToast('Error: '+err.message);
     });
 }
 function setP(v){document.getElementById('progress').style.width=v+'%'}
-function parseWB(wb,fname){
-  S.fileName=fname;
-  const allNames=wb.SheetNames;
-
-  // ── 1. Buscar hoja Resumen Diario ──────────────────────────────────────
-  // Formato real: Sheet 0=Fichajes Detalle, Sheet 1=Resumen Diario, Sheet 2=Resumen por Empleado
-  const dsName=allNames.find(n=>/diario/i.test(n))
-    ||allNames.find(n=>/resumen/i.test(n)&&!/empleado/i.test(n))
-    ||allNames[1]||allNames[0];
-  if(!dsName||!wb.Sheets[dsName])
-    throw new Error('No se encontró "Resumen Diario". Hojas: '+allNames.join(', '));
-
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets[dsName],{header:1,defval:''});
-  const days={};let cd=null;
-
-  for(let i=0;i<rows.length;i++){
-    const row=rows[i];
-    if(!row||!row.length)continue;
-    const c0=String(row[0]||'').trim();
-    if(!c0)continue;
-
-    // Fila separadora de día: contiene 📅 o patrón "XX DE MES DE YYYY"
-    const esSeparador=c0.includes('📅')||(/\d+\s+DE\s+\w+\s+DE\s+\d{4}/i.test(c0));
-    if(esSeparador){
-      // La fecha puede estar en col B (row[1]) como número Excel, o extraerse del texto
-      const rawFecha=row[1];
-      cd=rawFecha?eDate(rawFecha):pHeader(c0);
-      if(cd&&!days[cd])days[cd]=[];
-      continue;
-    }
-
-    // Saltar cabeceras y filas de título
-    if(!cd)continue;
-    if(c0==='Empleado'||/informe|resumen|fichaje/i.test(c0))continue;
-    if(!/^[A-Za-z0-9]/.test(c0))continue;
-
-    // Fila de datos: Empleado | Fecha | Entrada | Salida | Horas | Previsto | Incidencia
-    const emp=c0;
-    const fechaRaw=row[1];
-    const fecha=fechaRaw?eDate(fechaRaw):cd;
-    const entrada=String(row[2]||'').trim();
-    const salida=String(row[3]||'').trim();
-    const horas=parseFloat(String(row[4]||'0').replace(',','.'))||0;
-    const previsto=parseFloat(String(row[5]||'8').replace(',','.'))||8;
-    const incidencia=String(row[6]||'').trim();
-
-    if(emp&&entrada&&salida){
-      if(!days[cd])days[cd]=[];
-      days[cd].push({emp,fecha,entrada,salida,horas,previsto,incidencia});
-    }
-  }
-  S.days=days;
-
-  // ── 2. Buscar hoja Resumen por Empleado ───────────────────────────────
-  const wsName=allNames.find(n=>/empleado/i.test(n))
-    ||allNames.find(n=>/semanal/i.test(n))
-    ||allNames[2]||null;
-
-  if(wsName&&wb.Sheets[wsName]){
-    const wr=XLSX.utils.sheet_to_json(wb.Sheets[wsName],{header:1,defval:''});
-    const wd={};let wl='';
-    for(let i=0;i<wr.length;i++){
-      const row=wr[i];
-      if(!row||!row.length)continue;
-      const c0=String(row[0]||'').trim();
-      if(!c0)continue;
-      // Fila de título/cabecera de sección → usar como etiqueta de semana
-      if(/resumen|semana/i.test(c0)||c0==='Empleado'){
-        if(c0!=='Empleado'){wl=c0;if(!wd[wl])wd[wl]=[];}
-        continue;
-      }
-      if(!wl||!/^[A-Za-z0-9]/.test(c0))continue;
-      wd[wl].push({
-        emp:c0,
-        diasTrabajados:parseInt(String(row[1]||'0'))||0,
-        totalHoras:parseFloat(String(row[2]||'0').replace(',','.'))||0,
-        mediaHoras:parseFloat(String(row[3]||'0').replace(',','.'))||0,
-        incidencias:String(row[4]||'—').trim(),
-        enCentro:String(row[5]||'').trim(),
-        diasIncidencias:[]
-      });
-    }
-    S.weeklyData=wd;
-    S.weeks=Object.keys(wd);
-  }
-
-  if(!S.weeks||!S.weeks.length)buildWeekly();
-  enrichWeeklyWithDays();
-  initApp();
-}
 function enrichWeeklyWithDays(){
   if(!S.weeklyData)return;
   S.weeks.forEach(w=>{
@@ -844,15 +607,13 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',calendario:'page-calendario',directorio:'page-directorio',pedidos:'page-pedidos',smtp:'page-smtp'};
-  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',calendario:'Calendario',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',smtp:'Configuración SMTP'};
+  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos'};
+  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['dashboard','weekly','emails','weekly-emails','all-emails','calendario','pedidos','directorio','smtp'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
-  if(name==='calendario')renderCalendario();
+  ['dashboard','weekly','emails','weekly-emails','all-emails','pedidos'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
-  if(name==='smtp')loadSmtpConfig();
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
 function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
@@ -904,7 +665,6 @@ function renderWeeklyTable(rows){
       <td><span class="${ec?'present-dot':'absent-dot'}" style="margin-right:6px;"></span>${ec?'Sí':r.enCentro==='N/D'?'N/D':'No'}</td>
       <td><span class="badge ${r.mediaHoras>=7&&inc===0?'badge-ok':inc>2?'badge-bad':'badge-warn'}">${r.mediaHoras>=7&&inc===0?'Correcto':inc>2?'Revisar':'Atención'}</span></td>
     </tr>`;
-    // Detail row
     let detailContent='';
     if(diasInc.length>0){
       detailContent=diasInc.map(d=>{
@@ -925,7 +685,6 @@ function toggleWeeklyDetail(rowId){
   const detail=document.getElementById('detail_'+rowId);
   if(!detail)return;
   const isOpen=detail.classList.contains('open');
-  // Close all others
   document.querySelectorAll('.detail-row.open').forEach(d=>d.classList.remove('open'));
   document.querySelectorAll('.weekly-row.expanded').forEach(r=>r.classList.remove('expanded'));
   if(!isOpen){detail.classList.add('open');row.classList.add('expanded');}
@@ -972,15 +731,10 @@ function sendCurrentEmail(){
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
   fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
     .then(r=>r.json())
-    .then(d=>{
-      clearTimeout(tid);
-      if(d.ok){showToast('✓ Correo enviado a '+to);}
-      else{showToast('Error: '+d.error);}
-    })
+    .then(d=>{clearTimeout(tid);if(d.ok){showToast('✓ Correo enviado a '+to);}else{showToast('Error: '+d.error);}})
     .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
-function openMailClient(){const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===S.selectedEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildEmail(row))}`)}
 function renderWeeklyEmailList(){
   const w=document.getElementById('weekly-email-select').value,rows=S.weeklyData[w]||[];
   S.weeklyEmailRows=rows;renderWeeklyEmpList(rows);if(rows.length>0)selWeeklyEmp(rows[0].emp);
@@ -1004,11 +758,8 @@ function selWeeklyEmp(emp){
 function buildWeeklyEmail(row,week){
   const diasInc=row.diasIncidencias||[];
   let bullets='';
-  if(diasInc.length>0){
-    bullets=diasInc.map(d=>`  • ${d.fecha}: ${d.tipo}`).join('\n');
-  } else {
-    bullets='  • Sin incidencias registradas en el periodo';
-  }
+  if(diasInc.length>0){bullets=diasInc.map(d=>`  • ${d.fecha}: ${d.tipo}`).join('\n');}
+  else{bullets='  • Sin incidencias registradas en el periodo';}
   return`Estimado/a ${row.emp},\n\nTras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, estos son los fichajes que se deben corregir:\n\n${bullets}${FIRMA_CORREO}`;
 }
 function copyCurrentWeeklyEmail(){const body=document.getElementById('weekly-email-body').value;if(!body||body.startsWith('Selecciona'))return showToast('Selecciona un empleado');navigator.clipboard.writeText(body);showToast('Correo copiado')}
@@ -1023,15 +774,10 @@ function sendCurrentWeeklyEmail(){
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
   fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
     .then(r=>r.json())
-    .then(d=>{
-      clearTimeout(tid);
-      if(d.ok){showToast('✓ Correo enviado a '+to);}
-      else{showToast('Error: '+d.error);}
-    })
+    .then(d=>{clearTimeout(tid);if(d.ok){showToast('✓ Correo enviado a '+to);}else{showToast('Error: '+d.error);}})
     .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
-function openWeeklyMailClient(){const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===S.selectedWeeklyEmp);if(!row)return showToast('Selecciona un empleado');window.open(`mailto:${getEmail(row.emp)}?subject=${encodeURIComponent('Revisión de Fichajes')}&body=${encodeURIComponent(buildWeeklyEmail(row,w))}`)}
 function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${getEmail(r.emp)}\nASUNTO: Revisión de Fichajes\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
 function copyAllEmails(){navigator.clipboard.writeText(document.getElementById('all-emails-body').textContent);showToast('Todos los correos copiados')}
 function downloadAllEmailsTxt(){const day=document.getElementById('all-email-day-select').value;downloadText(document.getElementById('all-emails-body').textContent,`correos_${day.replace(/\//g,'-')}.txt`);showToast('Descargado')}
@@ -1047,27 +793,20 @@ function handleDirectorioFile(f){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1});
       if(!rows.length)return showToast('El archivo está vacío');
-      // Detectar si hay cabecera (ninguna celda de la fila 0 contiene '@')
       const row0=rows[0].map(c=>String(c||''));
       const hasHeader=!row0.some(c=>c.includes('@'));
       const startRow=hasHeader?1:0;
-      // Detectar si hay 3 columnas (SIGLAS, NOMBRE, EMAIL) o 2 (SIGLAS/NOMBRE, EMAIL)
       const has3cols=rows[startRow]&&rows[startRow][2]!==undefined&&String(rows[startRow][2]).includes('@');
       let added=0;
       for(let i=startRow;i<rows.length;i++){
-        const col0=String(rows[i][0]||'').trim(); // siglas o nombre
-        const col1=String(rows[i][1]||'').trim(); // nombre (si 3 cols) o email
-        const col2=String(rows[i][2]||'').trim(); // email (si 3 cols)
+        const col0=String(rows[i][0]||'').trim();
+        const col1=String(rows[i][1]||'').trim();
+        const col2=String(rows[i][2]||'').trim();
         if(has3cols){
-          // 3 columnas: SIGLAS | NOMBRE | EMAIL
-          const siglas=col0, nombre=col1, email=col2;
-          if(email.includes('@')){
-            if(siglas){S.empleados[siglas]=email;added++;}
-            if(nombre){S.empleados[nombre]=email;} // mismo email para nombre completo
-          }
-        } else {
-          // 2 columnas: SIGLAS/NOMBRE | EMAIL
-          const clave=col0, email=col1;
+          const siglas=col0,nombre=col1,email=col2;
+          if(email.includes('@')){if(siglas){S.empleados[siglas]=email;added++;}if(nombre){S.empleados[nombre]=email;}}
+        }else{
+          const clave=col0,email=col1;
           if(clave&&email.includes('@')){S.empleados[clave]=email;added++;}
         }
       }
@@ -1096,113 +835,6 @@ function renderDirectorioTable(){
 }
 function deleteEmpleado(nombre){delete S.empleados[nombre];localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));renderDirectorioTable();showToast('Eliminado')}
 function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
-function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
-function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
-function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
-
-// ══════════════════════════════════════════════════════════════════════
-// MÓDULO CALENDARIO
-// ══════════════════════════════════════════════════════════════════════
-const CAL={year:new Date().getFullYear(),month:new Date().getMonth()};
-const DIAS_ES=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-const MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-function renderCalendario(){
-  const hoy=new Date();
-  document.getElementById('cal-title').textContent=MESES_ES[CAL.month]+' '+CAL.year;
-  const grid=document.getElementById('cal-grid');
-
-  // Cabeceras días
-  let html=DIAS_ES.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
-
-  // Primer día del mes (ajustado a lunes=0)
-  const primerDia=new Date(CAL.year,CAL.month,1);
-  const ultimoDia=new Date(CAL.year,CAL.month+1,0);
-  let startDow=primerDia.getDay(); // 0=dom
-  startDow=startDow===0?6:startDow-1; // convertir a lunes=0
-
-  // Días del mes anterior para rellenar
-  for(let i=0;i<startDow;i++){
-    const d=new Date(CAL.year,CAL.month,-(startDow-1-i));
-    html+=`<div class="cal-day other-month"><div class="cal-day-num">${d.getDate()}</div></div>`;
-  }
-
-  // Días del mes actual
-  for(let d=1;d<=ultimoDia.getDate();d++){
-    const fechaStr=pad(d)+'/'+pad(CAL.month+1)+'/'+CAL.year;
-    const rows=S.days[fechaStr]||[];
-    const tieneData=rows.length>0;
-    const incidencias=rows.filter(r=>gSt(r).key!=='ok').length;
-    const esHoy=hoy.getDate()===d&&hoy.getMonth()===CAL.month&&hoy.getFullYear()===CAL.year;
-
-    let cls='cal-day';
-    if(tieneData)cls+=' has-data';
-    if(incidencias>0)cls+=' has-incidents';
-    if(esHoy)cls+=' today';
-
-    let inner=`<div class="cal-day-num">${d}</div>`;
-    if(tieneData){
-      inner+=`<div class="cal-day-count">${rows.length} emp.</div>`;
-      const dotsOk=rows.filter(r=>gSt(r).key==='ok').length;
-      const dotsInc=rows.length-dotsOk;
-      inner+=`<div class="cal-day-dots">`;
-      for(let i=0;i<Math.min(dotsOk,6);i++)inner+=`<div class="cal-dot cal-dot-ok"></div>`;
-      for(let i=0;i<Math.min(dotsInc,6);i++)inner+=`<div class="cal-dot cal-dot-inc"></div>`;
-      inner+=`</div>`;
-    }
-    html+=`<div class="${cls}" onclick="calSelDay('${fechaStr}')" title="${fechaStr}">${inner}</div>`;
-  }
-
-  // Días del mes siguiente para completar la última fila
-  const totalCeldas=startDow+ultimoDia.getDate();
-  const restantes=totalCeldas%7===0?0:7-(totalCeldas%7);
-  for(let i=1;i<=restantes;i++){
-    html+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
-  }
-
-  grid.innerHTML=html;
-}
-
-function calNav(dir){
-  if(dir===0){CAL.year=new Date().getFullYear();CAL.month=new Date().getMonth();}
-  else{CAL.month+=dir;if(CAL.month>11){CAL.month=0;CAL.year++;}else if(CAL.month<0){CAL.month=11;CAL.year--;}}
-  renderCalendario();
-  document.getElementById('cal-detail-title').textContent='Selecciona un día';
-  document.getElementById('cal-detail-body').innerHTML='<div class="cal-detail-empty">Haz clic en un día con datos para ver los registros.</div>';
-}
-
-function calSelDay(fecha){
-  // Quitar selección anterior
-  document.querySelectorAll('.cal-day.selected').forEach(el=>el.classList.remove('selected'));
-  // Marcar seleccionado
-  document.querySelectorAll('.cal-day').forEach(el=>{if(el.getAttribute('title')===fecha)el.classList.add('selected');});
-
-  const rows=S.days[fecha]||[];
-  document.getElementById('cal-detail-title').textContent=fDay(fecha)+' · '+rows.length+' empleado'+(rows.length!==1?'s':'');
-
-  if(!rows.length){
-    document.getElementById('cal-detail-body').innerHTML='<div class="cal-detail-empty">Sin registros este día.</div>';
-    return;
-  }
-
-  document.getElementById('cal-detail-body').innerHTML=rows.map(r=>{
-    const st=gSt(r);
-    const diff=r.horas-r.previsto;
-    const ds=(diff>=0?'+':'')+diff.toFixed(1)+'h';
-    const dc=st.key==='ok'?'var(--accent)':st.key==='warn'?'var(--amber)':'var(--red)';
-    return`<div class="cal-detail-item">
-      <div style="width:8px;height:8px;border-radius:50%;background:${dc};flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div style="font-weight:500;font-size:12px;">${r.emp}</div>
-        <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;">${r.entrada} → ${r.salida} · ${r.horas.toFixed(1)}h</div>
-        ${r.incidencia&&r.incidencia!=='—'?`<div style="font-size:10px;color:${dc};margin-top:2px;">${r.incidencia}</div>`:''}
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:${diff<0?'var(--red)':diff>0?'var(--amber)':'var(--text3)'};">${ds}</div>
-    </div>`;
-  }).join('');
-}
-
 // ══════════════════════════════════════════════════════════════════════
 // MÓDULO DE AUDITORÍA DE PEDIDOS
 // ══════════════════════════════════════════════════════════════════════
@@ -1257,7 +889,7 @@ function procesarPedidos(){
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
     });
-    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>a.numeroSAP.localeCompare(b.numeroSAP,undefined,{numeric:true}));
+    PS.pedidos=Object.values(pedidosMap).sort((a,b)=>b.erroresTotales-a.erroresTotales);
     PS.filtrados=[...PS.pedidos];
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';
@@ -1274,21 +906,22 @@ function renderPedidosTable(){
   document.getElementById('ped-table-title').textContent=PS.filtrados.length+' pedidos';
   if(!PS.filtrados.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin resultados</p></div></td></tr>`;return;}
   tb.innerHTML=PS.filtrados.map((p,i)=>{
-    const tieneError=p.erroresTotales>0,sel=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
+    const tieneError=p.erroresTotales>0,badgeCls=tieneError?'badge-bad':'badge-ok',badgeLabel=tieneError?`${p.erroresTotales} error${p.erroresTotales>1?'es':''}`:'Completo';
     const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
-    return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${sel?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
-      <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.numeroSAP||'—'}</span></td>
+    const selected=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
+    return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.codigo}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
       <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.creador||'—'}</span></td>
       <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
-      <td><span class="badge ${tieneError?'badge-bad':'badge-ok'}">${tieneError?p.erroresTotales+' error'+(p.erroresTotales>1?'es':''):'Completo'}</span></td>
+      <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;
   }).join('');
 }
 function filtrarPedidos(q){
-  const estado=document.getElementById('ped-filter-estado').value;q=(q||'').toLowerCase();
+  const estado=document.getElementById('ped-filter-estado').value;
+  q=(q||'').toLowerCase();
   PS.filtrados=PS.pedidos.filter(p=>{
     const matchQ=!q||p.codigo.toLowerCase().includes(q)||p.cliente.toLowerCase().includes(q)||p.creador.toLowerCase().includes(q);
     const matchE=!estado||(estado==='error'?p.erroresTotales>0:p.erroresTotales===0);
@@ -1297,7 +930,8 @@ function filtrarPedidos(q){
   renderPedidosStats();renderPedidosTable();
 }
 function seleccionarPedido(codigo){
-  PS.selectedPedido=PS.pedidos.find(p=>p.codigo===codigo);if(!PS.selectedPedido)return;
+  PS.selectedPedido=PS.pedidos.find(p=>p.codigo===codigo);
+  if(!PS.selectedPedido)return;
   const p=PS.selectedPedido;renderPedidosTable();
   const erroresStr=p.lineas.flatMap(l=>l.errores.map(e=>`  • Línea (${l.tipo}): ${e}`)).join('\n');
   const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${p.codigo} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${p.codigo} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
@@ -1319,79 +953,10 @@ function enviarCorreoPedido(){
 }
 function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map(l=>`"${p.codigo}","${p.cliente}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
 function resetPedidos(){PS.cabeceras=null;PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Pedidos';document.getElementById('ped-sub-cab').textContent='Listado resumen de pedidos · .xlsx';document.getElementById('ped-icon-lin').textContent='📄';document.getElementById('ped-label-lin').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-lin').textContent='Detalle por línea con JSON · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';document.getElementById('ped-file-lineas').value='';}
-
-// ── SMTP config ──────────────────────────────────────────────────────────
-function loadSmtpConfig(){
-  fetch('/smtp-config').then(r=>r.json()).then(d=>{
-    document.getElementById('cfg-host').value=d.host||'smtp-mail.outlook.com';
-    document.getElementById('cfg-port').value=String(d.port||'587');
-    document.getElementById('cfg-user').value=d.user||'cgs@simecal.com';
-    document.getElementById('cfg-pass').value='';
-    document.getElementById('cfg-pass').placeholder=d.hasPass?'(guardada — escribe para cambiar)':'Contraseña o contraseña de aplicación';
-    setSmtpStatusUI(d.hasPass?'pending':'missing');
-  }).catch(()=>{});
-}
-function setSmtpStatusUI(state){
-  const dot=document.getElementById('smtp-status-dot');
-  const txt=document.getElementById('smtp-status-text');
-  const navBadge=document.getElementById('smtp-nav-badge');
-  const colors={ok:'var(--accent)',missing:'var(--red)',pending:'var(--amber)',error:'var(--red)'};
-  const labels={ok:'Conexión OK','missing':'Sin contraseña','pending':'Sin verificar','error':'Error de conexión'};
-  dot.style.background=colors[state]||'var(--text3)';
-  txt.textContent=labels[state]||state;
-  navBadge.style.display=(state==='missing'||state==='error')?'block':'none';
-}
-function saveSmtpConfig(){
-  const host=document.getElementById('cfg-host').value.trim();
-  const port=document.getElementById('cfg-port').value;
-  const user=document.getElementById('cfg-user').value.trim();
-  const pass=document.getElementById('cfg-pass').value;
-  if(!pass){showToast('Escribe la contraseña para guardar');return;}
-  fetch('/smtp-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host,port,user,pass})})
-    .then(r=>r.json()).then(d=>{
-      if(d.ok){showToast('Configuración guardada');setSmtpStatusUI('pending');document.getElementById('cfg-pass').value='';document.getElementById('cfg-pass').placeholder='(guardada — escribe para cambiar)';}
-      else showToast('Error: '+d.error);
-    }).catch(()=>showToast('Error al guardar'));
-}
-function testSmtp(){
-  const btn=document.getElementById('btn-test-smtp');
-  btn.disabled=true;btn.textContent='Probando…';
-  const banner=document.getElementById('smtp-status-banner');
-  fetch('/test-smtp')
-    .then(r=>r.json()).then(d=>{
-      if(d.ok){
-        setSmtpStatusUI('ok');
-        banner.style.display='block';
-        banner.style.background='rgba(76,175,80,0.1)';
-        banner.style.border='1px solid rgba(76,175,80,0.2)';
-        banner.style.color='var(--accent)';
-        banner.textContent='✓ '+d.message;
-      } else {
-        setSmtpStatusUI('error');
-        banner.style.display='block';
-        banner.style.background='var(--red-dim)';
-        banner.style.border='1px solid rgba(255,92,92,0.2)';
-        banner.style.color='var(--red)';
-        banner.textContent='✕ '+d.error;
-      }
-    }).catch(e=>{
-      setSmtpStatusUI('error');
-      banner.style.display='block';
-      banner.style.background='var(--red-dim)';
-      banner.style.border='1px solid rgba(255,92,92,0.2)';
-      banner.style.color='var(--red)';
-      banner.textContent='✕ No se pudo conectar con el servidor';
-    })
-    .finally(()=>{btn.disabled=false;btn.textContent='Probar conexión';});
-}
-function togglePassVis(){
-  const inp=document.getElementById('cfg-pass');
-  inp.type=inp.type==='password'?'text':'password';
-}
-// Verificar estado SMTP al cargar
-fetch('/smtp-config').then(r=>r.json()).then(d=>{
-  if(!d.hasPass)document.getElementById('smtp-nav-badge').style.display='block';
-}).catch(()=>{});
+function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
+function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
 </script>
 </body>
 </html>

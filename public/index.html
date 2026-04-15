@@ -441,8 +441,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               Cargar nuevos archivos
             </button>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <input class="search-input" style="width:220px;height:32px;background-image:none;" type="text" placeholder="Buscar pedido o cliente…" oninput="filtrarPedidos(this.value)" id="ped-search">
-              <select id="ped-filter-estado" onchange="filtrarPedidos(document.getElementById('ped-search').value)" style="height:32px;width:160px;font-size:12px;">
+              <input class="search-input" style="width:200px;height:32px;background-image:none;" type="text" placeholder="Buscar pedido o cliente…" oninput="filtrarPedidos()" id="ped-search">
+              <select id="ped-filter-empleado" onchange="filtrarPedidos()" style="height:32px;width:160px;font-size:12px;">
+                <option value="">Todos los empleados</option>
+              </select>
+              <input type="date" id="ped-filter-fecha" onchange="filtrarPedidos()" style="height:32px;width:150px;font-size:12px;background-image:none;" title="Filtrar por fecha de pedido">
+              <select id="ped-filter-estado" onchange="filtrarPedidos()" style="height:32px;width:150px;font-size:12px;">
                 <option value="">Todos los estados</option>
                 <option value="error">Con errores</option>
                 <option value="ok">Completos</option>
@@ -885,7 +889,8 @@ function procesarPedidos(){
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
       const errores=validarLinea(row,tipo);
       const numSAP=String(row['Número SAP']||'').trim();
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
+      const fechaRaw=String(row['Fecha']||row['Fecha Creación']||row['Fecha Pedido']||row['F. Creación']||row['Fecha pedido']||'').trim();
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
     });
@@ -894,6 +899,7 @@ function procesarPedidos(){
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';
     document.getElementById('pedidos-results').style.display='block';
+    poblarFiltroEmpleados();
     renderPedidosStats();renderPedidosTable();
   }catch(err){hideLoading();showToast('Error: '+err.message);}},50);
 }
@@ -919,15 +925,36 @@ function renderPedidosTable(){
     </tr>`;
   }).join('');
 }
-function filtrarPedidos(q){
+function filtrarPedidos(){
+  const q=(document.getElementById('ped-search').value||'').toLowerCase();
   const estado=document.getElementById('ped-filter-estado').value;
-  q=(q||'').toLowerCase();
+  const empleado=document.getElementById('ped-filter-empleado').value.toLowerCase();
+  const fecha=document.getElementById('ped-filter-fecha').value; // YYYY-MM-DD
   PS.filtrados=PS.pedidos.filter(p=>{
     const matchQ=!q||p.codigo.toLowerCase().includes(q)||p.cliente.toLowerCase().includes(q)||p.creador.toLowerCase().includes(q);
     const matchE=!estado||(estado==='error'?p.erroresTotales>0:p.erroresTotales===0);
-    return matchQ&&matchE;
+    const matchEmp=!empleado||p.creador.toLowerCase().includes(empleado);
+    const matchF=!fecha||normFecha(p.fecha)===fecha;
+    return matchQ&&matchE&&matchEmp&&matchF;
   });
   renderPedidosStats();renderPedidosTable();
+}
+function normFecha(f){
+  if(!f)return'';
+  // Intentar varios formatos: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, timestamps Excel
+  const s=String(f).trim();
+  const m1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m1)return`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  const m2=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if(m2)return`${m2[1]}-${m2[2].padStart(2,'0')}-${m2[3].padStart(2,'0')}`;
+  // Número Excel (días desde 1900)
+  if(/^\d+$/.test(s)){try{const d=XLSX.SSF.parse_date_code(parseInt(s));return`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;}catch(e){}}
+  return s.substring(0,10);
+}
+function poblarFiltroEmpleados(){
+  const sel=document.getElementById('ped-filter-empleado');
+  const empleados=[...new Set(PS.pedidos.map(p=>p.creador).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos los empleados</option>'+empleados.map(e=>`<option value="${e}">${e}</option>`).join('');
 }
 function seleccionarPedido(codigo){
   PS.selectedPedido=PS.pedidos.find(p=>p.codigo===codigo);

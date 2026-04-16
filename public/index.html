@@ -97,6 +97,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .badge-warn::before{background:var(--amber)}
 .badge-bad{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,0.2)}
 .badge-bad::before{background:var(--red)}
+.badge-vac{background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.25)}
+.badge-vac::before{background:#4FC3F7}
 .hours-bar{display:flex;align-items:center;gap:8px}
 .hours-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;max-width:80px}
 .hours-fill{height:100%;border-radius:99px;background:var(--accent);transition:width 0.3s}
@@ -270,7 +272,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <div class="controls animate-in">
         <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="day-select" onchange="applyFilters()"></select></div>
         <div class="ctrl-group"><span class="ctrl-label">Empleado</span><select id="emp-filter" onchange="applyFilters()"><option value="">Todos</option></select></div>
-        <div class="ctrl-group"><span class="ctrl-label">Estado</span><select id="status-filter" onchange="applyFilters()"><option value="">Todos</option><option value="ok">Normal</option><option value="warn">Exceso jornada</option><option value="bad">Jornada corta</option></select></div>
+        <div class="ctrl-group"><span class="ctrl-label">Estado</span><select id="status-filter" onchange="applyFilters()"><option value="">Todos</option><option value="ok">Normal</option><option value="warn">Exceso jornada</option><option value="bad">Jornada corta</option><option value="vac">Vacaciones</option></select></div>
       </div>
       <div class="stat-grid animate-in" id="stat-grid"></div>
       <div class="table-container animate-in">
@@ -586,7 +588,7 @@ function enrichWeeklyWithDays(){
 }
 function buildWeekly(){
   const em={};
-  Object.entries(S.days).forEach(([d,rows])=>rows.forEach(r=>{if(!em[r.emp])em[r.emp]={emp:r.emp,dias:0,totalHoras:0,incidencias:0};em[r.emp].dias++;em[r.emp].totalHoras+=r.horas;if(r.incidencia&&r.incidencia!=='—'&&r.incidencia!=='')em[r.emp].incidencias++}));
+  Object.entries(S.days).forEach(([d,rows])=>rows.forEach(r=>{if(!em[r.emp])em[r.emp]={emp:r.emp,dias:0,totalHoras:0,incidencias:0,vacaciones:0};em[r.emp].dias++;em[r.emp].totalHoras+=r.horas;if(r.incidencia&&r.incidencia!=='—'&&r.incidencia!==''){if(/vacac/i.test(r.incidencia))em[r.emp].vacaciones++;else em[r.emp].incidencias++;}}));
   const lbl='Semana completa';
   S.weeklyData[lbl]=Object.values(em).map(e=>({emp:e.emp,diasTrabajados:e.dias,totalHoras:parseFloat(e.totalHoras.toFixed(2)),mediaHoras:parseFloat((e.totalHoras/e.dias).toFixed(2)),incidencias:e.incidencias>0?String(e.incidencias):'—',enCentro:'N/D',diasIncidencias:[]}));
   S.weeks=[lbl];
@@ -621,7 +623,7 @@ function showPage(name){
   if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
-function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
+function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(/vacac/i.test(inc))return{key:'vac',label:'Vacaciones',cls:'badge-vac'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
 function applyFilters(){
   const day=document.getElementById('day-select').value,empF=document.getElementById('emp-filter').value,stF=document.getElementById('status-filter').value;
   let rows=S.days[day]||[];
@@ -632,15 +634,17 @@ function applyFilters(){
   renderStats(rows,day);renderTable(rows,day);
 }
 function renderStats(rows,day){
-  const t=rows.length,ok=rows.filter(r=>gSt(r).key==='ok').length,inc=t-ok,avg=t>0?(rows.reduce((s,r)=>s+r.horas,0)/t):0,tot=rows.reduce((s,r)=>s+r.horas,0);
-  document.getElementById('stat-grid').innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Empleados</div><div class="sc-val">${t}</div><div class="sc-sub">registros ese día</div></div><div class="stat-card accent animate-in"><div class="sc-label">Sin incidencias</div><div class="sc-val">${ok}</div><div class="sc-sub">${t>0?Math.round(ok/t*100):0}% del total</div></div><div class="stat-card animate-in"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:${inc>0?'var(--red)':'var(--text)'}">${inc}</div><div class="sc-sub">${t>0?Math.round(inc/t*100):0}% del total</div></div><div class="stat-card animate-in"><div class="sc-label">Media horas</div><div class="sc-val">${avg.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${tot.toFixed(1)}h total</div></div>`;
+  const t=rows.length,vac=rows.filter(r=>gSt(r).key==='vac').length,ok=rows.filter(r=>gSt(r).key==='ok').length,inc=rows.filter(r=>{const k=gSt(r).key;return k!=='ok'&&k!=='vac';}).length,activos=rows.filter(r=>gSt(r).key!=='vac'),avg=activos.length>0?(activos.reduce((s,r)=>s+r.horas,0)/activos.length):0,tot=activos.reduce((s,r)=>s+r.horas,0);
+  document.getElementById('stat-grid').innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Empleados</div><div class="sc-val">${t}</div><div class="sc-sub">registros ese día</div></div><div class="stat-card accent animate-in"><div class="sc-label">Sin incidencias</div><div class="sc-val">${ok}</div><div class="sc-sub">${t>0?Math.round(ok/t*100):0}% del total</div></div><div class="stat-card animate-in"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:${inc>0?'var(--red)':'var(--text)'}">${inc}</div><div class="sc-sub">${t>0?Math.round(inc/t*100):0}% del total</div></div>${vac>0?`<div class="stat-card animate-in"><div class="sc-label">Vacaciones</div><div class="sc-val" style="color:#4FC3F7">${vac}</div><div class="sc-sub">${t>0?Math.round(vac/t*100):0}% del total</div></div>`:''}<div class="stat-card animate-in"><div class="sc-label">Media horas</div><div class="sc-val">${avg.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${tot.toFixed(1)}h total</div></div>`;
 }
 function renderTable(rows,day){
   document.getElementById('table-heading').textContent=`${rows.length} empleado(s) · ${fDay(day)}`;
   const tb=document.getElementById('main-tbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin registros</p></div></td></tr>`;return}
-  tb.innerHTML=rows.map((r,i)=>{const st=gSt(r),diff=r.horas-r.previsto,ds=(diff>=0?'+':'')+diff.toFixed(2)+'h',pct=Math.min(Math.round(r.horas/r.previsto*100),100),fc=r.horas>r.previsto+2?'over':r.horas<7?'under':'';
-  return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;"><td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td><td><span class="time-val">${r.entrada}</span></td><td><span class="time-val">${r.salida}</span></td><td><div class="hours-bar"><div class="hours-track"><div class="hours-fill ${fc}" style="width:${pct}%"></div></div><span class="hours-num">${r.horas.toFixed(2)}h</span></div></td><td><span class="time-val">${r.previsto}h</span></td><td style="color:${diff<-1?'var(--red)':diff>2?'var(--amber)':'var(--text2)'};font-family:'DM Mono',monospace;font-size:12px;">${ds}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`}).join('');
+  tb.innerHTML=rows.map((r,i)=>{const st=gSt(r),isVac=st.key==='vac',diff=r.horas-r.previsto,ds=(diff>=0?'+':'')+diff.toFixed(2)+'h',pct=r.previsto>0?Math.min(Math.round(r.horas/r.previsto*100),100):0,fc=r.horas>r.previsto+2?'over':r.horas<7?'under':'';
+  const horasCell=isVac?`<span style="font-size:12px;color:#4FC3F7;font-family:'DM Mono',monospace;">—</span>`:`<div class="hours-bar"><div class="hours-track"><div class="hours-fill ${fc}" style="width:${pct}%"></div></div><span class="hours-num">${r.horas.toFixed(2)}h</span></div>`;
+  const diffCell=isVac?`<span style="color:var(--text3);font-size:12px;">—</span>`:`<span style="color:${diff<-1?'var(--red)':diff>2?'var(--amber)':'var(--text2)'};font-family:'DM Mono',monospace;font-size:12px;">${ds}</span>`;
+  return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;${isVac?'opacity:0.75;':''}"><td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td><td><span class="time-val">${isVac?'—':r.entrada}</span></td><td><span class="time-val">${isVac?'—':r.salida}</span></td><td>${horasCell}</td><td><span class="time-val">${r.previsto}h</span></td><td>${diffCell}</td><td><span class="badge ${st.cls}">${st.label}</span></td></tr>`}).join('');
 }
 function renderWeekly(){
   const w=document.getElementById('week-select').value,rows=S.weeklyData[w]||[];

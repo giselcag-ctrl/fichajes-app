@@ -1549,8 +1549,18 @@ function renderResumenSummary(){
       const st=gSt(r);if(st.key!=='ok')empMap[r.emp].incidencias.push({fecha,tipo:st.label,key:st.key});
     });
   });
+  // Poblar el select solo si los empleados cambiaron (no en cada onChange)
   const sel=document.getElementById('resumen-emp-filter');
-  if(sel){const prev=sel.value;const emps=Object.keys(empMap).sort();sel.innerHTML='<option value="">Todos los empleados</option>'+emps.map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');if(prev&&emps.includes(prev))sel.value=prev;}
+  if(sel){
+    const emps=Object.keys(empMap).sort();
+    const curOpts=[...sel.options].slice(1).map(o=>o.value);
+    const changed=emps.length!==curOpts.length||emps.some((e,i)=>e!==curOpts[i]);
+    if(changed){
+      const prev=sel.value;
+      sel.innerHTML='<option value="">Todos los empleados</option>'+emps.map(e=>`<option value="${e}">${e}</option>`).join('');
+      if(prev&&emps.includes(prev))sel.value=prev;
+    }
+  }
   renderResumenAlertas(empMap);
   renderResumenChart(empMap,empFilter);
   let rows=Object.values(empMap).sort((a,b)=>a.emp.localeCompare(b.emp));

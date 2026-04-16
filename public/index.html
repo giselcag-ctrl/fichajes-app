@@ -870,8 +870,8 @@ function handlePedFile(f,tipo){
   if(!f)return;
   const reader=new FileReader();
   reader.onload=e=>{try{
-    const wb=XLSX.read(e.target.result,{type:'array'});
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
     if(tipo==='cab'){PS.cabeceras=rows;document.getElementById('ped-icon-cab').textContent='✅';document.getElementById('ped-label-cab').textContent=f.name;document.getElementById('ped-sub-cab').textContent=rows.length+' pedidos cargados';}
     else{PS.lineas=rows;document.getElementById('ped-icon-lin').textContent='✅';document.getElementById('ped-label-lin').textContent=f.name;document.getElementById('ped-sub-lin').textContent=rows.length+' líneas cargadas';}
     if(PS.cabeceras&&PS.lineas)document.getElementById('btn-procesar-ped').style.display='flex';
@@ -943,18 +943,27 @@ function filtrarPedidos(){
 }
 function parseFechaPed(v){
   if(!v&&v!==0)return'';
+  // Objeto Date (cellDates:true)
+  if(v instanceof Date){
+    const d=v;
+    return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  }
   // Serial numérico de Excel
-  if(typeof v==='number'||(/^\d{5}$/.test(String(v).trim()))){
-    try{const d=XLSX.SSF.parse_date_code(parseInt(v));return`${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;}catch(e){}
+  if(typeof v==='number'){
+    try{const d=XLSX.SSF.parse_date_code(v);return`${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;}catch(e){}
   }
   const s=String(v).trim();
   if(!s)return'';
   // Ya viene como DD/MM/YYYY o DD-MM-YYYY
   const m1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if(m1)return`${m1[1].padStart(2,'0')}/${m1[2].padStart(2,'0')}/${m1[3]}`;
-  // YYYY-MM-DD
+  // YYYY-MM-DD o YYYY/MM/DD
   const m2=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
   if(m2)return`${m2[3].padStart(2,'0')}/${m2[2].padStart(2,'0')}/${m2[1]}`;
+  // Puede venir como número en string (serial de 5 dígitos)
+  if(/^\d{5}$/.test(s)){
+    try{const d=XLSX.SSF.parse_date_code(parseInt(s));return`${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;}catch(e){}
+  }
   return s;
 }
 function normFecha(f){

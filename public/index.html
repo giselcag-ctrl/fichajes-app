@@ -603,9 +603,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 </style>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <script>
-let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[],empleados:{}};
-// Cargar directorio de empleados guardado en el navegador
-try{const saved=localStorage.getItem('simecal_empleados');if(saved)S.empleados=JSON.parse(saved);}catch(e){}
+const EMPLEADOS_PRESET={'CGS':'cgs@simecal.com','Carolina González Serrano':'cgs@simecal.com'};
+let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[],empleados:{...EMPLEADOS_PRESET}};
+// Cargar directorio de empleados guardado en el navegador (se fusiona con preset)
+try{const saved=localStorage.getItem('simecal_empleados');if(saved)S.empleados={...EMPLEADOS_PRESET,...JSON.parse(saved)};}catch(e){}
 const dz=document.getElementById('drop-zone'),fi=document.getElementById('file-input');
 // Drop zone del directorio
 const ddz=document.getElementById('dir-drop-zone'),dfi=document.getElementById('dir-file-input');
@@ -1026,7 +1027,7 @@ function renderDirectorioTable(){
     </tr>`).join('');
 }
 function deleteEmpleado(nombre){delete S.empleados[nombre];localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));renderDirectorioTable();showToast('Eliminado')}
-function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
+function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={...EMPLEADOS_PRESET};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
 // ══════════════════════════════════════════════════════════════════════
 // MÓDULO DE AUDITORÍA DE PEDIDOS
 // ══════════════════════════════════════════════════════════════════════

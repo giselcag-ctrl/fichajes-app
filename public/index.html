@@ -556,7 +556,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
     <!-- ── Vacaciones ── -->
     <div id="page-vacaciones" class="page">
-      <div class="animate-in" style="max-width:920px;">
+      <div class="animate-in" style="max-width:1100px;">
         <!-- Config bar -->
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
           <div style="display:flex;align-items:center;gap:8px;">
@@ -571,9 +571,23 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <span style="font-size:12px;color:var(--text3);">Máx. anual</span>
             <input type="number" id="vac-max-anual" value="22" min="1" max="60" step="1" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
           </div>
-          <input class="search-input" id="vac-search" style="width:200px;height:30px;background-image:none;margin-left:auto;" type="text" placeholder="Buscar empleado…" oninput="renderVacaciones()">
+          <input class="search-input" id="vac-search" style="width:190px;height:30px;background-image:none;margin-left:auto;" type="text" placeholder="Buscar empleado…" oninput="renderVacaciones()">
+          <button class="btn btn-ghost" onclick="exportVacacionesCSV()" style="height:30px;font-size:12px;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Exportar CSV
+          </button>
         </div>
+        <!-- Stats cards -->
         <div id="vac-stats-cards" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
+        <!-- Chart mensual -->
+        <div id="vac-chart-wrap" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:500;">Días de vacaciones por mes</span>
+            <span style="font-size:11px;color:var(--text3);">total empresa</span>
+          </div>
+          <div style="position:relative;height:160px;"><canvas id="vac-chart"></canvas></div>
+        </div>
+        <!-- Tabla matricial -->
         <div id="vac-table-wrap">
           <div class="empty-state"><div class="es-icon">🏖️</div><p>Carga un fichaje para ver las vacaciones</p></div>
         </div>
@@ -1220,6 +1234,8 @@ function esFestivo(fechaDDMMYYYY){
   if(!_festCache[year])_festCache[year]=festivosEspanya(year);
   return _festCache[year].has(fechaDDMMYYYY);
 }
+const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let _vacChart=null;
 function renderVacaciones(){
   // Configuración
   const inicioEl=document.getElementById('vac-inicio');
@@ -1230,84 +1246,145 @@ function renderVacaciones(){
   const maxAnual=parseFloat((document.getElementById('vac-max-anual')||{}).value||22);
   const q=(document.getElementById('vac-search')||{}).value||'';
 
-  // Meses transcurridos desde inicio hasta hoy (fraccionado)
+  // Meses transcurridos desde inicio hasta hoy
   const hoy=new Date();
-  const msTotal=(hoy-inicio);
-  const mesesTransc=Math.max(0,msTotal/(1000*60*60*24*30.4375));
+  const mesesTransc=Math.max(0,(hoy-inicio)/(1000*60*60*24*30.4375));
   const diasAcum=Math.min(parseFloat((mesesTransc*diasMes).toFixed(1)),maxAnual);
 
-  // Agregar días usados de S.days (excluyendo festivos nacionales de España)
+  // Agregar días de vacaciones desde S.days (detectados en campo incidencia)
   const vacMap={};
   Object.entries(S.days||{}).forEach(([fecha,rows])=>{
     rows.forEach(r=>{
-      if(gSt(r).key==='vac'){
-        if(!vacMap[r.emp])vacMap[r.emp]={emp:r.emp,dias:[],diasFestivos:[],usados:0};
-        if(esFestivo(fecha)){
-          vacMap[r.emp].diasFestivos.push(fecha); // festivo: no cuenta
-        } else {
-          vacMap[r.emp].dias.push(fecha);
-          vacMap[r.emp].usados++;
-        }
+      if(gSt(r).key!=='vac')return;
+      if(!vacMap[r.emp])vacMap[r.emp]={emp:r.emp,dias:[],diasFestivos:[],porMes:{}};
+      if(esFestivo(fecha)){
+        vacMap[r.emp].diasFestivos.push(fecha);
+      } else {
+        vacMap[r.emp].dias.push(fecha);
+        // extraer mes (1-12) de DD/MM/YYYY
+        const mes=parseInt(fecha.split('/')[1]);
+        vacMap[r.emp].porMes[mes]=(vacMap[r.emp].porMes[mes]||[]);
+        vacMap[r.emp].porMes[mes].push(fecha);
       }
     });
   });
 
-  // Calcular restantes
+  // Calcular totales y restantes
   Object.values(vacMap).forEach(e=>{
+    e.usados=e.dias.length;
     e.acumulados=diasAcum;
     e.restantes=parseFloat((diasAcum-e.usados).toFixed(1));
   });
+
+  // Determinar meses que tienen datos
+  const mesesConDatos=new Set();
+  Object.values(vacMap).forEach(e=>Object.keys(e.porMes).forEach(m=>mesesConDatos.add(parseInt(m))));
+  const mesesActivos=[...mesesConDatos].sort((a,b)=>a-b);
 
   let data=Object.values(vacMap).sort((a,b)=>b.usados-a.usados);
   if(q)data=data.filter(e=>e.emp.toLowerCase().includes(q.toLowerCase()));
 
   const wrap=document.getElementById('vac-table-wrap');
   const cards=document.getElementById('vac-stats-cards');
+  const chartWrap=document.getElementById('vac-chart-wrap');
 
   // Stats cards
   if(cards){
-    const totalEmps=data.length,totalUsados=data.reduce((s,e)=>s+e.usados,0),totalRestantes=data.reduce((s,e)=>s+e.restantes,0).toFixed(1);
+    const totalEmps=Object.keys(vacMap).length; // total sin filtro
+    const totalUsados=Object.values(vacMap).reduce((s,e)=>s+e.usados,0);
+    const totalFestivos=Object.values(vacMap).reduce((s,e)=>s+e.diasFestivos.length,0);
+    const avgRestantes=totalEmps>0?(Object.values(vacMap).reduce((s,e)=>s+e.restantes,0)/totalEmps).toFixed(1):0;
     cards.innerHTML=totalEmps?`
-      <div class="stat-card animate-in"><div class="sc-label">Empleados con vacaciones</div><div class="sc-val" style="color:#4FC3F7">${totalEmps}</div><div class="sc-sub">en el fichaje</div></div>
-      <div class="stat-card animate-in"><div class="sc-label">Días acumulados/empleado</div><div class="sc-val">${diasAcum.toFixed(1)}<span style="font-size:14px;color:var(--text2);">d</span></div><div class="sc-sub">${mesesTransc.toFixed(1)} meses × ${diasMes}d/mes</div></div>
-      <div class="stat-card animate-in"><div class="sc-label">Total disfrutados</div><div class="sc-val" style="color:var(--amber)">${totalUsados}</div><div class="sc-sub">días entre todos</div></div>
-      <div class="stat-card accent animate-in"><div class="sc-label">Promedio restantes</div><div class="sc-val">${totalEmps?(totalRestantes/totalEmps).toFixed(1):0}<span style="font-size:14px;color:var(--text2);">d</span></div><div class="sc-sub">por empleado</div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(79,195,247,0.12);color:#4FC3F7;"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 8h4M13 6v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:#4FC3F7">${totalEmps}</div><div class="w-stat-label">Empleados</div><div class="w-stat-sub">con vacaciones en el fichaje</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(245,166,35,0.12);color:var(--amber);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:var(--amber)">${totalUsados}</div><div class="w-stat-label">Días disfrutados</div><div class="w-stat-sub">total empresa · ${totalFestivos} festivos excluidos</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val">${diasAcum.toFixed(1)}d</div><div class="w-stat-label">Acumulados/empleado</div><div class="w-stat-sub">${mesesTransc.toFixed(1)} meses × ${diasMes}d/mes</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val">${avgRestantes}d</div><div class="w-stat-label">Promedio restantes</div><div class="w-stat-sub">por empleado</div></div></div>
     `:'';
   }
+
+  // Gráfica mensual (total días empresa por mes)
+  if(chartWrap&&typeof Chart!=='undefined'&&mesesActivos.length>0){
+    chartWrap.style.display='block';
+    const canvas=document.getElementById('vac-chart');
+    const totalesPorMes=mesesActivos.map(m=>Object.values(vacMap).reduce((s,e)=>(s+(e.porMes[m]||[]).length),0));
+    if(_vacChart){_vacChart.destroy();}
+    _vacChart=new Chart(canvas,{
+      type:'bar',
+      data:{labels:mesesActivos.map(m=>MESES_CORTOS[m-1]),datasets:[{data:totalesPorMes,backgroundColor:'rgba(79,195,247,0.6)',borderRadius:4,barPercentage:0.6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} día${ctx.raw!==1?'s':''}`}}},scales:{x:{grid:{display:false},ticks:{color:'#8899aa',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8899aa',font:{size:11},stepSize:1},beginAtZero:true}},animation:{duration:300}}
+    });
+  } else if(chartWrap){chartWrap.style.display='none';}
 
   if(!data.length){
     wrap.innerHTML=`<div class="empty-state"><div class="es-icon">🏖️</div><p>${Object.keys(S.days||{}).length?'Sin empleados con vacaciones'+(q?' que coincidan':''):'Carga un fichaje para ver las vacaciones'}</p></div>`;
     return;
   }
 
+  const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+
+  // Tabla matricial: Empleado | mes1 | mes2 | ... | Total | Acumulados | Restantes
+  const thMeses=mesesActivos.map(m=>`<th style="text-align:center;min-width:44px;">${MESES_CORTOS[m-1]}</th>`).join('');
+  const rows=data.map((e,i)=>{
+    const restColor=e.restantes<0?'var(--red)':e.restantes<=3?'var(--amber)':'var(--accent)';
+    const restIcon=e.restantes<0?'⚠ ':'';
+    const pct=e.acumulados>0?Math.min(Math.round(e.usados/e.acumulados*100),100):0;
+    const tdMeses=mesesActivos.map(m=>{
+      const cnt=(e.porMes[m]||[]).length;
+      const fechasTip=(e.porMes[m]||[]).join(', ');
+      return cnt>0
+        ?`<td style="text-align:center;" title="${fechasTip}"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(79,195,247,0.15);color:#4FC3F7;border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;">${cnt}</span></td>`
+        :`<td style="text-align:center;color:var(--text3);">—</td>`;
+    }).join('');
+    const rowId=`vrow_${i}`;
+    const detailRow=`<tr id="vdet_${i}" style="display:none;"><td colspan="${4+mesesActivos.length}" style="padding:0;"><div style="padding:12px 16px 16px 60px;background:var(--bg3);border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Fechas disfrutadas</div>
+      <div>${sortF(e.dias).map(f=>`<span style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}${e.diasFestivos.length?'<div style="margin-top:6px;font-size:11px;color:var(--text3);">Festivos (no computan): '+sortF(e.diasFestivos).map(f=>`<span style="display:inline-block;background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.2);border-radius:99px;font-size:10px;font-family:\'DM Mono\',monospace;padding:1px 8px;margin:2px;">🎉 ${f}</span>`).join('')+'</div>':''}</div>
+    </div></td></tr>`;
+    return`<tr id="${rowId}" style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;" onclick="toggleVacDetail(${i})">
+      <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${e.emp.substring(0,3)}</div><span class="emp-name">${e.emp}</span><span style="font-size:10px;color:var(--text3);margin-left:4px;">▼</span></div></td>
+      ${tdMeses}
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:#4FC3F7;">${e.usados}</span><div style="width:44px;height:2px;background:var(--bg3);border-radius:99px;overflow:hidden;margin:3px auto 0;"><div style="height:100%;width:${pct}%;background:#4FC3F7;border-radius:99px;"></div></div></td>
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${e.acumulados.toFixed(1)}d</span></td>
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${restColor};">${restIcon}${e.restantes}</span></td>
+    </tr>${detailRow}`;
+  }).join('');
+
   wrap.innerHTML=`<div class="table-container"><div style="overflow-x:auto;"><table><thead><tr>
-    <th>Empleado</th>
+    <th>Empleado</th>${thMeses}
+    <th style="text-align:center;">Usados</th>
     <th style="text-align:center;">Acumulados</th>
-    <th style="text-align:center;">Disfrutados</th>
     <th style="text-align:center;">Restantes</th>
-    <th>Fechas disfrutadas</th>
-  </tr></thead><tbody>${
-    data.map((e,i)=>{
-      const restColor=e.restantes<0?'var(--red)':e.restantes<=3?'var(--amber)':'var(--accent)';
-      const restIcon=e.restantes<0?'⚠️ ':'';
-      const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
-      const chips=sortF(e.dias).map(f=>`<span title="Día de vacaciones" style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">${f}</span>`).join('');
-      const chipsFest=(e.diasFestivos||[]).length>0?sortF(e.diasFestivos).map(f=>`<span title="Festivo nacional — no computa" style="display:inline-block;background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">🎉 ${f}</span>`).join(''):'';
-      const pct=e.acumulados>0?Math.min(Math.round(e.usados/e.acumulados*100),100):0;
-      return`<tr style="animation:fadeIn 0.2s ${i*0.03}s both;">
-        <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${e.emp.substring(0,3)}</div><span class="emp-name">${e.emp}</span></div></td>
-        <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--text2);">${e.acumulados.toFixed(1)}d</span></td>
-        <td style="text-align:center;">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-            <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:#4FC3F7;">${e.usados}</span>
-            <div style="width:60px;height:3px;background:var(--bg3);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#4FC3F7;border-radius:99px;"></div></div>
-          </div>
-        </td>
-        <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${restColor};">${restIcon}${e.restantes}</span></td>
-        <td style="max-width:420px;">${chips}${chipsFest}</td>
-      </tr>`;
-    }).join('')
-  }</tbody></table></div></div>`;
+  </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function toggleVacDetail(i){
+  const det=document.getElementById('vdet_'+i);
+  if(det)det.style.display=det.style.display==='none'?'table-row':'none';
+}
+function exportVacacionesCSV(){
+  const vacMap={};
+  Object.entries(S.days||{}).forEach(([fecha,rows])=>{
+    rows.forEach(r=>{
+      if(gSt(r).key==='vac'&&!esFestivo(fecha)){
+        if(!vacMap[r.emp])vacMap[r.emp]=[];
+        vacMap[r.emp].push(fecha);
+      }
+    });
+  });
+  if(!Object.keys(vacMap).length)return showToast('Sin datos de vacaciones');
+  const inicioStr=(document.getElementById('vac-inicio')||{}).value||vacInicioDefault();
+  const diasMes=parseFloat((document.getElementById('vac-dias-mes')||{}).value||2.5);
+  const maxAnual=parseFloat((document.getElementById('vac-max-anual')||{}).value||22);
+  const mesesTransc=Math.max(0,(new Date()-new Date(inicioStr+'T00:00:00'))/(1000*60*60*24*30.4375));
+  const diasAcum=Math.min(parseFloat((mesesTransc*diasMes).toFixed(1)),maxAnual);
+  const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+  const lines=['Empleado,Días usados,Acumulados,Restantes,Fechas'];
+  Object.entries(vacMap).sort((a,b)=>b[1].length-a[1].length).forEach(([emp,dias])=>{
+    const usados=dias.length,restantes=(diasAcum-usados).toFixed(1);
+    lines.push(`"${emp}",${usados},${diasAcum.toFixed(1)},${restantes},"${sortF(dias).join(' | ')}"`);
+  });
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vacaciones.csv';a.click();URL.revokeObjectURL(a.href);
+  showToast('CSV exportado ✓');
 }
 function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}

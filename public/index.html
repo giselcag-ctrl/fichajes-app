@@ -719,14 +719,13 @@ function pHeader(s){const m=s.match(/(\d{2}\/\d{2}\/\d{4})/);if(m)return m[1];co
 function initApp(){
   const sd=Object.keys(S.days).sort((a,b)=>pDateR(b)-pDateR(a));
   const ae=[...new Set(Object.values(S.days).flat().map(r=>r.emp))].sort();
-  ['day-select','email-day-select','all-email-day-select'].forEach(id=>{document.getElementById(id).innerHTML=sd.map(d=>`<option value="${d}">${fDay(d)}</option>`).join('')});
-  document.getElementById('emp-filter').innerHTML='<option value="">Todos</option>'+ae.map(e=>`<option value="${e}">${e}</option>`).join('');
+  ['email-day-select','all-email-day-select'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=sd.map(d=>`<option value="${d}">${fDay(d)}</option>`).join('');});
   ['week-select','weekly-email-select'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=S.weeks.map(w=>`<option value="${w}">${w}</option>`).join('')});
   document.getElementById('sf-name').textContent=S.fileName;
   document.getElementById('sidebar-file').style.display='block';
   document.getElementById('btn-reset').style.display='flex';
   document.getElementById('topbar-date').style.display='flex';
-  document.getElementById('chip-file-name').textContent=S.fileName;
+  const _cfn=document.getElementById('chip-file-name');if(_cfn)_cfn.textContent=S.fileName;
   showPage('resumen');renderEmailList();renderAllEmails();renderWeeklyEmailList();renderVacaciones();initResumenCalendar();
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
@@ -740,7 +739,7 @@ function showPage(name){
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
   ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
-  if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
+  const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
 function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(/vacac/i.test(inc))return{key:'vac',label:'Vacaciones',cls:'badge-vac'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}

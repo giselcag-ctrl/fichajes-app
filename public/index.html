@@ -571,7 +571,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <span style="font-size:12px;color:var(--text3);">Máx. anual</span>
             <input type="number" id="vac-max-anual" value="22" min="1" max="60" step="1" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
           </div>
-          <input class="search-input" id="vac-search" style="width:190px;height:30px;background-image:none;margin-left:auto;" type="text" placeholder="Buscar empleado…" oninput="renderVacaciones()">
+          <select id="vac-search" onchange="renderVacaciones()" style="height:30px;width:190px;font-size:12px;margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;">
+            <option value="">Todos los empleados</option>
+          </select>
           <button class="btn btn-ghost" onclick="exportVacacionesCSV()" style="height:30px;font-size:12px;">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Exportar CSV
@@ -1281,8 +1283,17 @@ function renderVacaciones(){
   Object.values(vacMap).forEach(e=>Object.keys(e.porMes).forEach(m=>mesesConDatos.add(parseInt(m))));
   const mesesActivos=[...mesesConDatos].sort((a,b)=>a-b);
 
+  // Poblar selector de empleados
+  const sel=document.getElementById('vac-search');
+  if(sel){
+    const prev=sel.value;
+    const empsSorted=Object.values(vacMap).sort((a,b)=>a.emp.localeCompare(b.emp)).map(e=>e.emp);
+    sel.innerHTML='<option value="">Todos los empleados</option>'+empsSorted.map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');
+    if(prev&&empsSorted.includes(prev))sel.value=prev;
+  }
+
   let data=Object.values(vacMap).sort((a,b)=>b.usados-a.usados);
-  if(q)data=data.filter(e=>e.emp.toLowerCase().includes(q.toLowerCase()));
+  if(q)data=data.filter(e=>e.emp===q);
 
   const wrap=document.getElementById('vac-table-wrap');
   const cards=document.getElementById('vac-stats-cards');

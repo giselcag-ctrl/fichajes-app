@@ -849,14 +849,10 @@ function validarLinea(linea,tipo){
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
   const precio=parseFloat(linea['Tot. Contratado']||0);if(!precio||precio<=0)errores.push('Precio unitario = 0');
-  const trabajo=(d.trabajoRealizar||'').trim();if(!trabajo)errores.push('Características del trabajo vacías');
   const tpce=parseFloat(linea['TPCE']||0);if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
   const tpie=parseFloat(linea['TPIE']||0);if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
   if(tipo==='AE'){if(!(d.mantenedor&&d.mantenedor.razonSocial))errores.push('Mantenedor no asignado');if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');}
   if((tipo==='REBT_ZC'||tipo==='REBT_GARAJE')&&!(d.administrador&&d.administrador.razonSocial))errores.push('Administrador no asignado');
-  if(['SMMIN_VOLQUETE','SMMIN_PALA'].includes(tipo)&&trabajo&&!/SERIE|Nº SERIE/i.test(trabajo))errores.push('Falta Nº de serie en características');
-  if(tipo==='AP'&&trabajo&&!/NIVEL|PRESION|VOLUMEN|COMPRESOR|CALDERA/i.test(trabajo))errores.push('Faltan datos técnicos en características');
-  if(tipo==='REAT'&&trabajo&&!/CT|TRANSFORMADOR|SUBESTACION|LINEA|AÉREO|SUBTERR/i.test(trabajo))errores.push('Faltan datos técnicos del tipo de instalación REAT');
   return errores;
 }
 function extraerJSON(row){const keys=Object.keys(row);for(let i=keys.length-1;i>=0;i--){const val=String(row[keys[i]]||'');if(val.startsWith('{')&&val.includes('cliente')){try{return JSON.parse(val);}catch(e){return{};}}}return{};}

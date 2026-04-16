@@ -1037,6 +1037,35 @@ function vacInicioDefault(){
   const y=new Date().getFullYear();
   return`${y}-01-01`;
 }
+// Calcula el Domingo de Pascua para un año dado (algoritmo de Meeus/Jones/Butcher)
+function pascua(year){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,
+    f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,
+    i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,
+    m=Math.floor((a+11*h+22*l)/451),
+    mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
+  return new Date(year,mes-1,dia);
+}
+// Devuelve Set de strings 'DD/MM/YYYY' con festivos nacionales de España para un año
+function festivosEspanya(year){
+  const fest=new Set();
+  const add=(d,m)=>fest.add(`${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${year}`);
+  // Fijos nacionales
+  add(1,1);add(6,1);add(1,5);add(15,8);add(12,10);add(1,11);add(6,12);add(8,12);add(25,12);
+  // Viernes Santo (Pascua - 2 días)
+  const ps=pascua(year);
+  const vs=new Date(ps);vs.setDate(vs.getDate()-2);
+  add(vs.getDate(),vs.getMonth()+1);
+  return fest;
+}
+// Cache de festivos por año
+const _festCache={};
+function esFestivo(fechaDDMMYYYY){
+  const[d,m,y]=fechaDDMMYYYY.split('/');
+  const year=parseInt(y);
+  if(!_festCache[year])_festCache[year]=festivosEspanya(year);
+  return _festCache[year].has(fechaDDMMYYYY);
+}
 function renderVacaciones(){
   // Configuración
   const inicioEl=document.getElementById('vac-inicio');
@@ -1053,14 +1082,18 @@ function renderVacaciones(){
   const mesesTransc=Math.max(0,msTotal/(1000*60*60*24*30.4375));
   const diasAcum=Math.min(parseFloat((mesesTransc*diasMes).toFixed(1)),maxAnual);
 
-  // Agregar días usados de S.days
+  // Agregar días usados de S.days (excluyendo festivos nacionales de España)
   const vacMap={};
   Object.entries(S.days||{}).forEach(([fecha,rows])=>{
     rows.forEach(r=>{
       if(gSt(r).key==='vac'){
-        if(!vacMap[r.emp])vacMap[r.emp]={emp:r.emp,dias:[],usados:0};
-        vacMap[r.emp].dias.push(fecha);
-        vacMap[r.emp].usados++;
+        if(!vacMap[r.emp])vacMap[r.emp]={emp:r.emp,dias:[],diasFestivos:[],usados:0};
+        if(esFestivo(fecha)){
+          vacMap[r.emp].diasFestivos.push(fecha); // festivo: no cuenta
+        } else {
+          vacMap[r.emp].dias.push(fecha);
+          vacMap[r.emp].usados++;
+        }
       }
     });
   });
@@ -1102,9 +1135,10 @@ function renderVacaciones(){
   </tr></thead><tbody>${
     data.map((e,i)=>{
       const restColor=e.restantes<0?'var(--red)':e.restantes<=3?'var(--amber)':'var(--accent)';
-      const restIcon=e.restantes<0?'⚠️':'';
-      const fechasOrdenadas=[...e.dias].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
-      const chips=fechasOrdenadas.map(f=>`<span style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">${f}</span>`).join('');
+      const restIcon=e.restantes<0?'⚠️ ':'';
+      const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+      const chips=sortF(e.dias).map(f=>`<span title="Día de vacaciones" style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">${f}</span>`).join('');
+      const chipsFest=(e.diasFestivos||[]).length>0?sortF(e.diasFestivos).map(f=>`<span title="Festivo nacional — no computa" style="display:inline-block;background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">🎉 ${f}</span>`).join(''):'';
       const pct=e.acumulados>0?Math.min(Math.round(e.usados/e.acumulados*100),100):0;
       return`<tr style="animation:fadeIn 0.2s ${i*0.03}s both;">
         <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${e.emp.substring(0,3)}</div><span class="emp-name">${e.emp}</span></div></td>
@@ -1116,7 +1150,7 @@ function renderVacaciones(){
           </div>
         </td>
         <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${restColor};">${restIcon}${e.restantes}</span></td>
-        <td style="max-width:380px;">${chips}</td>
+        <td style="max-width:420px;">${chips}${chipsFest}</td>
       </tr>`;
     }).join('')
   }</tbody></table></div></div>`;

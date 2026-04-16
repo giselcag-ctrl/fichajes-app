@@ -890,7 +890,7 @@ function procesarPedidos(){
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
       const errores=validarLinea(row,tipo);
       const numSAP=String(row['Número SAP']||'').trim();
-      const fechaRaw=String(row['Fecha Contratación']||row['Fecha']||row['Fecha Creación']||row['Fecha Pedido']||row['F. Creación']||row['Fecha pedido']||'').trim();
+      const fechaRaw=parseFechaPed(row['Fecha Contratación']||row['Fecha Contratacion']||row['Fecha']||row['Fecha Creación']||row['Fecha Creacion']||row['Fecha Pedido']||row['F. Creación']||'');
       if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
       pedidosMap[codigo].erroresTotales+=errores.length;
@@ -941,17 +941,28 @@ function filtrarPedidos(){
   });
   renderPedidosStats();renderPedidosTable();
 }
-function normFecha(f){
-  if(!f)return'';
-  // Intentar varios formatos: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, timestamps Excel
-  const s=String(f).trim();
+function parseFechaPed(v){
+  if(!v&&v!==0)return'';
+  // Serial numérico de Excel
+  if(typeof v==='number'||(/^\d{5}$/.test(String(v).trim()))){
+    try{const d=XLSX.SSF.parse_date_code(parseInt(v));return`${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;}catch(e){}
+  }
+  const s=String(v).trim();
+  if(!s)return'';
+  // Ya viene como DD/MM/YYYY o DD-MM-YYYY
   const m1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if(m1)return`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
-  const m2=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if(m2)return`${m2[1]}-${m2[2].padStart(2,'0')}-${m2[3].padStart(2,'0')}`;
-  // Número Excel (días desde 1900)
-  if(/^\d+$/.test(s)){try{const d=XLSX.SSF.parse_date_code(parseInt(s));return`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;}catch(e){}}
-  return s.substring(0,10);
+  if(m1)return`${m1[1].padStart(2,'0')}/${m1[2].padStart(2,'0')}/${m1[3]}`;
+  // YYYY-MM-DD
+  const m2=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m2)return`${m2[3].padStart(2,'0')}/${m2[2].padStart(2,'0')}/${m2[1]}`;
+  return s;
+}
+function normFecha(f){
+  // f ya viene en DD/MM/YYYY desde parseFechaPed
+  if(!f)return'';
+  const m=String(f).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m)return`${m[3]}-${m[2]}-${m[1]}`; // YYYY-MM-DD para comparar con input[type=date]
+  return f;
 }
 function poblarFiltroEmpleados(){
   const sel=document.getElementById('ped-filter-empleado');

@@ -349,6 +349,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
               <input id="email-to-field" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
             </div>
+            <div id="email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
+            <div style="display:none">
+            </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
               <input id="email-subject-field" class="search-input" style="flex:1;height:32px;background-image:none;" value="Revisión de Fichajes">
@@ -380,6 +383,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
               <input id="weekly-email-to" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
+            </div>
+            <div id="weekly-email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
+            <div style="display:none">
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
@@ -524,6 +530,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                   <span style="font-size:11px;color:var(--text3);min-width:48px;">Para</span>
                   <input id="ped-email-to" class="search-input" style="flex:1;height:30px;background-image:none;" placeholder="email@destinatario.com">
+                </div>
+                <div id="ped-email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
+                <div style="display:none">
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:11px;color:var(--text3);min-width:48px;">Asunto</span>
@@ -881,7 +890,7 @@ function selEmp(emp){
   document.querySelectorAll('#emp-list .emp-list-item').forEach(el=>el.classList.toggle('active',el.dataset.emp===emp));
   const day=document.getElementById('email-day-select').value,row=(S.days[day]||[]).find(r=>r.emp===emp);
   if(!row)return;
-  document.getElementById('email-to-field').value=getEmail(emp);
+  setEmailField('email-to-field','email-to-warning',emp,'');
   document.getElementById('email-subject-field').value='Revisión de Fichajes';
   document.getElementById('email-body-field').value=buildEmail(row);
   document.getElementById('btn-send-daily').style.display='flex';
@@ -923,7 +932,7 @@ function selWeeklyEmp(emp){
   document.querySelectorAll('#weekly-emp-list .emp-list-item').forEach(el=>el.classList.toggle('active',el.dataset.emp===emp));
   const w=document.getElementById('weekly-email-select').value,row=(S.weeklyData[w]||[]).find(r=>r.emp===emp);
   if(!row)return;
-  document.getElementById('weekly-email-to').value=getEmail(emp);
+  setEmailField('weekly-email-to','weekly-email-to-warning',emp,'');
   document.getElementById('weekly-email-subject').value='Revisión de Fichajes';
   document.getElementById('weekly-email-body').value=buildWeeklyEmail(row,w);
   document.getElementById('btn-send-weekly').style.display='flex';
@@ -951,12 +960,22 @@ function sendCurrentWeeklyEmail(){
     .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
-function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>`${'─'.repeat(62)}\nPARA: ${getEmail(r.emp)}\nASUNTO: Revisión de Fichajes\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`).join('\n\n'):'Sin registros.'}
+function renderAllEmails(){const day=document.getElementById('all-email-day-select').value,rows=S.days[day]||[];document.getElementById('all-emails-count').textContent=`${rows.length} correos · ${fDay(day)}`;document.getElementById('all-emails-body').textContent=rows.length?rows.map(r=>{const email=getEmail(r.emp)||'[sin email — añadir al directorio]';return`${'─'.repeat(62)}\nPARA: ${email}\nASUNTO: Revisión de Fichajes\n${'─'.repeat(62)}\n\n${buildEmail(r)}\n`;}).join('\n\n'):'Sin registros.'}
 function copyAllEmails(){navigator.clipboard.writeText(document.getElementById('all-emails-body').textContent);showToast('Todos los correos copiados')}
 function downloadAllEmailsTxt(){const day=document.getElementById('all-email-day-select').value;downloadText(document.getElementById('all-emails-body').textContent,`correos_${day.replace(/\//g,'-')}.txt`);showToast('Descargado')}
 function exportCSV(){const rows=S.filteredRows;if(!rows.length)return showToast('Sin datos');downloadText(['Empleado,Fecha,Entrada,Salida,Horas,Previsto,Incidencia',...rows.map(r=>`${r.emp},${r.fecha},${r.entrada},${r.salida},${r.horas},${r.previsto},"${r.incidencia||''}"`)].join('\n'),`fichajes_${document.getElementById('day-select').value.replace(/\//g,'-')}.csv`);showToast('CSV exportado')}
 // ── Directorio de empleados ──────────────────────────────────────────────
-function getEmail(nombre){return S.empleados[nombre]||nombre+'@empresa.com'}
+function getEmail(nombre){return S.empleados[nombre]||'';}
+function setEmailField(fieldId,warningId,nombre,fallback){
+  const email=S.empleados[nombre]||fallback||'';
+  document.getElementById(fieldId).value=email;
+  document.getElementById(fieldId).style.borderColor=email?'':'var(--amber)';
+  const w=document.getElementById(warningId);
+  if(w){
+    if(!email){w.textContent='⚠ '+nombre+' no está en el directorio';w.style.display='block';}
+    else{w.textContent='';w.style.display='none';}
+  }
+}
 function handleDirectorioFile(f){
   if(!f)return;
   const r=new FileReader();
@@ -1149,7 +1168,7 @@ function seleccionarPedido(codigo){
   const erroresStr=p.lineas.flatMap(l=>l.errores.map(e=>`  • Línea (${l.tipo}): ${e}`)).join('\n');
   const refPedido=p.numeroSAP||p.codigo;
   const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${refPedido} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${refPedido} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
-  document.getElementById('ped-email-to').value=p.emailCreador||'';
+  setEmailField('ped-email-to','ped-email-to-warning',p.creador,p.emailCreador);
   document.getElementById('ped-email-subject').value=`Pedido ${refPedido} – datos requeridos`;
   document.getElementById('ped-email-body').value=cuerpo;
   document.getElementById('btn-ped-send').style.display=p.erroresTotales>0?'flex':'none';

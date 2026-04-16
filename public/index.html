@@ -144,6 +144,21 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.cal-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;width:260px;flex-shrink:0;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-nav-btn{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.cal-nav-btn:hover{background:var(--accent-dim);color:var(--accent);}
+.cal-month{font-size:13px;font-weight:500;}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.cal-dow-h{height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-day{height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:12px;color:var(--text3);user-select:none;}
+.cal-day.has-data{color:var(--text);cursor:pointer;background:var(--bg3);}
+.cal-day.has-data:hover{background:rgba(79,195,247,0.18);color:#4FC3F7;}
+.cal-day.selected{background:#4FC3F7!important;color:#0d1b2e!important;font-weight:600;}
+.cal-quick{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+.cal-quick-btn{flex:1;padding:5px 0;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;text-align:center;}
+.cal-quick-btn:hover{border-color:var(--accent);color:var(--accent);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .animate-in{animation:fadeIn 0.3s ease both}
 @media(max-width:900px){.sidebar{display:none}.stat-grid{grid-template-columns:1fr 1fr}.email-section{grid-template-columns:1fr}}
@@ -195,13 +210,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
   </div>
   <nav class="nav">
     <div class="nav-section">Módulos</div>
-    <a class="nav-item active" onclick="showPage('dashboard')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-      Resumen diario
-    </a>
-    <a class="nav-item" onclick="showPage('weekly')" href="#">
+    <a class="nav-item active" onclick="showPage('resumen')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Resumen semanal
+      Resumen
     </a>
     <a class="nav-item" onclick="showPage('emails')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -268,62 +279,74 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- Dashboard diario -->
-    <div id="page-dashboard" class="page">
-      <div id="chip-file" class="chip-file" onclick="resetApp()">
-        <svg viewBox="0 0 16 16" fill="none"><path d="M9 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5L9 1z" stroke="currentColor" stroke-width="1.3"/><path d="M9 1v4h4" stroke="currentColor" stroke-width="1.3"/></svg>
-        <span id="chip-file-name"></span>
+    <!-- Resumen unificado -->
+<div id="page-resumen" class="page">
+  <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+    <!-- Columna izquierda: calendario -->
+    <div class="cal-wrap animate-in">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="navMesResumen(-1)">&#8249;</button>
+        <span class="cal-month" id="cal-month-label">—</span>
+        <button class="cal-nav-btn" onclick="navMesResumen(1)">&#8250;</button>
       </div>
-      <div class="controls animate-in">
-        <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="day-select" onchange="applyFilters()"></select></div>
-        <div class="ctrl-group"><span class="ctrl-label">Empleado</span><select id="emp-filter" onchange="applyFilters()"><option value="">Todos</option></select></div>
-        <div class="ctrl-group"><span class="ctrl-label">Estado</span><select id="status-filter" onchange="applyFilters()"><option value="">Todos</option><option value="ok">Normal</option><option value="warn">Exceso jornada</option><option value="bad">Jornada corta</option><option value="vac">Vacaciones</option></select></div>
+      <div class="cal-dow">
+        <div class="cal-dow-h">L</div><div class="cal-dow-h">M</div><div class="cal-dow-h">X</div>
+        <div class="cal-dow-h">J</div><div class="cal-dow-h">V</div><div class="cal-dow-h">S</div>
+        <div class="cal-dow-h">D</div>
       </div>
-      <div class="stat-grid animate-in" id="stat-grid"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-quick">
+        <div class="cal-quick-btn" onclick="quickSelectResumen('ultimo')">Último día</div>
+        <div class="cal-quick-btn" onclick="quickSelectResumen('semana')">Semana</div>
+        <div class="cal-quick-btn" onclick="quickSelectResumen('todo')">Todo</div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center;" id="cal-sel-count">Sin selección</div>
+    </div>
+    <!-- Columna derecha: resumen -->
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <select id="resumen-emp-filter" onchange="renderResumenSummary()" style="height:32px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 10px;">
+          <option value="">Todos los empleados</option>
+        </select>
+        <select id="resumen-status-filter" onchange="renderResumenSummary()" style="height:32px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 10px;">
+          <option value="">Todos los estados</option>
+          <option value="ok">Normal</option>
+          <option value="warn">Exceso jornada</option>
+          <option value="bad">Jornada corta</option>
+          <option value="vac">Vacaciones</option>
+        </select>
+        <button class="btn btn-ghost" onclick="exportResumenCSV()" style="margin-left:auto;">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Exportar CSV
+        </button>
+      </div>
+      <div id="resumen-stats" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"></div>
+      <!-- Alertas + Gráfica -->
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;" id="resumen-middle" style="display:none;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;min-height:180px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:500;">Alertas activas</span>
+            <span id="resumen-alerta-badge" style="font-size:10px;background:var(--red-dim);color:var(--red);border-radius:99px;padding:1px 7px;font-weight:600;display:none;"></span>
+          </div>
+          <div id="resumen-alertas-list"></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:500;" id="resumen-chart-title">Horas por empleado</span>
+            <span style="font-size:11px;color:var(--text3);" id="resumen-chart-sub"></span>
+          </div>
+          <div style="position:relative;height:160px;"><canvas id="resumen-chart"></canvas></div>
+        </div>
+      </div>
       <div class="table-container animate-in">
-        <div class="table-header"><h3 id="table-heading">Registros</h3><div class="table-actions"><button class="btn btn-ghost btn-sm" onclick="exportCSV()">Exportar CSV</button></div></div>
-        <div style="overflow-x:auto;"><table><thead><tr><th>Empleado</th><th>Entrada</th><th>Salida</th><th>Horas</th><th>Previsto</th><th>Diferencia</th><th>Estado</th></tr></thead><tbody id="main-tbody"></tbody></table></div>
+        <div class="table-header"><h3 id="resumen-table-heading">Selecciona días en el calendario</h3></div>
+        <div style="overflow-x:auto;"><table><thead><tr>
+          <th>Empleado</th><th>Días</th><th>Horas totales</th><th>Media/día</th><th>Incidencias</th><th>Estado</th>
+        </tr></thead><tbody id="resumen-tbody">
+          <tr><td colspan="6"><div class="empty-state"><div class="es-icon">📅</div><p>Selecciona uno o más días en el calendario</p></div></td></tr>
+        </tbody></table></div>
       </div>
     </div>
-
-    <!-- Resumen semanal -->
-<div id="page-weekly" class="page">
-  <!-- Controls -->
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-    <div class="ctrl-group"><span class="ctrl-label">Semana</span><select id="week-select" onchange="renderWeekly()"></select></div>
-    <div class="ctrl-group"><span class="ctrl-label">Buscar</span><input class="search-input" style="width:180px;height:32px;background-image:none;" type="text" placeholder="Nombre del empleado…" oninput="filterWeeklyTable(this.value)"></div>
-    <button class="btn btn-ghost" onclick="exportWeeklyCSV()" style="margin-left:auto;">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Exportar CSV
-    </button>
-  </div>
-  <!-- Stat cards -->
-  <div id="weekly-stat-grid" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
-  <!-- Middle row: alertas + chart -->
-  <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;margin-bottom:20px;">
-    <!-- Alertas activas -->
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;min-height:220px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <span style="font-size:13px;font-weight:500;">Alertas activas</span>
-        <span id="weekly-alerta-badge" style="font-size:10px;background:var(--red-dim);color:var(--red);border-radius:99px;padding:1px 7px;font-weight:600;display:none;"></span>
-      </div>
-      <div id="weekly-alertas-list"></div>
-    </div>
-    <!-- Chart -->
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <span style="font-size:13px;font-weight:500;">Horas por empleado</span>
-        <span id="weekly-chart-sub" style="font-size:11px;color:var(--text3);"></span>
-      </div>
-      <div style="position:relative;height:200px;">
-        <canvas id="weekly-chart"></canvas>
-      </div>
-    </div>
-  </div>
-  <!-- Table -->
-  <div class="table-container animate-in">
-    <div class="table-header"><h3 id="weekly-table-heading">Resumen semanal</h3></div>
-    <div style="overflow-x:auto;"><table><thead><tr><th>Empleado</th><th>Días</th><th>Total horas</th><th>Media diaria</th><th>Incidencias</th><th>En centro</th><th>Estado</th></tr></thead><tbody id="weekly-tbody"></tbody></table></div>
   </div>
 </div>
 
@@ -704,19 +727,19 @@ function initApp(){
   document.getElementById('btn-reset').style.display='flex';
   document.getElementById('topbar-date').style.display='flex';
   document.getElementById('chip-file-name').textContent=S.fileName;
-  showPage('dashboard');applyFilters();renderEmailList();renderAllEmails();renderWeekly();renderWeeklyEmailList();renderVacaciones();
+  showPage('resumen');renderEmailList();renderAllEmails();renderWeeklyEmailList();renderVacaciones();initResumenCalendar();
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
 function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones'};
-  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado'};
+  const pm={resumen:'page-resumen',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones'};
+  const tm={resumen:'Resumen',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['dashboard','weekly','emails','weekly-emails','all-emails','pedidos','vacaciones'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
@@ -1396,6 +1419,173 @@ function exportVacacionesCSV(){
   const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vacaciones.csv';a.click();URL.revokeObjectURL(a.href);
   showToast('CSV exportado ✓');
+}
+// ── Resumen unificado con calendario ─────────────────────────────────
+let _resumenFechas=new Set(),_resumenMes=null,_resumenChart=null;
+const MESES_LARGOS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function initResumenCalendar(){
+  _resumenFechas=new Set();
+  const fechas=Object.keys(S.days||{});
+  if(!fechas.length){renderResumenSummary();return;}
+  const sorted=fechas.sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+yb,+mb-1,+db)-new Date(+ya,+ma-1,+da);});
+  const[d,m,y]=sorted[0].split('/');
+  _resumenMes={y:parseInt(y),m:parseInt(m)};
+  _resumenFechas.add(sorted[0]);
+  renderCalendarResumen();renderResumenSummary();
+}
+function renderCalendarResumen(){
+  if(!_resumenMes)return;
+  const{y,m}=_resumenMes;
+  const diasConDatos=new Set(Object.keys(S.days||{}));
+  const diasEnMes=new Date(y,m,0).getDate();
+  const inicioSemana=(new Date(y,m-1,1).getDay()+6)%7;
+  document.getElementById('cal-month-label').textContent=`${MESES_LARGOS[m-1]} ${y}`;
+  let html='';
+  for(let i=0;i<inicioSemana;i++)html+=`<div class="cal-day"></div>`;
+  for(let dia=1;dia<=diasEnMes;dia++){
+    const f=`${String(dia).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+    const hasDatos=diasConDatos.has(f),isSel=_resumenFechas.has(f);
+    let cls='cal-day'+(hasDatos?' has-data':'')+(isSel?' selected':'');
+    html+=`<div class="${cls}"${hasDatos?` onclick="toggleFechaResumen('${f}')"`:''}>${dia}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  const n=_resumenFechas.size;
+  document.getElementById('cal-sel-count').textContent=n>0?`${n} día${n>1?'s':''} seleccionado${n>1?'s':''}`:'Sin selección';
+}
+function toggleFechaResumen(f){
+  if(_resumenFechas.has(f))_resumenFechas.delete(f);else _resumenFechas.add(f);
+  renderCalendarResumen();renderResumenSummary();
+}
+function navMesResumen(delta){
+  if(!_resumenMes)return;
+  let{y,m}=_resumenMes;m+=delta;if(m>12){m=1;y++;}if(m<1){m=12;y--;}
+  _resumenMes={y,m};renderCalendarResumen();
+}
+function quickSelectResumen(tipo){
+  const fechas=Object.keys(S.days||{});if(!fechas.length)return;
+  const asc=fechas.sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+  const desc=[...asc].reverse();
+  if(tipo==='ultimo')_resumenFechas=new Set([desc[0]]);
+  else if(tipo==='semana')_resumenFechas=new Set(desc.slice(0,7));
+  else _resumenFechas=new Set(fechas);
+  const ref=[..._resumenFechas][0];
+  if(ref){const[d,m,y]=ref.split('/');_resumenMes={y:parseInt(y),m:parseInt(m)};}
+  renderCalendarResumen();renderResumenSummary();
+}
+function renderResumenAlertas(empMap){
+  const badge=document.getElementById('resumen-alerta-badge');
+  const list=document.getElementById('resumen-alertas-list');
+  if(!badge||!list)return;
+  const byEmp={};
+  Object.values(empMap).forEach(e=>{
+    if(!e.incidencias.length)return;
+    byEmp[e.emp]={emp:e.emp,items:e.incidencias,hasExceso:e.incidencias.some(i=>i.key==='warn')};
+  });
+  const empList=Object.values(byEmp);
+  const total=empList.reduce((s,e)=>s+e.items.length,0);
+  if(!empList.length){badge.style.display='none';list.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 0;color:var(--text3);font-size:12px;"><svg width="24" height="24" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Sin alertas</div>`;return;}
+  badge.textContent=total;badge.style.display='inline';
+  list.innerHTML=empList.map(e=>{
+    const id=`ral_${e.emp.replace(/[^a-z0-9]/gi,'_')}`;
+    const bg=e.hasExceso?'rgba(245,166,35,0.15)':'rgba(255,92,92,0.15)';
+    const col=e.hasExceso?'var(--amber)':'var(--red)';
+    const icon=e.hasExceso?'⚠️':'⛔';
+    const detail=e.items.map(it=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-radius:5px;background:${it.key==='warn'?'rgba(245,166,35,0.1)':'rgba(255,92,92,0.1)'};margin-top:3px;"><span style="font-size:11px;color:${it.key==='warn'?'var(--amber)':'var(--red)'};">${it.tipo}</span><span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;">${it.fecha}</span></div>`).join('');
+    return`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;" onclick="toggleResumenAlerta('${id}')">
+        <div style="width:26px;height:26px;border-radius:7px;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${e.emp}</div><div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${e.items.length} incidencia${e.items.length>1?'s':''}</div></div>
+        <span id="${id}_arr" style="font-size:11px;color:var(--text3);">▼</span>
+      </div>
+      <div id="${id}" style="display:none;padding:0 12px 8px;">${detail}</div>
+    </div>`;
+  }).join('');
+}
+function toggleResumenAlerta(id){
+  const el=document.getElementById(id),arr=document.getElementById(id+'_arr');
+  if(!el)return;const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';if(arr)arr.textContent=open?'▼':'▲';
+}
+function renderResumenChart(empMap,empFilter){
+  const canvas=document.getElementById('resumen-chart');
+  if(!canvas||typeof Chart==='undefined')return;
+  const title=document.getElementById('resumen-chart-title');
+  const sub=document.getElementById('resumen-chart-sub');
+  if(_resumenChart){_resumenChart.destroy();_resumenChart=null;}
+  const middle=document.getElementById('resumen-middle');
+  const fechasArr=[..._resumenFechas];
+  if(!fechasArr.length||!Object.keys(empMap).length){if(middle)middle.style.display='none';return;}
+  if(middle)middle.style.display='grid';
+  // Si hay un empleado seleccionado → gráfica por día de ese empleado
+  if(empFilter&&empMap[empFilter]){
+    const emp=empMap[empFilter];
+    if(title)title.textContent=`Horas por día — ${empFilter}`;
+    const daysSorted=fechasArr.sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+    const labels=daysSorted.map(f=>f.substring(0,5));
+    const data=daysSorted.map(f=>{const r=(S.days[f]||[]).find(r=>r.emp===empFilter);return r?parseFloat(r.horas.toFixed(1)):0;});
+    const colors=data.map(h=>h>10?'rgba(245,166,35,0.8)':h<7&&h>0?'rgba(255,92,92,0.7)':h===0?'rgba(100,100,100,0.3)':'rgba(76,175,80,0.75)');
+    if(sub)sub.textContent=`${emp.totalHoras.toFixed(1)}h total · ${emp.dias} días`;
+    _resumenChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4,barPercentage:0.65}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}h`}}},scales:{x:{grid:{display:false},ticks:{color:'#8899aa',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8899aa',font:{size:10},callback:v=>v+'h'},beginAtZero:true}},animation:{duration:300}},plugins:[{id:'rl',afterDraw(c){const{ctx,scales:{y},chartArea:{left,right}}=c;const yp=y.getPixelForValue(8);ctx.save();ctx.strokeStyle='rgba(200,245,66,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(left,yp);ctx.lineTo(right,yp);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(200,245,66,0.6)';ctx.font='10px DM Mono,monospace';ctx.fillText('8h',right-22,yp-4);ctx.restore();}}]});
+  } else {
+    // Todos → top 12 por horas totales
+    if(title)title.textContent='Horas por empleado';
+    const sorted=Object.values(empMap).sort((a,b)=>b.totalHoras-a.totalHoras).slice(0,12);
+    const labels=sorted.map(r=>r.emp.length>8?r.emp.substring(0,8)+'…':r.emp);
+    const data=sorted.map(r=>parseFloat(r.totalHoras.toFixed(1)));
+    const avg=data.reduce((s,v)=>s+v,0)/data.length||0;
+    const colors=data.map(h=>h>40?'rgba(245,166,35,0.8)':h<20?'rgba(255,92,92,0.7)':'rgba(76,175,80,0.75)');
+    if(sub)sub.textContent=`media ${avg.toFixed(1)}h`;
+    _resumenChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4,barPercentage:0.65}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}h`}}},scales:{x:{grid:{display:false},ticks:{color:'#8899aa',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8899aa',font:{size:10},callback:v=>v+'h'},beginAtZero:true}},animation:{duration:300}}});
+  }
+}
+function renderResumenSummary(){
+  const fechasArr=[..._resumenFechas];
+  const empFilter=(document.getElementById('resumen-emp-filter')||{}).value||'';
+  const stFilter=(document.getElementById('resumen-status-filter')||{}).value||'';
+  const empMap={};
+  fechasArr.forEach(fecha=>{
+    (S.days[fecha]||[]).forEach(r=>{
+      if(!empMap[r.emp])empMap[r.emp]={emp:r.emp,dias:0,totalHoras:0,previsto:0,incidencias:[],rows:[]};
+      empMap[r.emp].dias++;empMap[r.emp].totalHoras+=r.horas;empMap[r.emp].previsto+=parseFloat(r.previsto)||0;
+      const st=gSt(r);if(st.key!=='ok')empMap[r.emp].incidencias.push({fecha,tipo:st.label,key:st.key});
+    });
+  });
+  const sel=document.getElementById('resumen-emp-filter');
+  if(sel){const prev=sel.value;const emps=Object.keys(empMap).sort();sel.innerHTML='<option value="">Todos los empleados</option>'+emps.map(e=>`<option value="${e}"${e===prev?' selected':''}>${e}</option>`).join('');if(prev&&emps.includes(prev))sel.value=prev;}
+  renderResumenAlertas(empMap);
+  renderResumenChart(empMap,empFilter);
+  let rows=Object.values(empMap).sort((a,b)=>a.emp.localeCompare(b.emp));
+  if(empFilter)rows=rows.filter(r=>r.emp===empFilter);
+  if(stFilter)rows=rows.filter(r=>stFilter==='ok'?r.incidencias.length===0:r.incidencias.some(i=>i.key===stFilter));
+  const statsEl=document.getElementById('resumen-stats');
+  if(!fechasArr.length){statsEl.innerHTML='';document.getElementById('resumen-tbody').innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="es-icon">📅</div><p>Selecciona días en el calendario</p></div></td></tr>`;document.getElementById('resumen-table-heading').textContent='Selecciona días en el calendario';return;}
+  const t=rows.length,ok=rows.filter(r=>r.incidencias.length===0).length,inc=t-ok,totalH=rows.reduce((s,r)=>s+r.totalHoras,0),avg=t>0?totalH/t:0;
+  statsEl.innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Empleados</div><div class="sc-val">${t}</div><div class="sc-sub">${fechasArr.length} día${fechasArr.length!==1?'s':''} sel.</div></div><div class="stat-card accent animate-in"><div class="sc-label">Sin incidencias</div><div class="sc-val">${ok}</div><div class="sc-sub">${t>0?Math.round(ok/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:${inc>0?'var(--red)':'var(--text)'}">${inc}</div><div class="sc-sub">${t>0?Math.round(inc/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Media horas</div><div class="sc-val">${avg.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${totalH.toFixed(1)}h total</div></div>`;
+  document.getElementById('resumen-table-heading').textContent=`${t} empleado${t!==1?'s':''} · ${fechasArr.length} día${fechasArr.length!==1?'s':''}`;
+  if(!rows.length){document.getElementById('resumen-tbody').innerHTML=`<tr><td colspan="6"><div class="empty-state"><p>Sin registros</p></div></td></tr>`;return;}
+  document.getElementById('resumen-tbody').innerHTML=rows.map((r,i)=>{
+    const media=r.dias>0?r.totalHoras/r.dias:0,inc=r.incidencias.length;
+    const ic=inc>2?'badge-bad':inc>0?'badge-warn':'badge-ok';
+    const estCls=inc===0?'badge-ok':inc>2?'badge-bad':'badge-warn';
+    const pct=r.previsto>0?Math.min(Math.round(r.totalHoras/r.previsto*100),100):0;
+    return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;">
+      <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td>
+      <td><span class="time-val">${r.dias}d</span></td>
+      <td><div class="hours-bar"><div class="hours-track"><div class="hours-fill" style="width:${pct}%"></div></div><span class="hours-num">${r.totalHoras.toFixed(1)}h</span></div></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:13px;">${media.toFixed(1)}h</span></td>
+      <td><span class="badge ${ic}">${inc>0?inc+' incidencia'+(inc>1?'s':''):'Sin incidencias'}</span></td>
+      <td><span class="badge ${estCls}">${inc===0?'Correcto':inc>2?'Revisar':'Atención'}</span></td>
+    </tr>`;
+  }).join('');
+}
+function exportResumenCSV(){
+  const fechasArr=[..._resumenFechas];if(!fechasArr.length)return showToast('Sin días seleccionados');
+  const empMap={};
+  fechasArr.forEach(fecha=>{(S.days[fecha]||[]).forEach(r=>{if(!empMap[r.emp])empMap[r.emp]={emp:r.emp,dias:0,totalHoras:0,incidencias:[]};empMap[r.emp].dias++;empMap[r.emp].totalHoras+=r.horas;const st=gSt(r);if(st.key!=='ok')empMap[r.emp].incidencias.push(st.label);});});
+  const lines=['Empleado,Días,Horas totales,Media/día,Incidencias'];
+  Object.values(empMap).sort((a,b)=>a.emp.localeCompare(b.emp)).forEach(r=>{lines.push(`"${r.emp}",${r.dias},${r.totalHoras.toFixed(2)},${(r.totalHoras/r.dias).toFixed(2)},"${r.incidencias.join(' | ')}"`)});
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='resumen.csv';a.click();URL.revokeObjectURL(a.href);showToast('CSV exportado ✓');
 }
 function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}

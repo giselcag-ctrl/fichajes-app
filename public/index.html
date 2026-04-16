@@ -218,6 +218,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="10" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.3 10l.5.5.9-.9" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Auditoría pedidos
     </a>
+    <a class="nav-item" onclick="showPage('vacaciones')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 5 4 9a4 4 0 0 0 8 0c0-4-4-7-4-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 13v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 15h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Vacaciones
+    </a>
     <div class="nav-section">Configuración</div>
     <a class="nav-item" onclick="showPage('directorio')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -513,6 +517,19 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
+    <!-- ── Vacaciones ── -->
+    <div id="page-vacaciones" class="page">
+      <div class="animate-in" style="max-width:860px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <input class="search-input" id="vac-search" style="width:220px;height:32px;background-image:none;" type="text" placeholder="Buscar empleado…" oninput="renderVacaciones()">
+          <span id="vac-stats-txt" style="font-size:12px;color:var(--text3);margin-left:4px;"></span>
+        </div>
+        <div id="vac-table-wrap">
+          <div class="empty-state"><div class="es-icon">🏖️</div><p>Carga un fichaje para ver las vacaciones</p></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </main>
 </div>
@@ -607,19 +624,19 @@ function initApp(){
   document.getElementById('btn-reset').style.display='flex';
   document.getElementById('topbar-date').style.display='flex';
   document.getElementById('chip-file-name').textContent=S.fileName;
-  showPage('dashboard');applyFilters();renderEmailList();renderAllEmails();renderWeekly();renderWeeklyEmailList();
+  showPage('dashboard');applyFilters();renderEmailList();renderAllEmails();renderWeekly();renderWeeklyEmailList();renderVacaciones();
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
 function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos'};
-  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos'};
+  const pm={dashboard:'page-dashboard',weekly:'page-weekly',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones'};
+  const tm={dashboard:'Resumen diario',weekly:'Resumen semanal',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['dashboard','weekly','emails','weekly-emails','all-emails','pedidos'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['dashboard','weekly','emails','weekly-emails','all-emails','pedidos','vacaciones'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name!=='upload'){document.getElementById('topbar-date-val').textContent=fDay(document.getElementById('day-select').value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
@@ -1003,6 +1020,38 @@ function enviarCorreoPedido(){
 }
 function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map(l=>`"${p.codigo}","${p.cliente}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
 function resetPedidos(){PS.cabeceras=null;PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Pedidos';document.getElementById('ped-sub-cab').textContent='Listado resumen de pedidos · .xlsx';document.getElementById('ped-icon-lin').textContent='📄';document.getElementById('ped-label-lin').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-lin').textContent='Detalle por línea con JSON · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';document.getElementById('ped-file-lineas').value='';}
+function renderVacaciones(){
+  const q=(document.getElementById('vac-search')||{}).value||'';
+  // Agregar días de vacaciones por empleado de S.days
+  const vacMap={};
+  Object.entries(S.days||{}).forEach(([fecha,rows])=>{
+    rows.forEach(r=>{
+      if(gSt(r).key==='vac'){
+        if(!vacMap[r.emp])vacMap[r.emp]={emp:r.emp,dias:[],total:0};
+        vacMap[r.emp].dias.push(fecha);
+        vacMap[r.emp].total++;
+      }
+    });
+  });
+  let data=Object.values(vacMap).sort((a,b)=>b.total-a.total);
+  if(q)data=data.filter(e=>e.emp.toLowerCase().includes(q.toLowerCase()));
+  const wrap=document.getElementById('vac-table-wrap');
+  const st=document.getElementById('vac-stats-txt');
+  if(!data.length){
+    wrap.innerHTML=`<div class="empty-state"><div class="es-icon">🏖️</div><p>${Object.keys(S.days||{}).length?'Sin empleados con vacaciones'+(q?' que coincidan con la búsqueda':''):'Carga un fichaje para ver las vacaciones'}</p></div>`;
+    if(st)st.textContent='';
+    return;
+  }
+  const totalDias=data.reduce((s,e)=>s+e.total,0);
+  if(st)st.textContent=`${data.length} empleado${data.length>1?'s':''} · ${totalDias} día${totalDias>1?'s':''} en total`;
+  wrap.innerHTML=`<div class="table-container"><div style="overflow-x:auto;"><table><thead><tr><th>Empleado</th><th style="text-align:center;">Días</th><th>Fechas</th></tr></thead><tbody>${
+    data.map((e,i)=>{
+      const fechasOrdenadas=[...e.dias].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
+      const chips=fechasOrdenadas.map(f=>`<span style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px 2px 2px 0;">${f}</span>`).join('');
+      return`<tr style="animation:fadeIn 0.2s ${i*0.03}s both;"><td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${e.emp.substring(0,3)}</div><span class="emp-name">${e.emp}</span></div></td><td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#4FC3F7;">${e.total}</span></td><td style="max-width:420px;">${chips}</td></tr>`;
+    }).join('')
+  }</tbody></table></div></div>`;
+}
 function showLoading(msg){const o=document.getElementById('loading-overlay');document.getElementById('loading-msg').textContent=msg||'Procesando…';o.style.display='flex';}
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}

@@ -605,6 +605,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Mapeo de columnas</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
             <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Estado</span>
+              <select id="vac-col-estado" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
               <span style="font-size:11px;color:var(--text3);">Empleado</span>
               <select id="vac-col-emp" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:140px;"></select>
             </div>
@@ -1307,7 +1311,7 @@ function esFestivo(fechaDDMMYYYY){
 const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 // ── Estado tareas vacaciones ──────────────────────────────────────────
-let _tareasVac={headers:[],rows:[],colMap:{emp:-1,desc:-1,fechaIni:-1,fechaFin:-1},loaded:false};
+let _tareasVac={headers:[],rows:[],colMap:{estado:-1,emp:-1,desc:-1,fechaIni:-1,fechaFin:-1},loaded:false};
 
 function handleVacTareasFile(f){
   if(!f)return;
@@ -1323,6 +1327,7 @@ function handleVacTareasFile(f){
       // Auto-detectar columnas
       const h=_tareasVac.headers;
       const fi=pats=>{for(const p of pats){const i=h.findIndex(c=>p.test(c.trim().toLowerCase()));if(i>=0)return i;}return -1;};
+      _tareasVac.colMap.estado=fi([/^estado$/,/estado|status|estatus/]);
       _tareasVac.colMap.emp=fi([/^usuario$/,/empleado|recurso|nombre|trabajador|usuario/]);
       _tareasVac.colMap.desc=fi([/^descripci/,/descripci|tarea|tipo|concepto|actividad/]);
       _tareasVac.colMap.fechaIni=fi([/fecha\s*inicio|inicio|start|desde/]);
@@ -1344,11 +1349,11 @@ function renderVacColMap(){
   if(!cm||!_tareasVac.loaded)return;
   cm.style.display='block';
   const opts='<option value="-1">— sin columna —</option>'+_tareasVac.headers.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
-  ['vac-col-emp','vac-col-desc','vac-col-fechaini','vac-col-fechafin'].forEach((id,k)=>{
+  ['vac-col-estado','vac-col-emp','vac-col-desc','vac-col-fechaini','vac-col-fechafin'].forEach((id,k)=>{
     const sel=document.getElementById(id);
     if(!sel)return;
     sel.innerHTML=opts;
-    const keys=['emp','desc','fechaIni','fechaFin'];
+    const keys=['estado','emp','desc','fechaIni','fechaFin'];
     sel.value=_tareasVac.colMap[keys[k]];
   });
 }
@@ -1381,12 +1386,13 @@ function getWorkingDaysBetween(iniDDMMYYYY,finDDMMYYYY){
 
 function buildVacMapFromTareas(){
   if(!_tareasVac.loaded)return{};
+  const estadoCol=parseInt((document.getElementById('vac-col-estado')||{}).value??_tareasVac.colMap.estado);
   const empCol=parseInt((document.getElementById('vac-col-emp')||{}).value??_tareasVac.colMap.emp);
   const descCol=parseInt((document.getElementById('vac-col-desc')||{}).value??_tareasVac.colMap.desc);
   const iniCol=parseInt((document.getElementById('vac-col-fechaini')||{}).value??_tareasVac.colMap.fechaIni);
   const finCol=parseInt((document.getElementById('vac-col-fechafin')||{}).value??_tareasVac.colMap.fechaFin);
   const kw=((document.getElementById('vac-keyword')||{}).value||'Vacaciones').trim().toLowerCase();
-  const exactMode=(document.getElementById('vac-match-exact')||{}).checked!==false; // default exacto
+  const exactMode=(document.getElementById('vac-match-exact')||{}).checked!==false;
   const vacMap={};
   _tareasVac.rows.forEach(row=>{
     const desc=String(row[descCol]||'').trim().toLowerCase();
@@ -1398,14 +1404,19 @@ function buildVacMapFromTareas(){
     if(!fIni)return;
     const fFin=parseTareasDate(row[finCol])||fIni;
     const dias=getWorkingDaysBetween(fIni,fFin);
-    if(!vacMap[emp])vacMap[emp]={emp,dias:[],diasFestivos:[],porMes:{}};
+    // Estado: Realizada = disfrutado; Planificada/Pendiente = por disfrutar
+    const estadoRaw=String(row[estadoCol]||'').trim().toLowerCase();
+    const disfrutado=/realizada|realizado|completada|completado|done/.test(estadoRaw);
+    if(!vacMap[emp])vacMap[emp]={emp,diasDisfrutados:[],diasPlanificados:[],diasFestivos:[],porMes:{}};
     dias.forEach(f=>{
       if(esFestivo(f)){vacMap[emp].diasFestivos.push(f);}
       else{
-        vacMap[emp].dias.push(f);
+        if(disfrutado)vacMap[emp].diasDisfrutados.push(f);
+        else vacMap[emp].diasPlanificados.push(f);
         const mes=parseInt(f.split('/')[1]);
-        if(!vacMap[emp].porMes[mes])vacMap[emp].porMes[mes]=[];
-        vacMap[emp].porMes[mes].push(f);
+        if(!vacMap[emp].porMes[mes])vacMap[emp].porMes[mes]={disfrutados:[],planificados:[]};
+        if(disfrutado)vacMap[emp].porMes[mes].disfrutados.push(f);
+        else vacMap[emp].porMes[mes].planificados.push(f);
       }
     });
   });
@@ -1438,7 +1449,9 @@ function renderVacaciones(){
 
   // Calcular totales
   Object.values(vacMap).forEach(e=>{
-    e.usados=e.dias.length;
+    e.disfrutados=e.diasDisfrutados.length;
+    e.planificados=e.diasPlanificados.length;
+    e.usados=e.disfrutados+e.planificados;
     e.acumulados=diasAcum;
     e.restantes=parseFloat((diasAcum-e.usados).toFixed(1));
   });
@@ -1469,14 +1482,15 @@ function renderVacaciones(){
   // Stats cards
   if(cards){
     const totalEmps=Object.keys(vacMap).length;
-    const totalUsados=Object.values(vacMap).reduce((s,e)=>s+e.usados,0);
+    const totalDisf=Object.values(vacMap).reduce((s,e)=>s+e.disfrutados,0);
+    const totalPlan=Object.values(vacMap).reduce((s,e)=>s+e.planificados,0);
     const totalFestivos=Object.values(vacMap).reduce((s,e)=>s+e.diasFestivos.length,0);
     const avgRestantes=totalEmps>0?(Object.values(vacMap).reduce((s,e)=>s+e.restantes,0)/totalEmps).toFixed(1):0;
     cards.innerHTML=totalEmps?`
       <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(79,195,247,0.12);color:#4FC3F7;"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:#4FC3F7">${totalEmps}</div><div class="w-stat-label">Empleados</div><div class="w-stat-sub">con vacaciones registradas</div></div></div>
-      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(245,166,35,0.12);color:var(--amber);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:var(--amber)">${totalUsados}</div><div class="w-stat-label">Días disfrutados</div><div class="w-stat-sub">total empresa · ${totalFestivos} festivos excluidos</div></div></div>
-      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val">${diasAcum.toFixed(1)}d</div><div class="w-stat-label">Acumulados/empleado</div><div class="w-stat-sub">${mesesTransc.toFixed(1)} meses × ${diasMes}d/mes</div></div></div>
-      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val">${avgRestantes}d</div><div class="w-stat-label">Promedio restantes</div><div class="w-stat-sub">por empleado</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:var(--accent)">${totalDisf}</div><div class="w-stat-label">Disfrutados</div><div class="w-stat-sub">estado Realizada · empresa</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(245,166,35,0.12);color:var(--amber);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val" style="color:var(--amber)">${totalPlan}</div><div class="w-stat-label">Planificados</div><div class="w-stat-sub">Planificada/Pendiente · ${totalFestivos} festivos excl.</div></div></div>
+      <div class="w-stat-card animate-in"><div class="w-stat-icon" style="background:rgba(76,175,80,0.12);color:var(--accent);"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="w-stat-body"><div class="w-stat-val">${avgRestantes}d</div><div class="w-stat-label">Promedio restantes</div><div class="w-stat-sub">acum. ${diasAcum.toFixed(1)}d − usados</div></div></div>
     `:'';
   }
 
@@ -1486,32 +1500,41 @@ function renderVacaciones(){
   }
 
   const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
-  const thMeses=mesesActivos.map(m=>`<th style="text-align:center;min-width:44px;">${MESES_CORTOS[m-1]}</th>`).join('');
+  const thMeses=mesesActivos.map(m=>`<th style="text-align:center;min-width:48px;">${MESES_CORTOS[m-1]}</th>`).join('');
   const rowsHtml=data.map((e,i)=>{
     const restColor=e.restantes<0?'var(--red)':e.restantes<=3?'var(--amber)':'var(--accent)';
     const pct=e.acumulados>0?Math.min(Math.round(e.usados/e.acumulados*100),100):0;
     const tdMeses=mesesActivos.map(m=>{
-      const cnt=(e.porMes[m]||[]).length;
-      return cnt>0
-        ?`<td style="text-align:center;" title="${(e.porMes[m]||[]).join(', ')}"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(79,195,247,0.15);color:#4FC3F7;border-radius:6px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;">${cnt}</span></td>`
-        :`<td style="text-align:center;color:var(--text3);">—</td>`;
+      const pm=e.porMes[m]||{disfrutados:[],planificados:[]};
+      const d=pm.disfrutados.length,p=pm.planificados.length,tot=d+p;
+      if(!tot)return`<td style="text-align:center;color:var(--text3);">—</td>`;
+      const tip=[...pm.disfrutados,...pm.planificados].join(', ');
+      return`<td style="text-align:center;" title="${tip}">
+        ${d?`<span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:rgba(76,175,80,0.2);color:var(--accent);border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:0 3px;" title="Disfrutados">${d}</span>`:''}
+        ${p?`<span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:rgba(245,166,35,0.15);color:var(--amber);border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:0 3px;" title="Planificados">${p}</span>`:''}
+      </td>`;
     }).join('');
-    const detailHtml=`<tr id="vdet_${i}" style="display:none;"><td colspan="${4+mesesActivos.length}" style="padding:0;"><div style="padding:12px 16px 16px 60px;background:var(--bg3);border-bottom:1px solid var(--border);">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Días disfrutados</div>
-      <div>${sortF(e.dias).map(f=>`<span style="display:inline-block;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}</div>
-      ${e.diasFestivos.length?`<div style="margin-top:8px;font-size:11px;color:var(--text3);">Festivos excluidos: ${sortF(e.diasFestivos).map(f=>`<span style="display:inline-block;background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}</div>`:''}
+    const detailHtml=`<tr id="vdet_${i}" style="display:none;"><td colspan="${5+mesesActivos.length}" style="padding:0;"><div style="padding:12px 16px 16px 60px;background:var(--bg3);border-bottom:1px solid var(--border);">
+      ${e.diasDisfrutados.length?`<div style="margin-bottom:8px;"><div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">✓ Disfrutados (${e.disfrutados})</div><div>${sortF(e.diasDisfrutados).map(f=>`<span style="display:inline-block;background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}</div></div>`:''}
+      ${e.diasPlanificados.length?`<div style="margin-bottom:8px;"><div style="font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">⏳ Planificados / Pendientes (${e.planificados})</div><div>${sortF(e.diasPlanificados).map(f=>`<span style="display:inline-block;background:rgba(245,166,35,0.1);color:var(--amber);border:1px solid rgba(245,166,35,0.2);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}</div></div>`:''}
+      ${e.diasFestivos.length?`<div style="font-size:11px;color:var(--text3);">Festivos excluidos: ${sortF(e.diasFestivos).map(f=>`<span style="display:inline-block;background:rgba(100,100,100,0.1);color:var(--text3);border:1px solid var(--border);border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;padding:1px 8px;margin:2px;">${f}</span>`).join('')}</div>`:''}
     </div></td></tr>`;
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;" onclick="toggleVacDetail(${i})">
       <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${e.emp.substring(0,3)}</div><span class="emp-name">${e.emp}</span><span style="font-size:10px;color:var(--text3);margin-left:4px;">▼</span></div></td>
       ${tdMeses}
-      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:#4FC3F7;">${e.usados}</span><div style="width:44px;height:2px;background:var(--bg3);border-radius:99px;overflow:hidden;margin:3px auto 0;"><div style="height:100%;width:${pct}%;background:#4FC3F7;border-radius:99px;"></div></div></td>
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);">${e.disfrutados}</span></td>
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);">${e.planificados}</span></td>
       <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${e.acumulados.toFixed(1)}d</span></td>
-      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${restColor};">${e.restantes<0?'⚠ ':''}${e.restantes}</span></td>
+      <td style="text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${restColor};">${e.restantes<0?'⚠ ':''}${e.restantes}</span></td>
     </tr>${detailHtml}`;
   }).join('');
 
   wrap.innerHTML=`<div class="table-container"><div style="overflow-x:auto;"><table><thead><tr>
-    <th>Empleado</th>${thMeses}<th style="text-align:center;">Usados</th><th style="text-align:center;">Acumulados</th><th style="text-align:center;">Restantes</th>
+    <th>Empleado</th>${thMeses}
+    <th style="text-align:center;color:var(--accent);">✓ Disfr.</th>
+    <th style="text-align:center;color:var(--amber);">⏳ Plan.</th>
+    <th style="text-align:center;">Acumulados</th>
+    <th style="text-align:center;">Restantes</th>
   </tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`;
 }
 function toggleVacDetail(i){
@@ -1528,9 +1551,11 @@ function exportVacacionesCSV(){
   const mesesTransc=Math.max(0,(new Date()-new Date(inicioStr+'T00:00:00'))/(1000*60*60*24*30.4375));
   const diasAcum=Math.min(parseFloat((mesesTransc*diasMes).toFixed(1)),maxAnual);
   const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
-  const lines=['Empleado,Días usados,Acumulados,Restantes,Fechas'];
+  const lines=['Empleado,Disfrutados,Planificados,Total,Acumulados,Restantes,Fechas disfrutadas,Fechas planificadas'];
+  const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
   Object.values(vacMap).sort((a,b)=>b.usados-a.usados).forEach(e=>{
-    lines.push(`"${e.emp}",${e.dias.length},${diasAcum.toFixed(1)},${(diasAcum-e.dias.length).toFixed(1)},"${sortF(e.dias).join(' | ')}"`);
+    const usados=e.disfrutados+e.planificados;
+    lines.push(`"${e.emp}",${e.disfrutados},${e.planificados},${usados},${diasAcum.toFixed(1)},${(diasAcum-usados).toFixed(1)},"${sortF(e.diasDisfrutados).join(' | ')}","${sortF(e.diasPlanificados).join(' | ')}"`);
   });
   const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vacaciones.csv';a.click();URL.revokeObjectURL(a.href);

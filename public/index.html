@@ -1541,8 +1541,9 @@ function renderResumenSummary(){
     (S.days[fecha]||[]).forEach(r=>{
       if(!empMap[r.emp])empMap[r.emp]={emp:r.emp,dias:0,totalHoras:0,previsto:0,horasExtras:0,incidencias:[],rows:[]};
       const hPrev=parseFloat(r.previsto)||0;
+      const esExceso=/exceso/i.test(r.incidencia||'');
       empMap[r.emp].dias++;empMap[r.emp].totalHoras+=r.horas;empMap[r.emp].previsto+=hPrev;
-      empMap[r.emp].horasExtras+=Math.max(0,r.horas-hPrev);
+      empMap[r.emp].horasExtras+=esExceso?Math.max(0,r.horas-hPrev):0;
       const st=gSt(r);if(st.key!=='ok')empMap[r.emp].incidencias.push({fecha,tipo:st.label,key:st.key});
     });
   });

@@ -5,9 +5,20 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ─── MongoDB ───────────────────────────────────────────────────────────────
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://simecal:Simecal2026!@cgs-free.qu2mzke.mongodb.net/simecal?appName=CGS-Free';
+let db = null;
+MongoClient.connect(MONGO_URI)
+  .then(client => {
+    db = client.db('simecal');
+    console.log('✓ MongoDB conectado');
+  })
+  .catch(err => console.error('✗ MongoDB error:', err.message));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }); // 50 MB
 
 // ─── Firma corporativa ─────────────────────────────────────────────────────
@@ -247,6 +258,55 @@ app.post('/send-all-emails', async (req, res) => {
   }
   const failed = results.filter(r => !r.ok);
   res.json({ ok: failed.length === 0, results, failed: failed.length });
+});
+
+// ─── API MongoDB: Directorio empleados ────────────────────────────────────
+app.get('/api/directorio', async (req, res) => {
+  if (!db) return res.json({ ok: false, error: 'BD no conectada' });
+  try {
+    const doc = await db.collection('config').findOne({ _id: 'directorio' });
+    res.json({ ok: true, empleados: doc?.empleados || {} });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+app.post('/api/directorio', async (req, res) => {
+  if (!db) return res.json({ ok: false, error: 'BD no conectada' });
+  try {
+    const { empleados } = req.body;
+    await db.collection('config').updateOne(
+      { _id: 'directorio' },
+      { $set: { empleados, updatedAt: new Date() } },
+      { upsert: true }
+    );
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+// ─── API MongoDB: Historial de envíos ─────────────────────────────────────
+app.post('/api/historial-envio', async (req, res) => {
+  if (!db) return res.json({ ok: false, error: 'BD no conectada' });
+  try {
+    const { tipo, destinatario, asunto, fecha, ok } = req.body;
+    await db.collection('historial_envios').insertOne({
+      tipo, destinatario, asunto, fecha: fecha || new Date(), ok,
+      createdAt: new Date()
+    });
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/historial-envio', async (req, res) => {
+  if (!db) return res.json({ ok: false, error: 'BD no conectada' });
+  try {
+    const registros = await db.collection('historial_envios')
+      .find({}).sort({ createdAt: -1 }).limit(200).toArray();
+    res.json({ ok: true, registros });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+// ─── API MongoDB: estado de conexión ──────────────────────────────────────
+app.get('/api/db-status', (req, res) => {
+  res.json({ ok: !!db, connected: !!db });
 });
 
 // ─── Iniciar servidor ──────────────────────────────────────────────────────

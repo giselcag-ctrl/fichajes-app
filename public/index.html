@@ -696,6 +696,8 @@ const EMPLEADOS_PRESET={'CGS':'cgs@simecal.com','Carolina González Serrano':'cg
 let S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[],empleados:{...EMPLEADOS_PRESET}};
 // Cargar directorio de empleados guardado en el navegador (se fusiona con preset)
 try{const saved=localStorage.getItem('simecal_empleados');if(saved)S.empleados={...EMPLEADOS_PRESET,...JSON.parse(saved)};}catch(e){}
+// Cargar directorio desde MongoDB (async, no bloquea)
+loadDirectorioFromDB();
 const dz=document.getElementById('drop-zone'),fi=document.getElementById('file-input');
 // Drop zone del directorio
 const ddz=document.getElementById('dir-drop-zone'),dfi=document.getElementById('dir-file-input');
@@ -1091,7 +1093,7 @@ function handleDirectorioFile(f){
           if(clave&&email.includes('@')){S.empleados[clave]=email;added++;}
         }
       }
-      localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
+      saveDirectorio();
       renderDirectorioTable();
       showToast(added+' empleados guardados ✓');
     }catch(err){showToast('Error al leer el archivo');}
@@ -1114,8 +1116,24 @@ function renderDirectorioTable(){
       <td><button class="btn btn-ghost btn-sm" onclick="deleteEmpleado('${nombre.replace(/'/g,"\\'")}')">✕</button></td>
     </tr>`).join('');
 }
-function deleteEmpleado(nombre){delete S.empleados[nombre];localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));renderDirectorioTable();showToast('Eliminado')}
-function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={...EMPLEADOS_PRESET};localStorage.removeItem('simecal_empleados');renderDirectorioTable();showToast('Directorio borrado')}
+function saveDirectorio(){
+  localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
+  fetch('/api/directorio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empleados:S.empleados})})
+    .catch(()=>{});// fallo silencioso si no hay BD
+}
+async function loadDirectorioFromDB(){
+  try{
+    const r=await fetch('/api/directorio');
+    const data=await r.json();
+    if(data.ok&&Object.keys(data.empleados||{}).length){
+      S.empleados={...EMPLEADOS_PRESET,...data.empleados};
+      localStorage.setItem('simecal_empleados',JSON.stringify(S.empleados));
+      renderDirectorioTable();
+    }
+  }catch(e){}
+}
+function deleteEmpleado(nombre){delete S.empleados[nombre];saveDirectorio();renderDirectorioTable();showToast('Eliminado')}
+function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directorio?'))return;S.empleados={...EMPLEADOS_PRESET};saveDirectorio();renderDirectorioTable();showToast('Directorio borrado')}
 // ══════════════════════════════════════════════════════════════════════
 // MÓDULO DE AUDITORÍA DE PEDIDOS
 // ══════════════════════════════════════════════════════════════════════

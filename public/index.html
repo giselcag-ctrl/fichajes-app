@@ -326,17 +326,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         </button>
       </div>
       <div id="resumen-stats" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"></div>
-      <!-- Alertas -->
-      <div style="margin-bottom:20px;" id="resumen-middle">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;min-height:80px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <span style="font-size:13px;font-weight:500;">Alertas activas</span>
-            <span id="resumen-alerta-badge" style="font-size:10px;background:var(--red-dim);color:var(--red);border-radius:99px;padding:1px 7px;font-weight:600;display:none;"></span>
-          </div>
-          <div id="resumen-alertas-list"></div>
-        </div>
-        <canvas id="resumen-chart" style="display:none;"></canvas>
+      <!-- Incidencias del empleado seleccionado -->
+      <div id="resumen-inc-panel" style="display:none;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:10px;" id="resumen-inc-title">Incidencias</div>
+        <div id="resumen-inc-list"></div>
       </div>
+      <canvas id="resumen-chart" style="display:none;"></canvas>
       <div class="table-container animate-in">
         <div class="table-header"><h3 id="resumen-table-heading">Selecciona días en el calendario</h3></div>
         <div style="overflow-x:auto;"><table><thead><tr>
@@ -1561,7 +1556,31 @@ function renderResumenSummary(){
       if(prev&&emps.includes(prev))sel.value=prev;
     }
   }
-  renderResumenAlertas(empMap);
+  // Panel de incidencias del empleado seleccionado
+  const incPanel=document.getElementById('resumen-inc-panel');
+  const incList=document.getElementById('resumen-inc-list');
+  const incTitle=document.getElementById('resumen-inc-title');
+  if(empFilter&&empMap[empFilter]){
+    const emp=empMap[empFilter];
+    if(incPanel)incPanel.style.display='block';
+    if(incTitle)incTitle.textContent=`Incidencias de ${empFilter}`;
+    if(incList){
+      if(!emp.incidencias.length){
+        incList.innerHTML=`<div style="color:var(--text3);font-size:12px;padding:6px 0;">Sin incidencias en los días seleccionados ✓</div>`;
+      } else {
+        incList.innerHTML=emp.incidencias.map(it=>{
+          const col=it.key==='warn'?'var(--amber)':it.key==='vac'?'#4FC3F7':'var(--red)';
+          const bg=it.key==='warn'?'rgba(245,166,35,0.1)':it.key==='vac'?'rgba(79,195,247,0.1)':'rgba(255,92,92,0.1)';
+          return`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;background:${bg};margin-bottom:4px;">
+            <span style="font-size:12px;color:${col};font-weight:500;">${it.tipo}</span>
+            <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${it.fecha}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+  } else {
+    if(incPanel)incPanel.style.display='none';
+  }
   renderResumenChart(empMap,empFilter);
   let rows=Object.values(empMap).sort((a,b)=>a.emp.localeCompare(b.emp));
   if(empFilter)rows=rows.filter(r=>r.emp===empFilter);

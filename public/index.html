@@ -326,22 +326,16 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         </button>
       </div>
       <div id="resumen-stats" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"></div>
-      <!-- Alertas + Gráfica -->
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;" id="resumen-middle" style="display:none;">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;min-height:180px;">
+      <!-- Alertas -->
+      <div style="margin-bottom:20px;" id="resumen-middle">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;min-height:80px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <span style="font-size:13px;font-weight:500;">Alertas activas</span>
             <span id="resumen-alerta-badge" style="font-size:10px;background:var(--red-dim);color:var(--red);border-radius:99px;padding:1px 7px;font-weight:600;display:none;"></span>
           </div>
           <div id="resumen-alertas-list"></div>
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:13px;font-weight:500;" id="resumen-chart-title">Horas por empleado</span>
-            <span style="font-size:11px;color:var(--text3);" id="resumen-chart-sub"></span>
-          </div>
-          <div style="position:relative;height:160px;"><canvas id="resumen-chart"></canvas></div>
-        </div>
+        <canvas id="resumen-chart" style="display:none;"></canvas>
       </div>
       <div class="table-container animate-in">
         <div class="table-header"><h3 id="resumen-table-heading">Selecciona días en el calendario</h3></div>
@@ -1511,15 +1505,16 @@ function toggleResumenAlerta(id){
   el.style.display=open?'none':'block';if(arr)arr.textContent=open?'▼':'▲';
 }
 function renderResumenChart(empMap,empFilter){
+  // gráfica desactivada — solo se conserva la función para compatibilidad
+  if(_resumenChart){_resumenChart.destroy();_resumenChart=null;}
+  return;
   const canvas=document.getElementById('resumen-chart');
   if(!canvas||typeof Chart==='undefined')return;
   const title=document.getElementById('resumen-chart-title');
   const sub=document.getElementById('resumen-chart-sub');
-  if(_resumenChart){_resumenChart.destroy();_resumenChart=null;}
   const middle=document.getElementById('resumen-middle');
   const fechasArr=[..._resumenFechas];
-  if(!fechasArr.length||!Object.keys(empMap).length){if(middle)middle.style.display='none';return;}
-  if(middle)middle.style.display='grid';
+  if(!fechasArr.length||!Object.keys(empMap).length){return;}
   // Si hay un empleado seleccionado → gráfica por día de ese empleado
   if(empFilter&&empMap[empFilter]){
     const emp=empMap[empFilter];

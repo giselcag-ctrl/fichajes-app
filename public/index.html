@@ -161,7 +161,28 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-quick-btn:hover{border-color:var(--accent);color:var(--accent);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .animate-in{animation:fadeIn 0.3s ease both}
-@media(max-width:900px){.sidebar{display:none}.stat-grid{grid-template-columns:1fr 1fr}.email-section{grid-template-columns:1fr}}
+/* ── Mobile sidebar drawer ── */
+@media(max-width:900px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);transition:transform 0.25s cubic-bezier(.4,0,.2,1);display:flex!important;box-shadow:none}
+  .sidebar.mob-open{transform:translateX(0);box-shadow:6px 0 28px rgba(0,0,0,0.55)}
+  .mob-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:199;backdrop-filter:blur(2px);display:none}
+  .mob-overlay.show{display:block}
+  .mob-burger{display:flex!important}
+  .mob-close{display:flex!important}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .email-section{grid-template-columns:1fr}
+  .content{padding:20px 16px}
+  .topbar{padding:0 16px}
+}
+@media(min-width:901px){.mob-burger{display:none!important}.mob-close{display:none!important}.mob-overlay{display:none!important}}
+/* ── Confirm modal ── */
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.65);align-items:center;justify-content:center}
+.modal-backdrop.show{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:32px 28px;max-width:420px;width:90%;text-align:center;animation:fadeIn 0.2s ease}
+.modal-icon{font-size:28px;margin-bottom:12px}
+.modal-title{font-size:15px;font-weight:500;margin-bottom:6px}
+.modal-msg{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6}
+.modal-actions{display:flex;gap:12px;justify-content:center}
 
 /* ── Directorio ── */
 .dir-drop{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg2);position:relative;margin-bottom:20px}
@@ -198,7 +219,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 <div class="progress-bar-wrap"><div class="progress-bar" id="progress"></div></div>
 <div class="shell">
 <aside class="sidebar">
-  <div class="logo-area">
+  <div class="logo-area" style="position:relative;">
+    <button class="btn btn-ghost btn-sm mob-close" onclick="toggleSidebar()" style="display:none;position:absolute;top:0;right:0;padding:0 8px;" aria-label="Cerrar menú">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
     <div class="simecal-wordmark">
       <span class="wm-sime">simec</span><span class="wm-al">al</span>
     </div>
@@ -250,9 +274,34 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div style="color:var(--text2);font-size:12px;word-break:break-all;" id="sf-name"></div>
   </div>
 </aside>
+
+<!-- Mobile overlay -->
+<div class="mob-overlay" id="mob-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop" id="modal-confirm">
+  <div class="modal-box">
+    <div class="modal-icon">📧</div>
+    <div class="modal-title">¿Confirmar envío?</div>
+    <div class="modal-msg" id="modal-confirm-msg">¿Estás segura de que quieres enviar este correo?</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-accent" id="modal-confirm-ok" onclick="execConfirm()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        Enviar
+      </button>
+    </div>
+  </div>
+</div>
+
 <main class="main">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;font-weight:300;letter-spacing:-0.3px;color:var(--text)">simec<span style="color:var(--accent);font-weight:400">al</span></span><span style="width:1px;height:16px;background:var(--border2);display:inline-block;"></span><span class="topbar-title" id="topbar-title" style="font-size:13px;color:var(--text2);font-weight:400;">Carga tu archivo</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost btn-sm mob-burger" onclick="toggleSidebar()" style="display:none;padding:0 8px;margin-right:4px;" aria-label="Abrir menú">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <span style="font-size:16px;font-weight:300;letter-spacing:-0.3px;color:var(--text)">simec<span style="color:var(--accent);font-weight:400">al</span></span><span style="width:1px;height:16px;background:var(--border2);display:inline-block;"></span><span class="topbar-title" id="topbar-title" style="font-size:13px;color:var(--text2);font-weight:400;">Carga tu archivo</span>
+    </div>
     <div class="topbar-meta">
       <span id="topbar-date" style="display:none;"><span class="dot-live"></span><span id="topbar-date-val"></span></span>
       <button class="btn btn-ghost btn-sm" onclick="resetApp()" id="btn-reset" style="display:none;">
@@ -999,6 +1048,9 @@ function sendCurrentEmail(){
   const body=document.getElementById('email-body-field').value.trim();
   if(!to||to==='—')return showToast('Selecciona un empleado primero');
   if(!to.includes('@'))return showToast('Email del destinatario no válido');
+  showConfirm(`¿Enviar correo a ${to}?`,()=>_doSendCurrentEmail(to,subject,body));
+}
+function _doSendCurrentEmail(to,subject,body){
   const btn=document.getElementById('btn-send-daily');
   btn.disabled=true;btn.textContent='Enviando…';
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
@@ -1042,6 +1094,9 @@ function sendCurrentWeeklyEmail(){
   const body=document.getElementById('weekly-email-body').value.trim();
   if(!to||to==='—')return showToast('Selecciona un empleado primero');
   if(!to.includes('@'))return showToast('Email del destinatario no válido');
+  showConfirm(`¿Enviar correo semanal a ${to}?`,()=>_doSendCurrentWeeklyEmail(to,subject,body));
+}
+function _doSendCurrentWeeklyEmail(to,subject,body){
   const btn=document.getElementById('btn-send-weekly');
   btn.disabled=true;btn.textContent='Enviando…';
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
@@ -1284,6 +1339,9 @@ function copiarCorreoPedido(){const body=document.getElementById('ped-email-body
 function enviarCorreoPedido(){
   const to=document.getElementById('ped-email-to').value.trim(),subject=document.getElementById('ped-email-subject').value.trim(),body=document.getElementById('ped-email-body').value.trim();
   if(!to||!to.includes('@'))return showToast('Introduce un email válido');
+  showConfirm(`¿Enviar correo de pedido a ${to}?`,()=>_doEnviarCorreoPedido(to,subject,body));
+}
+function _doEnviarCorreoPedido(to,subject,body){
   const btn=document.getElementById('btn-ped-send');btn.disabled=true;btn.textContent='Enviando…';
   const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),20000);
   fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
@@ -1790,6 +1848,32 @@ function showLoading(msg){const o=document.getElementById('loading-overlay');doc
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
+
+// ── Mobile sidebar ──────────────────────────────────────────────────────────
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar'),ov=document.getElementById('mob-overlay');
+  const open=sb.classList.toggle('mob-open');
+  ov.classList.toggle('show',open);
+  document.body.style.overflow=open?'hidden':'';
+}
+
+// ── Confirm modal ───────────────────────────────────────────────────────────
+let _confirmCb=null;
+function showConfirm(msg,cb){
+  _confirmCb=cb;
+  document.getElementById('modal-confirm-msg').textContent=msg;
+  document.getElementById('modal-confirm').classList.add('show');
+}
+function closeConfirm(){
+  _confirmCb=null;
+  document.getElementById('modal-confirm').classList.remove('show');
+}
+function execConfirm(){
+  document.getElementById('modal-confirm').classList.remove('show');
+  if(_confirmCb){const fn=_confirmCb;_confirmCb=null;fn();}
+}
+// Cerrar modal con Escape
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm();});
 </script>
 </body>
 </html>

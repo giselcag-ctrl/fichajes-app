@@ -56,9 +56,24 @@ function makeTransporter() {
 }
 let transporter = makeTransporter();
 
+// ─── Rate limiter simple (sin dependencias extra) ─────────────────────────
+const _rlStore = new Map();
+function rateLimit(ip, max = 20, windowMs = 60_000) {
+  const now = Date.now();
+  let e = _rlStore.get(ip) || { c: 0, r: now + windowMs };
+  if (now > e.r) { e.c = 0; e.r = now + windowMs; }
+  e.c++;
+  _rlStore.set(ip, e);
+  return e.c > max; // true → bloqueado
+}
+// Limpiar entradas expiradas cada 5 min
+setInterval(() => { const now = Date.now(); for (const [k,v] of _rlStore) if (now > v.r) _rlStore.delete(k); }, 300_000);
+
 // ─── Middleware ────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+// Trust proxy (Render usa reverse proxy)
+app.set('trust proxy', 1);
 
 // ─── Ruta principal ────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
@@ -224,6 +239,8 @@ app.get('/test-smtp', async (req, res) => {
 
 // ─── Endpoint: enviar un correo ────────────────────────────────────────────
 app.post('/send-email', async (req, res) => {
+  if (rateLimit(req.ip, 20, 60_000))
+    return res.status(429).json({ ok: false, error: 'Demasiadas solicitudes. Espera un minuto.' });
   const { to, subject, body } = req.body;
   if (!to || !subject || !body)
     return res.status(400).json({ ok: false, error: 'Faltan campos: to, subject, body' });
@@ -241,6 +258,8 @@ app.post('/send-email', async (req, res) => {
 
 // ─── Endpoint: enviar todos los correos del día ────────────────────────────
 app.post('/send-all-emails', async (req, res) => {
+  if (rateLimit(req.ip, 5, 300_000)) // máx 5 envíos masivos cada 5 min
+    return res.status(429).json({ ok: false, error: 'Demasiadas solicitudes. Espera 5 minutos.' });
   const { emails } = req.body;
   if (!Array.isArray(emails) || emails.length === 0)
     return res.status(400).json({ ok: false, error: 'Se esperaba un array "emails"' });

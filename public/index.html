@@ -1552,7 +1552,6 @@ function exportVacacionesCSV(){
   const diasAcum=Math.min(parseFloat((mesesTransc*diasMes).toFixed(1)),maxAnual);
   const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
   const lines=['Empleado,Disfrutados,Planificados,Total,Acumulados,Restantes,Fechas disfrutadas,Fechas planificadas'];
-  const sortF=arr=>[...arr].sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
   Object.values(vacMap).sort((a,b)=>b.usados-a.usados).forEach(e=>{
     const usados=e.disfrutados+e.planificados;
     lines.push(`"${e.emp}",${e.disfrutados},${e.planificados},${usados},${diasAcum.toFixed(1)},${(diasAcum-usados).toFixed(1)},"${sortF(e.diasDisfrutados).join(' | ')}","${sortF(e.diasPlanificados).join(' | ')}"`);

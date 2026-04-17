@@ -624,6 +624,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <span style="font-size:11px;color:var(--text3);">Palabra clave</span>
               <input id="vac-keyword" value="Vacaciones" oninput="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;width:110px;">
             </div>
+            <div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-end;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding-bottom:4px;">
+                <input type="checkbox" id="vac-match-exact" checked onchange="renderVacaciones()" style="accent-color:var(--accent);">
+                Coincidencia exacta
+              </label>
+            </div>
           </div>
         </div>
 
@@ -1316,11 +1322,11 @@ function handleVacTareasFile(f){
       _tareasVac.rows=data.slice(1);
       // Auto-detectar columnas
       const h=_tareasVac.headers;
-      const fi=pats=>{for(const p of pats){const i=h.findIndex(c=>p.test(c.toLowerCase()));if(i>=0)return i;}return -1;};
-      _tareasVac.colMap.emp=fi([/empleado|recurso|nombre|trabajador|usuario/]);
-      _tareasVac.colMap.desc=fi([/descripci|tarea|tipo|concepto|actividad|trabajo|categoria/]);
-      _tareasVac.colMap.fechaIni=fi([/inicio|start|desde|f.*ini/]);
-      _tareasVac.colMap.fechaFin=fi([/fin$|end$|hasta|f.*fin/]);
+      const fi=pats=>{for(const p of pats){const i=h.findIndex(c=>p.test(c.trim().toLowerCase()));if(i>=0)return i;}return -1;};
+      _tareasVac.colMap.emp=fi([/^usuario$/,/empleado|recurso|nombre|trabajador|usuario/]);
+      _tareasVac.colMap.desc=fi([/^descripci/,/descripci|tarea|tipo|concepto|actividad/]);
+      _tareasVac.colMap.fechaIni=fi([/fecha\s*inicio|inicio|start|desde/]);
+      _tareasVac.colMap.fechaFin=fi([/fecha\s*fin|fin$|end$|hasta/]);
       _tareasVac.loaded=true;
       // UI feedback
       const fn=document.getElementById('vac-tareas-filename');if(fn)fn.textContent=f.name;
@@ -1379,11 +1385,13 @@ function buildVacMapFromTareas(){
   const descCol=parseInt((document.getElementById('vac-col-desc')||{}).value??_tareasVac.colMap.desc);
   const iniCol=parseInt((document.getElementById('vac-col-fechaini')||{}).value??_tareasVac.colMap.fechaIni);
   const finCol=parseInt((document.getElementById('vac-col-fechafin')||{}).value??_tareasVac.colMap.fechaFin);
-  const kw=((document.getElementById('vac-keyword')||{}).value||'Vacaciones').toLowerCase();
+  const kw=((document.getElementById('vac-keyword')||{}).value||'Vacaciones').trim().toLowerCase();
+  const exactMode=(document.getElementById('vac-match-exact')||{}).checked!==false; // default exacto
   const vacMap={};
   _tareasVac.rows.forEach(row=>{
-    const desc=String(row[descCol]||'').toLowerCase();
-    if(!desc.includes(kw))return;
+    const desc=String(row[descCol]||'').trim().toLowerCase();
+    const match=exactMode?(desc===kw):(desc.includes(kw));
+    if(!match)return;
     const emp=String(row[empCol]||'').trim();
     if(!emp)return;
     const fIni=parseTareasDate(row[iniCol]);

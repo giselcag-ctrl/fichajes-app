@@ -234,6 +234,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 5 4 9a4 4 0 0 0 8 0c0-4-4-7-4-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 13v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 15h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Vacaciones
     </a>
+    <div class="nav-section">Archivo</div>
+    <a class="nav-item" onclick="showPage('upload')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Cargar fichaje
+    </a>
     <div class="nav-section">Configuración</div>
     <a class="nav-item" onclick="showPage('directorio')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -738,7 +743,7 @@ function showPage(name){
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones','upload','directorio'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}

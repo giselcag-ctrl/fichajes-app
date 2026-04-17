@@ -335,7 +335,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <div class="table-container animate-in">
         <div class="table-header"><h3 id="resumen-table-heading">Selecciona días en el calendario</h3></div>
         <div style="overflow-x:auto;"><table><thead><tr>
-          <th>Empleado</th><th>Días</th><th>Horas totales</th><th>Media/día</th><th>Incidencias</th><th>Estado</th>
+          <th>Empleado</th><th>Días</th><th>Horas totales</th><th>Media/día</th><th>H. extras</th><th>Incidencias</th><th>Estado</th>
         </tr></thead><tbody id="resumen-tbody">
           <tr><td colspan="6"><div class="empty-state"><div class="es-icon">📅</div><p>Selecciona uno o más días en el calendario</p></div></td></tr>
         </tbody></table></div>
@@ -1539,8 +1539,10 @@ function renderResumenSummary(){
   const empMap={};
   fechasArr.forEach(fecha=>{
     (S.days[fecha]||[]).forEach(r=>{
-      if(!empMap[r.emp])empMap[r.emp]={emp:r.emp,dias:0,totalHoras:0,previsto:0,incidencias:[],rows:[]};
-      empMap[r.emp].dias++;empMap[r.emp].totalHoras+=r.horas;empMap[r.emp].previsto+=parseFloat(r.previsto)||0;
+      if(!empMap[r.emp])empMap[r.emp]={emp:r.emp,dias:0,totalHoras:0,previsto:0,horasExtras:0,incidencias:[],rows:[]};
+      const hPrev=parseFloat(r.previsto)||0;
+      empMap[r.emp].dias++;empMap[r.emp].totalHoras+=r.horas;empMap[r.emp].previsto+=hPrev;
+      empMap[r.emp].horasExtras+=Math.max(0,r.horas-hPrev);
       const st=gSt(r);if(st.key!=='ok')empMap[r.emp].incidencias.push({fecha,tipo:st.label,key:st.key});
     });
   });
@@ -1587,20 +1589,23 @@ function renderResumenSummary(){
   if(stFilter)rows=rows.filter(r=>stFilter==='ok'?r.incidencias.length===0:r.incidencias.some(i=>i.key===stFilter));
   const statsEl=document.getElementById('resumen-stats');
   if(!fechasArr.length){statsEl.innerHTML='';document.getElementById('resumen-tbody').innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="es-icon">📅</div><p>Selecciona días en el calendario</p></div></td></tr>`;document.getElementById('resumen-table-heading').textContent='Selecciona días en el calendario';return;}
-  const t=rows.length,ok=rows.filter(r=>r.incidencias.length===0).length,inc=t-ok,totalH=rows.reduce((s,r)=>s+r.totalHoras,0),avg=t>0?totalH/t:0;
-  statsEl.innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Empleados</div><div class="sc-val">${t}</div><div class="sc-sub">${fechasArr.length} día${fechasArr.length!==1?'s':''} sel.</div></div><div class="stat-card accent animate-in"><div class="sc-label">Sin incidencias</div><div class="sc-val">${ok}</div><div class="sc-sub">${t>0?Math.round(ok/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:${inc>0?'var(--red)':'var(--text)'}">${inc}</div><div class="sc-sub">${t>0?Math.round(inc/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Media horas</div><div class="sc-val">${avg.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${totalH.toFixed(1)}h total</div></div>`;
+  const t=rows.length,ok=rows.filter(r=>r.incidencias.length===0).length,inc=t-ok,totalH=rows.reduce((s,r)=>s+r.totalHoras,0),avg=t>0?totalH/t:0,totalExtras=rows.reduce((s,r)=>s+r.horasExtras,0);
+  statsEl.innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Empleados</div><div class="sc-val">${t}</div><div class="sc-sub">${fechasArr.length} día${fechasArr.length!==1?'s':''} sel.</div></div><div class="stat-card accent animate-in"><div class="sc-label">Sin incidencias</div><div class="sc-val">${ok}</div><div class="sc-sub">${t>0?Math.round(ok/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:${inc>0?'var(--red)':'var(--text)'}">${inc}</div><div class="sc-sub">${t>0?Math.round(inc/t*100):0}%</div></div><div class="stat-card animate-in"><div class="sc-label">Media horas</div><div class="sc-val">${avg.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${totalH.toFixed(1)}h total</div></div><div class="stat-card animate-in"><div class="sc-label">Horas extras</div><div class="sc-val" style="color:${totalExtras>0?'var(--amber)':'var(--text)'}">${totalExtras.toFixed(1)}<span style="font-size:14px;color:var(--text2);">h</span></div><div class="sc-sub">${t>0?(totalExtras/t).toFixed(1):'0'}h media/emp</div></div>`;
   document.getElementById('resumen-table-heading').textContent=`${t} empleado${t!==1?'s':''} · ${fechasArr.length} día${fechasArr.length!==1?'s':''}`;
-  if(!rows.length){document.getElementById('resumen-tbody').innerHTML=`<tr><td colspan="6"><div class="empty-state"><p>Sin registros</p></div></td></tr>`;return;}
+  if(!rows.length){document.getElementById('resumen-tbody').innerHTML=`<tr><td colspan="7"><div class="empty-state"><p>Sin registros</p></div></td></tr>`;return;}
   document.getElementById('resumen-tbody').innerHTML=rows.map((r,i)=>{
     const media=r.dias>0?r.totalHoras/r.dias:0,inc=r.incidencias.length;
     const ic=inc>2?'badge-bad':inc>0?'badge-warn':'badge-ok';
     const estCls=inc===0?'badge-ok':inc>2?'badge-bad':'badge-warn';
     const pct=r.previsto>0?Math.min(Math.round(r.totalHoras/r.previsto*100),100):0;
+    const extras=r.horasExtras||0;
+    const extrasCls=extras>0?'color:var(--amber);font-weight:600;':'color:var(--text3);';
     return`<tr style="animation:fadeIn 0.2s ${i*0.02}s both;">
       <td><div style="display:flex;align-items:center;gap:10px;"><div class="emp-badge">${r.emp.substring(0,3)}</div><span class="emp-name">${r.emp}</span></div></td>
       <td><span class="time-val">${r.dias}d</span></td>
       <td><div class="hours-bar"><div class="hours-track"><div class="hours-fill" style="width:${pct}%"></div></div><span class="hours-num">${r.totalHoras.toFixed(1)}h</span></div></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:13px;">${media.toFixed(1)}h</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:13px;${extrasCls}">${extras>0?'+'+extras.toFixed(1)+'h':'—'}</span></td>
       <td><span class="badge ${ic}">${inc>0?inc+' incidencia'+(inc>1?'s':''):'Sin incidencias'}</span></td>
       <td><span class="badge ${estCls}">${inc===0?'Correcto':inc>2?'Revisar':'Atención'}</span></td>
     </tr>`;

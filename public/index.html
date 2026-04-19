@@ -100,6 +100,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .badge-bad::before{background:var(--red)}
 .badge-vac{background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.25)}
 .badge-vac::before{background:#4FC3F7}
+.badge-baja{background:rgba(206,147,216,0.12);color:#CE93D8;border:1px solid rgba(206,147,216,0.25)}
+.badge-baja::before{background:#CE93D8}
+.badge-perm{background:rgba(255,183,77,0.12);color:#FFB74D;border:1px solid rgba(255,183,77,0.25)}
+.badge-perm::before{background:#FFB74D}
+.badge-hext{background:rgba(129,199,132,0.15);color:#81C784;border:1px solid rgba(129,199,132,0.3)}
+.badge-hext::before{background:#81C784}
 .hours-bar{display:flex;align-items:center;gap:8px}
 .hours-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;max-width:80px}
 .hours-fill{height:100%;border-radius:99px;background:var(--accent);transition:width 0.3s}
@@ -268,10 +274,17 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 13c0-2.8 2.2-4 5-4s5 1.2 5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 7h4M13 5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Directorio empleados
     </a>
+    <a class="nav-item" onclick="showPage('historial')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 3h12M2 8h8M2 13h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="13" cy="12" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M13 11v1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="13" cy="13.2" r="0.4" fill="currentColor"/></svg>
+      Historial envíos
+    </a>
   </nav>
   <div class="sidebar-footer" id="sidebar-file" style="display:none;">
     <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Archivo cargado</div>
     <div style="color:var(--text2);font-size:12px;word-break:break-all;" id="sf-name"></div>
+  </div>
+  <div style="padding:12px 20px 16px;text-align:center;">
+    <span style="font-size:10px;color:var(--text3);letter-spacing:0.04em;">creado por <span style="color:var(--accent);font-family:'DM Mono',monospace;font-weight:500;">cgs</span></span>
   </div>
 </aside>
 
@@ -467,7 +480,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div id="page-all-emails" class="page">
       <div class="controls animate-in" style="margin-bottom:20px;">
         <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="all-email-day-select" onchange="renderAllEmails()"></select></div>
-        <button class="btn btn-accent" onclick="copyAllEmails()">Copiar todos</button>
+        <button class="btn btn-accent" onclick="sendAllEmailsForDay()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Enviar todos
+        </button>
+        <button class="btn btn-ghost" onclick="copyAllEmails()">Copiar todos</button>
         <button class="btn btn-outline" onclick="downloadAllEmailsTxt()">Descargar .txt</button>
       </div>
       <div class="all-emails-view animate-in">
@@ -718,8 +735,43 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
+    <!-- ── Historial de envíos ── -->
+    <div id="page-historial" class="page">
+      <div class="animate-in" style="max-width:900px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-size:18px;font-weight:400;margin-bottom:4px;">Historial de <span style="color:var(--accent)">envíos</span></h2>
+            <p style="font-size:12px;color:var(--text3);">Últimos 200 correos registrados en la base de datos</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadHistorial()">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Actualizar
+          </button>
+        </div>
+        <div id="historial-stats" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;"></div>
+        <div id="historial-table-wrap">
+          <div class="empty-state"><div class="es-icon">📋</div><p>Cargando historial…</p></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </main>
+</div>
+
+<!-- Progress modal (envío masivo) -->
+<div class="modal-backdrop" id="modal-progress">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title">Enviando correos…</div>
+    <div style="margin:16px 0 8px;background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;">
+      <div id="prog-bar" style="height:100%;background:var(--accent);border-radius:99px;transition:width 0.3s;width:0%;"></div>
+    </div>
+    <div id="prog-label" style="font-size:12px;color:var(--text2);margin-bottom:16px;text-align:center;">0 / 0</div>
+    <div id="prog-list" style="max-height:200px;overflow-y:auto;font-size:12px;font-family:'DM Mono',monospace;"></div>
+    <div style="margin-top:16px;text-align:center;display:none;" id="prog-done-row">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-progress').classList.remove('show')">Cerrar</button>
+    </div>
+  </div>
 </div>
 <div id="toast"><span class="t-icon">✓</span><span id="toast-msg">Copiado</span></div>
 <div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,27,46,0.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
@@ -834,16 +886,26 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={resumen:'page-resumen',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones'};
-  const tm={resumen:'Resumen',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado'};
+  const pm={resumen:'page-resumen',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial'};
+  const tm={resumen:'Resumen',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones','upload','directorio'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  if(name==='historial')loadHistorial();
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
-function gSt(row){const inc=(row.incidencia||'').trim();if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};if(/vacac/i.test(inc))return{key:'vac',label:'Vacaciones',cls:'badge-vac'};if(inc.includes('Exceso'))return{key:'warn',label:'Exceso jornada',cls:'badge-warn'};return{key:'bad',label:'Jornada corta',cls:'badge-bad'}}
+function gSt(row){
+  const inc=(row.incidencia||'').trim();
+  if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};
+  if(/vacac/i.test(inc))return{key:'vac',label:'Vacaciones',cls:'badge-vac'};
+  if(/exceso/i.test(inc))return{key:'hext',label:'Horas extras',cls:'badge-hext'};
+  if(/baja|médic|medic|enferm|IT\b/i.test(inc))return{key:'baja',label:'Baja médica',cls:'badge-baja'};
+  if(/permiso|retribuid|libre|festivo/i.test(inc))return{key:'perm',label:'Permiso retribuido',cls:'badge-perm'};
+  if(/retraso|tard[eí]/i.test(inc))return{key:'bad',label:'Retraso',cls:'badge-bad'};
+  return{key:'bad',label:'Jornada corta',cls:'badge-bad'};
+}
 function applyFilters(){
   const day=document.getElementById('day-select').value,empF=document.getElementById('emp-filter').value,stF=document.getElementById('status-filter').value;
   let rows=S.days[day]||[];
@@ -1056,7 +1118,7 @@ function _doSendCurrentEmail(to,subject,body){
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),20000);
   fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
     .then(r=>r.json())
-    .then(d=>{clearTimeout(tid);if(d.ok){showToast('✓ Correo enviado a '+to);}else{showToast('Error: '+d.error);}})
+    .then(d=>{clearTimeout(tid);if(d.ok){showToast('✓ Correo enviado a '+to);fetch('/api/historial-envio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'individual',destinatario:to,asunto:subject,fecha:new Date(),ok:true})}).catch(()=>{});}else{showToast('Error: '+d.error);}})
     .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado — revisa la contraseña SMTP':'Error de conexión')})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg> Enviar';});
 }
@@ -1848,6 +1910,101 @@ function showLoading(msg){const o=document.getElementById('loading-overlay');doc
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
+
+// ── Historial de envíos ─────────────────────────────────────────────────────
+async function loadHistorial(){
+  const wrap=document.getElementById('historial-table-wrap');
+  const statsEl=document.getElementById('historial-stats');
+  if(!wrap)return;
+  wrap.innerHTML='<div class="empty-state"><div class="es-icon" style="font-size:20px;">⏳</div><p>Cargando…</p></div>';
+  try{
+    const r=await fetch('/api/historial-envio');
+    const data=await r.json();
+    if(!data.ok){wrap.innerHTML=`<div class="empty-state"><p style="color:var(--red)">Error: ${data.error}</p></div>`;return;}
+    const registros=data.registros||[];
+    if(!registros.length){wrap.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>Aún no hay envíos registrados</p></div>';return;}
+    // Stats
+    const total=registros.length,ok=registros.filter(r=>r.ok).length,ko=total-ok;
+    if(statsEl)statsEl.innerHTML=`
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:20px;font-family:'DM Mono',monospace;font-weight:300;">${total}</span>
+        <span style="font-size:12px;color:var(--text3);">enviados</span>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(76,175,80,0.2);border-radius:var(--radius);padding:12px 16px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:20px;font-family:'DM Mono',monospace;color:var(--accent);">${ok}</span>
+        <span style="font-size:12px;color:var(--text3);">correctos</span>
+      </div>
+      ${ko?`<div style="background:var(--bg2);border:1px solid rgba(255,92,92,0.2);border-radius:var(--radius);padding:12px 16px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:20px;font-family:'DM Mono',monospace;color:var(--red);">${ko}</span>
+        <span style="font-size:12px;color:var(--text3);">fallidos</span>
+      </div>`:''}`;
+    // Table
+    const rows=registros.map(r=>{
+      const fecha=r.fecha?new Date(r.fecha).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      const tipoBadge=r.tipo==='bulk'?'<span style="font-size:10px;background:rgba(79,195,247,0.1);color:#4FC3F7;border:1px solid rgba(79,195,247,0.2);border-radius:99px;padding:1px 7px;">masivo</span>':'<span style="font-size:10px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(76,175,80,0.2);border-radius:99px;padding:1px 7px;">individual</span>';
+      return`<tr>
+        <td style="font-size:11px;color:var(--text3);white-space:nowrap;">${fecha}</td>
+        <td>${tipoBadge}</td>
+        <td style="font-size:12px;font-family:'DM Mono',monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.destinatario||'—'}</td>
+        <td style="font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);">${r.asunto||'—'}</td>
+        <td><span style="font-size:10px;padding:2px 8px;border-radius:99px;${r.ok?'background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);':'background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,0.2);'}">${r.ok?'✓ OK':'✗ Error'}</span></td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML=`<div class="table-container" style="overflow-x:auto;"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Destinatario</th><th>Asunto</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty-state"><p style="color:var(--red)">Error de conexión</p></div>`;}
+}
+
+// ── Enviar todos los correos del día con progreso ────────────────────────────
+function sendAllEmailsForDay(){
+  const day=document.getElementById('all-email-day-select').value;
+  const rows=S.days[day]||[];
+  const conEmail=rows.filter(r=>getEmail(r.emp));
+  const sinEmail=rows.filter(r=>!getEmail(r.emp));
+  if(!conEmail.length)return showToast('Sin empleados con email configurado para este día');
+  const msg=`¿Enviar ${conEmail.length} correo${conEmail.length>1?'s':''} del ${day}?`+(sinEmail.length?`\n(${sinEmail.length} sin email, se omiten)`:'');
+  showConfirm(msg,()=>_doSendAllEmailsForDay(conEmail,day));
+}
+async function _doSendAllEmailsForDay(rows,day){
+  const modal=document.getElementById('modal-progress');
+  const bar=document.getElementById('prog-bar');
+  const label=document.getElementById('prog-label');
+  const list=document.getElementById('prog-list');
+  const doneRow=document.getElementById('prog-done-row');
+  modal.classList.add('show');
+  bar.style.width='0%';
+  label.textContent=`0 / ${rows.length}`;
+  list.innerHTML='';
+  doneRow.style.display='none';
+  let done=0,errors=0;
+  for(const r of rows){
+    const to=getEmail(r.emp);
+    const subject='Revisión de Fichajes';
+    const body=buildEmail(r);
+    const item=document.createElement('div');
+    item.style.cssText='padding:3px 0;color:var(--text3);';
+    item.textContent=`⏳ ${r.emp} → ${to}`;
+    list.appendChild(item);
+    list.scrollTop=list.scrollHeight;
+    try{
+      const resp=await fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body})});
+      const d=await resp.json();
+      if(d.ok){item.innerHTML=`<span style="color:var(--accent)">✓ ${r.emp}</span> <span style="color:var(--text3);font-size:10px;">→ ${to}</span>`;
+        // Registrar en historial
+        fetch('/api/historial-envio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'bulk',destinatario:to,asunto:subject,fecha:new Date(),ok:true})}).catch(()=>{});
+      }else{item.innerHTML=`<span style="color:var(--red)">✗ ${r.emp}</span> <span style="color:var(--text3);font-size:10px;">${d.error||'Error'}</span>`;errors++;}
+    }catch(err){item.innerHTML=`<span style="color:var(--red)">✗ ${r.emp}</span> <span style="color:var(--text3);font-size:10px;">Error de red</span>`;errors++;}
+    done++;
+    bar.style.width=Math.round(done/rows.length*100)+'%';
+    label.textContent=`${done} / ${rows.length}`;
+  }
+  bar.style.background=errors>0?'var(--amber)':'var(--accent)';
+  label.textContent=errors>0?`${done-errors} enviados, ${errors} con error`:`✓ ${done} enviados correctamente`;
+  doneRow.style.display='block';
+  if(!errors)showToast(`✓ ${done} correos enviados`);
+}
 
 // ── Mobile sidebar ──────────────────────────────────────────────────────────
 function toggleSidebar(){

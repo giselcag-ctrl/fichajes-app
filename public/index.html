@@ -886,6 +886,7 @@ function initApp(){
   document.getElementById('topbar-date').style.display='flex';
   const _cfn=document.getElementById('chip-file-name');if(_cfn)_cfn.textContent=S.fileName;
   showPage('resumen');renderEmailList();renderAllEmails();renderWeeklyEmailList();renderVacaciones();initResumenCalendar();
+  saveSession();
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
 function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
@@ -901,7 +902,16 @@ function showPage(name){
   if(name==='historial')loadHistorial();
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
-function resetApp(){S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};document.getElementById('sidebar-file').style.display='none';document.getElementById('btn-reset').style.display='none';document.getElementById('topbar-date').style.display='none';document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));showPage('upload');document.getElementById('file-input').value=''}
+function resetApp(){
+  S={fileName:'',days:{},weeklyData:{},weeks:[],filteredRows:[],selectedEmp:null,selectedWeeklyEmp:null,emailRows:[],weeklyEmailRows:[]};
+  document.getElementById('sidebar-file').style.display='none';
+  document.getElementById('btn-reset').style.display='none';
+  document.getElementById('topbar-date').style.display='none';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  showPage('upload');
+  document.getElementById('file-input').value='';
+  try{localStorage.removeItem('simecal_session');localStorage.removeItem('simecal_tareas');}catch(e){}
+}
 function gSt(row){
   const inc=(row.incidencia||'').trim();
   if(!inc||inc==='—'||inc==='')return{key:'ok',label:'Normal',cls:'badge-ok'};
@@ -1483,6 +1493,8 @@ function handleVacTareasFile(f){
       const ld=document.getElementById('vac-tareas-loaded');if(ld)ld.style.display='flex';
       renderVacColMap();
       renderVacaciones();
+      // Persistir tareas en localStorage
+      try{localStorage.setItem('simecal_tareas',JSON.stringify(_tareasVac));}catch(e){}
     }catch(err){showToast('Error al leer Excel: '+err.message);}
   };
   reader.readAsArrayBuffer(f);
@@ -1917,6 +1929,45 @@ function hideLoading(){document.getElementById('loading-overlay').style.display=
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
 
+// ── Persistencia de sesión ──────────────────────────────────────────────────
+function saveSession(){
+  try{
+    const data={fileName:S.fileName,days:S.days,weeklyData:S.weeklyData,weeks:S.weeks};
+    localStorage.setItem('simecal_session',JSON.stringify(data));
+  }catch(e){console.warn('No se pudo guardar sesión:',e.message);}
+}
+function restoreSession(){
+  try{
+    // Restaurar tareas primero (initApp llama renderVacaciones)
+    const rawTareas=localStorage.getItem('simecal_tareas');
+    if(rawTareas){
+      const tv=JSON.parse(rawTareas);
+      if(tv&&tv.loaded){
+        Object.assign(_tareasVac,tv);
+        // Actualizar UI del drop de tareas
+        const fn=document.getElementById('vac-tareas-filename');if(fn)fn.textContent=tv.fileName||'Tareas cargadas';
+        const emp=document.getElementById('vac-tareas-empty');if(emp)emp.style.display='none';
+        const ld=document.getElementById('vac-tareas-loaded');if(ld)ld.style.display='flex';
+      }
+    }
+    // Restaurar fichajes
+    const raw=localStorage.getItem('simecal_session');
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(!data||!data.fileName||!Object.keys(data.days||{}).length)return;
+    S.fileName=data.fileName;
+    S.days=data.days;
+    S.weeklyData=data.weeklyData||{};
+    S.weeks=data.weeks||[];
+    enrichWeeklyWithDays();
+    initApp();
+    if(_tareasVac.loaded)renderVacColMap();
+  }catch(e){
+    console.warn('Error restaurando sesión:',e);
+    try{localStorage.removeItem('simecal_session');localStorage.removeItem('simecal_tareas');}catch(ex){}
+  }
+}
+
 // ── Correos: toggle diario / semanal ────────────────────────────────────────
 function switchCorreoTab(tab){
   const esDiario=tab==='diario';
@@ -2046,6 +2097,9 @@ function execConfirm(){
 }
 // Cerrar modal con Escape
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm();});
+
+// ── Restaurar sesión al cargar ──────────────────────────────────────────────
+restoreSession();
 </script>
 </body>
 </html>

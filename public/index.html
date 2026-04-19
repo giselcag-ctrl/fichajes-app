@@ -106,6 +106,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .badge-perm::before{background:#FFB74D}
 .badge-hext{background:rgba(129,199,132,0.15);color:#81C784;border:1px solid rgba(129,199,132,0.3)}
 .badge-hext::before{background:#81C784}
+/* ── Segmented tab control ── */
+.seg-tabs{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:3px;gap:2px;margin-bottom:20px;}
+.seg-tab{height:30px;padding:0 18px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all 0.15s;}
+.seg-tab:hover{color:var(--text);}
+.seg-tab.active{background:var(--bg2);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,0.25);}
 .hours-bar{display:flex;align-items:center;gap:8px}
 .hours-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;max-width:80px}
 .hours-fill{height:100%;border-radius:99px;background:var(--accent);transition:width 0.3s}
@@ -246,11 +251,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     </a>
     <a class="nav-item" onclick="showPage('emails')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Correos diarios
-    </a>
-    <a class="nav-item" onclick="showPage('weekly-emails')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="11" r="3" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M12 9.5v1.5l1 1" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
-      Correos semanales
+      Correos
     </a>
     <a class="nav-item" onclick="showPage('all-emails')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -406,72 +407,77 @@ tr:hover td{background:rgba(255,255,255,0.02)}
   </div>
 </div>
 
-    <!-- Correos diarios -->
+    <!-- Correos (diario + semanal unificado) -->
     <div id="page-emails" class="page">
-      <div class="controls animate-in" style="margin-bottom:20px;">
-        <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="email-day-select" onchange="renderEmailList()"></select></div>
-        <button class="btn btn-ghost" onclick="copyCurrentEmail()">Copiar</button>
-        <button class="btn btn-accent" onclick="sendCurrentEmail()" id="btn-send-daily" style="display:none;">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-          Enviar
-        </button>
+      <!-- Selector diario / semanal -->
+      <div class="seg-tabs animate-in">
+        <button class="seg-tab active" id="tab-diario" onclick="switchCorreoTab('diario')">Diario</button>
+        <button class="seg-tab" id="tab-semanal" onclick="switchCorreoTab('semanal')">Semanal</button>
       </div>
-      <div class="email-section animate-in">
-        <div class="emp-list-panel">
-          <div class="panel-header"><span>Empleados</span><span id="emp-count-badge" class="incidencia-count" style="display:none;"></span></div>
-          <div style="padding:8px;"><input class="search-input" type="text" placeholder="Buscar..." oninput="filterEmpList(this.value)"></div>
-          <div class="emp-list" id="emp-list"></div>
-        </div>
-        <div class="email-panel" style="max-height:none;">
-          <div class="email-toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:12px 16px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
-              <input id="email-to-field" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
-            </div>
-            <div id="email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
-            <div style="display:none">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
-              <input id="email-subject-field" class="search-input" style="flex:1;height:32px;background-image:none;" value="Revisión de Fichajes">
-            </div>
-          </div>
-          <textarea id="email-body-field" style="flex:1;width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:20px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un empleado para ver el correo.</textarea>
-        </div>
-      </div>
-    </div>
 
-    <!-- Correos semanales -->
-    <div id="page-weekly-emails" class="page">
-      <div class="controls animate-in" style="margin-bottom:20px;">
-        <div class="ctrl-group"><span class="ctrl-label">Semana</span><select id="weekly-email-select" onchange="renderWeeklyEmailList()"></select></div>
-        <button class="btn btn-ghost" onclick="copyCurrentWeeklyEmail()">Copiar</button>
-        <button class="btn btn-accent" onclick="sendCurrentWeeklyEmail()" id="btn-send-weekly" style="display:none;">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-          Enviar
-        </button>
-      </div>
-      <div class="email-section animate-in">
-        <div class="emp-list-panel">
-          <div class="panel-header"><span>Empleados</span></div>
-          <div style="padding:8px;"><input class="search-input" type="text" placeholder="Buscar..." oninput="filterWeeklyEmpList(this.value)"></div>
-          <div class="emp-list" id="weekly-emp-list"></div>
+      <!-- ── Vista Diaria ── -->
+      <div id="correo-diario-section">
+        <div class="controls animate-in" style="margin-bottom:20px;">
+          <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="email-day-select" onchange="renderEmailList()"></select></div>
+          <button class="btn btn-ghost" onclick="copyCurrentEmail()">Copiar</button>
+          <button class="btn btn-accent" onclick="sendCurrentEmail()" id="btn-send-daily" style="display:none;">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            Enviar
+          </button>
         </div>
-        <div class="email-panel" style="max-height:none;">
-          <div class="email-toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:12px 16px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
-              <input id="weekly-email-to" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
-            </div>
-            <div id="weekly-email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
-            <div style="display:none">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
-              <input id="weekly-email-subject" class="search-input" style="flex:1;height:32px;background-image:none;" value="Revisión de Fichajes">
-            </div>
+        <div class="email-section animate-in">
+          <div class="emp-list-panel">
+            <div class="panel-header"><span>Empleados</span><span id="emp-count-badge" class="incidencia-count" style="display:none;"></span></div>
+            <div style="padding:8px;"><input class="search-input" type="text" placeholder="Buscar..." oninput="filterEmpList(this.value)"></div>
+            <div class="emp-list" id="emp-list"></div>
           </div>
-          <textarea id="weekly-email-body" style="flex:1;width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:20px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un empleado para ver el correo semanal.</textarea>
+          <div class="email-panel" style="max-height:none;">
+            <div class="email-toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:12px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
+                <input id="email-to-field" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
+              </div>
+              <div id="email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
+                <input id="email-subject-field" class="search-input" style="flex:1;height:32px;background-image:none;" value="Revisión de Fichajes">
+              </div>
+            </div>
+            <textarea id="email-body-field" style="flex:1;width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:20px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un empleado para ver el correo.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Vista Semanal ── -->
+      <div id="correo-semanal-section" style="display:none;">
+        <div class="controls animate-in" style="margin-bottom:20px;">
+          <div class="ctrl-group"><span class="ctrl-label">Semana</span><select id="weekly-email-select" onchange="renderWeeklyEmailList()"></select></div>
+          <button class="btn btn-ghost" onclick="copyCurrentWeeklyEmail()">Copiar</button>
+          <button class="btn btn-accent" onclick="sendCurrentWeeklyEmail()" id="btn-send-weekly" style="display:none;">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            Enviar
+          </button>
+        </div>
+        <div class="email-section animate-in">
+          <div class="emp-list-panel">
+            <div class="panel-header"><span>Empleados</span></div>
+            <div style="padding:8px;"><input class="search-input" type="text" placeholder="Buscar..." oninput="filterWeeklyEmpList(this.value)"></div>
+            <div class="emp-list" id="weekly-emp-list"></div>
+          </div>
+          <div class="email-panel" style="max-height:none;">
+            <div class="email-toolbar" style="flex-direction:column;align-items:stretch;gap:6px;padding:12px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Para</span>
+                <input id="weekly-email-to" class="search-input" style="flex:1;height:32px;background-image:none;" placeholder="email@destinatario.com" value="—">
+              </div>
+              <div id="weekly-email-to-warning" style="display:none;font-size:11px;color:var(--amber);padding:2px 0 0 56px;"></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;min-width:48px;">Asunto</span>
+                <input id="weekly-email-subject" class="search-input" style="flex:1;height:32px;background-image:none;" value="Revisión de Fichajes">
+              </div>
+            </div>
+            <textarea id="weekly-email-body" style="flex:1;width:100%;min-height:320px;background:transparent;border:none;border-top:1px solid var(--border);padding:20px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--text);resize:vertical;outline:none;">Selecciona un empleado para ver el correo semanal.</textarea>
+          </div>
         </div>
       </div>
     </div>
@@ -886,12 +892,12 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={resumen:'page-resumen',emails:'page-emails','weekly-emails':'page-weekly-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial'};
-  const tm={resumen:'Resumen',emails:'Correos diarios','weekly-emails':'Correos semanales','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos'};
+  const pm={resumen:'page-resumen',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial'};
+  const tm={resumen:'Resumen',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['resumen','emails','weekly-emails','all-emails','pedidos','vacaciones','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['resumen','emails','all-emails','pedidos','vacaciones','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name==='historial')loadHistorial();
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
@@ -1910,6 +1916,15 @@ function showLoading(msg){const o=document.getElementById('loading-overlay');doc
 function hideLoading(){document.getElementById('loading-overlay').style.display='none';}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function downloadText(text,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
+
+// ── Correos: toggle diario / semanal ────────────────────────────────────────
+function switchCorreoTab(tab){
+  const esDiario=tab==='diario';
+  document.getElementById('correo-diario-section').style.display=esDiario?'block':'none';
+  document.getElementById('correo-semanal-section').style.display=esDiario?'none':'block';
+  document.getElementById('tab-diario').classList.toggle('active',esDiario);
+  document.getElementById('tab-semanal').classList.toggle('active',!esDiario);
+}
 
 // ── Historial de envíos ─────────────────────────────────────────────────────
 async function loadHistorial(){

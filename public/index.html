@@ -1379,10 +1379,17 @@ function aeUnidades(servicio){
   const m=s.match(/(\d+)\s*U[D.]?/);
   return m?parseInt(m[1]):1;
 }
-// ── Fórmula de precio por tiempo (REBT y similares) ──────────────────────────
-// Precio = (TPCE + TPIE + km×0.65) / 60 × 106 + km×0.16
-function calcularPrecioEsperado(tpce,tpie,km){
-  return (tpce+tpie+km*0.65)/60*106+km*0.16;
+// ── Tasa horaria por tipo de servicio ────────────────────────────────────────
+// La mayoría: 106 €/h. RITE y PI: 100 €/h (confirmado en cuadro de tarifas)
+function getTarifaHora(tipo){
+  if(/RITE|PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
+  return 106;
+}
+// ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────
+// Precio = (TPCE + TPIE + km×0.65) / 60 × tarifaHora + km×0.16
+function calcularPrecioEsperado(tpce,tpie,km,tarifaHora){
+  tarifaHora=tarifaHora||106;
+  return (tpce+tpie+km*0.65)/60*tarifaHora+km*0.16;
 }
 function validarLinea(linea,tipo,km){
   km=km||60;
@@ -1412,8 +1419,8 @@ function validarLinea(linea,tipo,km){
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × 169,60€)');
   } else if(tpce>0&&tpie>0){
-    // ── Servicios por tiempo: fórmula Simecal ──
-    const esperado=calcularPrecioEsperado(tpce,tpie,km);
+    // ── Servicios por tiempo: fórmula Simecal con tasa correcta ──
+    const esperado=calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo));
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');
   } else {
@@ -1465,7 +1472,7 @@ function procesarPedidos(){
       const precioLinea=parseFloat(String(row['Tot. Contratado']||'0').replace(',','.'))||0;
       const tpce=parseFloat(String(row['TPCE']||'0').replace(',','.'))||0;
       const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
-      const precioCalc=(tpce>0&&tpie>0)?calcularPrecioEsperado(tpce,tpie,km):0;
+      const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo)):0;
       if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false};
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea,precioCalc});
       pedidosMap[codigo].totalContratado+=precioLinea;

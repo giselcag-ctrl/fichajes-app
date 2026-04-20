@@ -1271,7 +1271,46 @@ function clearDirectorio(){if(!confirm('¿Borrar todos los empleados del directo
 // MÓDULO DE AUDITORÍA DE PEDIDOS
 // ══════════════════════════════════════════════════════════════════════
 const PS={cabeceras:null,lineas:null,pedidos:[],filtrados:[],selectedPedido:null};
-function tipoServicio(c){c=(c||'').toUpperCase();if(/OCAAE|EICIAE|AE/.test(c))return'AE';if(/OCAREBT24007|GARAJE/.test(c))return'REBT_GARAJE';if(/OCAREBT24010|ZONAS.COMUNES|CP.REBT/.test(c))return'REBT_ZC';if(/OCAREBT24002|REBT.*GASOL|GASOL/.test(c))return'REBT_IP';if(/OCAREBT|REBT/.test(c)||/EICIREBT/.test(c))return'REBT';if(/OCAAP|AP/.test(c))return'AP';if(/ECAPC001|VOLQUET/.test(c))return'SMMIN_VOLQUETE';if(/ECAPC009|PALA/.test(c))return'SMMIN_PALA';if(/SM24|SM/.test(c))return'SM';if(/REAT/.test(c))return'REAT';if(/OCAIP|^IP/.test(c))return'IP';if(/RITE/.test(c))return'RITE';if(/RIPCI/.test(c))return'PI_RIPCI';if(/RSCIEI/.test(c))return'PI_RSCIEI';if(/AEGT/.test(c))return'AEGT';if(/AEGA/.test(c))return'AEGA';if(/ESTANTER/.test(c))return'ESTANTERIAS';if(/LINEAS.VIDA|LVIDA/.test(c))return'LINEAS_VIDA';if(/REBT.PF|PF/.test(c))return'REBT_PF';return'GENERAL';}
+function tipoServicio(c){c=(c||'').toUpperCase();
+  // ── Grúas: ANTES de AE para evitar falso positivo por substring "AE" ──
+  if(/AEGT/.test(c))return'AEGT';
+  if(/AEGA/.test(c))return'AEGA';
+  // ── Elevadores ──
+  if(/OCAAE|EICIAE|\bAE\b/.test(c))return'AE';
+  // ── REBT variants: más específicas primero ──
+  if(/REBTFV|FOTOVOLT/.test(c))return'REBTFV';
+  if(/OCAREBT24007|GARAJE/.test(c))return'REBT_GARAJE';
+  if(/OCAREBT24010|ZONAS\.COMUNES|CP\.REBT/.test(c))return'REBT_ZC';
+  if(/OCAREBT24002|REBT.*GASOL/.test(c))return'REBT_IP';
+  if(/OCAREBT|REBT|EICIREBT/.test(c))return'REBT';
+  // ── Comunidades de Propietarios ──
+  if(/\bCP\b/.test(c))return'REBT_ZC';
+  // ── Aparatos a Presión ──
+  if(/OCAAP|\bAP\b/.test(c))return'AP';
+  // ── Estaciones de Servicio (Petrolíferas) ──
+  if(/GASOL/.test(c))return'GASOL';
+  // ── Máquinas: SMEX y SMMIN antes que SM genérico ──
+  if(/SMEX/.test(c))return'SMEX';
+  if(/ECAPC001|VOLQUET/.test(c))return'SMMIN_VOLQUETE';
+  if(/ECAPC009|PALA/.test(c))return'SMMIN_PALA';
+  if(/SMMIN/.test(c))return'SMMIN';
+  if(/SM24|\bSM\b/.test(c))return'SM';
+  // ── Alta Tensión ──
+  if(/REAT/.test(c))return'REAT';
+  // ── Instalaciones Petrolíferas ──
+  if(/OCAIP|\bIP\b/.test(c))return'IP';
+  // ── Climatización ──
+  if(/RITE/.test(c))return'RITE';
+  // ── Protección Contra Incendios: subtipo primero ──
+  if(/RIPCI/.test(c))return'PI_RIPCI';
+  if(/RSCIEI/.test(c))return'PI_RSCIEI';
+  if(/\bPI\b/.test(c))return'PI_RIPCI';
+  // ── Otros ──
+  if(/ESTANTER/.test(c))return'ESTANTERIAS';
+  if(/LINEAS\.VIDA|LVIDA/.test(c))return'LINEAS_VIDA';
+  if(/REBT\.PF|\bPF\b/.test(c))return'REBT_PF';
+  return'GENERAL';
+}
 function validarLinea(linea,tipo){
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');

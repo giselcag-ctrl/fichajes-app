@@ -1356,30 +1356,68 @@ function esSegundaVisita(linea){
   const s=(String(linea['Servicio']||'')+' '+String(linea['Sub-Servicio']||'')).toUpperCase();
   return /2[ª°\.]|SEGUNDA|REINSP|2DA\s*VIS/.test(s);
 }
-// Calcula precio esperado: fórmula de la calculadora Simecal
+// ── Tabla de precios AE 2026 (€/unidad por tier) ────────────────────────────
+// Formato: {periodica|inicial: {p1|p2: {1|2|3|7: precio_unit}}}
+// Tiers: 1=1ud, 2=2ud, 3=entre 2-6ud, 7=más de 6ud
+const AE_PRECIO_UNIT = {
+  periodica: {
+    p1: { 1:  98, 2:  89, 3:  85, 7:  80 },
+    p2: { 1:  64, 2:  51, 3:  45, 7:  38 }
+  },
+  inicial: {
+    p1: { 1: 180, 2: 166, 3: 161, 7: 156 },
+    p2: { 1:  94, 2:  83, 3:  81, 7:  78 }
+  }
+};
+// Devuelve el tier AE según número de unidades
+function aeTier(u){ return u>=7?7:u>=3?3:u===2?2:1; }
+// Extrae número de unidades del campo Servicio ("1 UD", "2 UD", "Entre 2 y 6 UD", "Más de 6 UD")
+function aeUnidades(servicio){
+  const s=(servicio||'').toUpperCase();
+  if(/MÁS DE 6|MAS DE 6|7[\s]*U/.test(s))return 7;
+  if(/ENTRE 2 Y 6|2 Y 6|3[-–\s]6/.test(s))return 3;
+  const m=s.match(/(\d+)\s*U[D.]?/);
+  return m?parseInt(m[1]):1;
+}
+// ── Fórmula de precio por tiempo (REBT y similares) ──────────────────────────
 // Precio = (TPCE + TPIE + km×0.65) / 60 × 106 + km×0.16
-// TPCE y TPIE en minutos; km = ida+vuelta
-function calcularPrecioEsperado(tpce, tpie, km){
-  const tTotal = tpce + tpie + km * 0.65;
-  return tTotal / 60 * 106 + km * 0.16;
+function calcularPrecioEsperado(tpce,tpie,km){
+  return (tpce+tpie+km*0.65)/60*106+km*0.16;
 }
 function validarLinea(linea,tipo,km){
-  km = km || 60;
+  km=km||60;
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
   const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
   const tpce=parseFloat(String(linea['TPCE']||'0').replace(',','.'));
   const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));
+  const esSeg=esSegundaVisita(linea);
+  const servFull=String(linea['Servicio']||'');
   if(!precio||precio<=0){
     errores.push('Precio = 0 o vacío');
+  } else if(tipo==='AE'){
+    // ── AE: tabla fija €/unidad × tier ──
+    const esInicial=/INICIAL/i.test(servFull);
+    const u=aeUnidades(servFull);
+    const tier=aeTier(u);
+    const tabla=AE_PRECIO_UNIT[esInicial?'inicial':'periodica'][esSeg?'p2':'p1'];
+    const precioUnit=tabla[tier];
+    const esperado=u*precioUnit;
+    if(precio<esperado-0.50)
+      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × '+precioUnit+'€)');
+  } else if(tipo==='EICIAE'){
+    // ── EICIAE: tarifa fija €169.60/ud ──
+    const u=aeUnidades(servFull);
+    const esperado=u*169.60;
+    if(precio<esperado-0.50)
+      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × 169,60€)');
   } else if(tpce>0&&tpie>0){
-    // Calcular precio esperado con la fórmula real
+    // ── Servicios por tiempo: fórmula Simecal ──
     const esperado=calcularPrecioEsperado(tpce,tpie,km);
-    if(precio < esperado - 0.50)
+    if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');
   } else {
-    // Sin tiempos, solo validar mínimo absoluto
-    const esSeg=esSegundaVisita(linea);
+    // ── Sin tiempos: mínimo absoluto de TARIFAS_MIN ──
     const mins=TARIFAS_MIN[tipo]||TARIFAS_MIN.GENERAL;
     const minValido=esSeg?mins[1]:mins[0];
     if(precio<minValido)

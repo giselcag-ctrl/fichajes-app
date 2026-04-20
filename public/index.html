@@ -1404,11 +1404,21 @@ function aegtGruas(s){
 function aegtEsSiguiente(s){
   return/SIGUIENTES?|SEGUNDA\s*Y|MISMO\s*EMPLAZ/i.test(s||'');
 }
+// ── Tabla de precios AEGA 2026 ───────────────────────────────────────────────
+// Con pluma: TPC=210, TPI=10, km=60 → 467,17€ (1ª) · Sin pluma: TPC=150 → 361,17€
+// 2ª visita (defectos): siempre 202,17€ (con o sin pluma), @100€/h
+const AEGA_PRECIOS = {
+  con_pluma: { p1: 467.17, p2: 202.17 },
+  sin_pluma: { p1: 361.17, p2: 202.17 }
+};
+function aegaSubtipo(s){
+  return /SIN\s*PLUM/i.test(s||'')?'sin_pluma':'con_pluma';
+}
 // ── Tasa horaria por tipo de servicio ────────────────────────────────────────
 // La mayoría: 106 €/h. RITE, PI y AEGT 2ª: 100 €/h
 function getTarifaHora(tipo,esSeg){
   if(/RITE|PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
-  if(tipo==='AEGT'&&esSeg)return 100;
+  if((tipo==='AEGT'||tipo==='AEGA')&&esSeg)return 100;
   return 106;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────
@@ -1447,6 +1457,13 @@ function validarLinea(linea,tipo,km){
     const esperado=esSeg?fila.p2:fila.p1;
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+subtipo.replace(/_/g,' ')+(esSig?' siguientes':'')+')')
+  } else if(tipo==='AEGA'){
+    // ── AEGA: con pluma 467,17€ / sin pluma 361,17€ · 2ª siempre 202,17€ ──
+    const subtipo=aegaSubtipo(servFull);
+    const fila=AEGA_PRECIOS[subtipo];
+    const esperado=esSeg?fila.p2:fila.p1;
+    if(precio<esperado-0.50)
+      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ (AEGA '+subtipo.replace('_',' ')+')');
   } else if(tipo==='EICIAE'){
     // ── EICIAE: tarifa fija €169.60/ud ──
     const u=aeUnidades(servFull);

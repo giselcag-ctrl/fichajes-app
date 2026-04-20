@@ -604,6 +604,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                     <th>Cliente</th>
                     <th>Servicio</th>
                     <th>Creador</th>
+                    <th>Importe</th>
                     <th>Incidencias</th>
                     <th>Estado</th>
                   </tr></thead>
@@ -1312,10 +1313,54 @@ function tipoServicio(c){c=(c||'').toUpperCase();
   if(/REBT\.PF|\bPF\b/.test(c))return'REBT_PF';
   return'GENERAL';
 }
+// ── Tarifas mínimas 2026 (CALCULO DE TARIFAS 2025 – 12 ene 2026) ──────────
+// Formato: [precio_mínimo_1ª_visita, precio_mínimo_2ª_visita]
+const TARIFAS_MIN = {
+  REBT:           [153.30,  93.70],
+  REBT_GARAJE:    [153.30,  93.70],
+  REBT_ZC:        [153.30,  93.70],
+  REBT_IP:        [153.30,  93.70],
+  REBTFV:         [271.72, 123.84],
+  REBT_PF:        [271.72, 123.84],
+  AE:             [153.30,  93.70],
+  EICIAE:         [169.60, 169.60], // tarifa fija
+  AP:             [153.30,  93.70],
+  AP_CLASIF:      [153.30,  93.70],
+  GASOL:          [153.30,  93.70],
+  SMEX:           [153.30,  93.70],
+  SMMIN:          [233.00, 174.75], // cliente nuevo €233; 2ª al 75%
+  SMMIN_VOLQUETE: [233.00, 174.75],
+  SMMIN_PALA:     [233.00, 174.75],
+  SM:             [153.30,  93.70],
+  REAT:           [273.19, 175.84], // CT como referencia
+  IP:             [215.77, 133.41], // IP-03 periódica
+  RITE:           [153.30,  93.70],
+  PI_RIPCI:       [153.30,  93.70],
+  PI_RSCIEI:      [153.30,  93.70],
+  AEGT:           [153.30,  93.70],
+  AEGA:           [153.30,  93.70],
+  ESTANTERIAS:    [153.30,  93.70],
+  LINEAS_VIDA:    [153.30,  93.70],
+  GENERAL:        [ 93.70,  93.70],
+};
+// Detecta si la línea es una 2ª visita/reinspección
+function esSegundaVisita(linea){
+  const s=(String(linea['Servicio']||'')+' '+String(linea['Sub-Servicio']||'')).toUpperCase();
+  return /2[ª°\.]|SEGUNDA|REINSP|2DA\s*VIS/.test(s);
+}
 function validarLinea(linea,tipo){
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
-  const precio=parseFloat(linea['Tot. Contratado']||0);if(!precio||precio<=0)errores.push('Precio unitario = 0');
+  const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
+  if(!precio||precio<=0){
+    errores.push('Precio = 0 o vacío');
+  } else {
+    const esSeg=esSegundaVisita(linea);
+    const mins=TARIFAS_MIN[tipo]||TARIFAS_MIN.GENERAL;
+    const minValido=esSeg?mins[1]:mins[0];
+    if(precio<minValido)
+      errores.push('Precio '+precio.toFixed(2)+'€ < mínimo tarifa '+minValido.toFixed(2)+'€'+(esSeg?' (2ª visita)':''));
+  }
   const tpce=parseFloat(linea['TPCE']||0);if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
   const tpie=parseFloat(linea['TPIE']||0);if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
   if(tipo==='AE'){if(!(d.mantenedor&&d.mantenedor.razonSocial))errores.push('Mantenedor no asignado');if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');}
@@ -1354,9 +1399,12 @@ function procesarPedidos(){
       const errores=validarLinea(row,tipo);
       const numSAP=String(row['Número SAP']||'').trim();
       const fechaRaw=parseFechaPed(row['Fecha Contratación']||row['Fecha Contratacion']||row['Fecha']||row['Fecha Creación']||row['Fecha Creacion']||row['Fecha Pedido']||row['F. Creación']||'');
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0};
-      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120)});
+      const precioLinea=parseFloat(String(row['Tot. Contratado']||'0').replace(',','.'))||0;
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,precioAlerta:false};
+      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea});
+      pedidosMap[codigo].totalContratado+=precioLinea;
       pedidosMap[codigo].erroresTotales+=errores.length;
+      if(errores.some(e=>e.includes('mínimo tarifa')||e.includes('Precio = 0')))pedidosMap[codigo].precioAlerta=true;
     });
     PS.pedidos=Object.values(pedidosMap).sort((a,b)=>(parseInt(b.numeroSAP)||0)-(parseInt(a.numeroSAP)||0));
     PS.filtrados=[...PS.pedidos];
@@ -1369,7 +1417,18 @@ function procesarPedidos(){
 }
 function renderPedidosStats(){
   const total=PS.pedidos.length,conError=PS.pedidos.filter(p=>p.erroresTotales>0).length,ok=total-conError,totalLineas=PS.pedidos.reduce((s,p)=>s+p.lineas.length,0);
-  document.getElementById('ped-stat-grid').innerHTML=`<div class="stat-card animate-in"><div class="sc-label">Total pedidos</div><div class="sc-val">${total}</div><div class="sc-sub">${totalLineas} líneas en total</div></div><div class="stat-card animate-in" style="border-color:rgba(255,92,92,0.2);background:var(--red-dim)"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:var(--red)">${conError}</div><div class="sc-sub">${total>0?Math.round(conError/total*100):0}% requieren corrección</div></div><div class="stat-card accent animate-in"><div class="sc-label">Completos</div><div class="sc-val">${ok}</div><div class="sc-sub">${total>0?Math.round(ok/total*100):0}% sin errores</div></div><div class="stat-card animate-in"><div class="sc-label">Mostrando</div><div class="sc-val">${PS.filtrados.length}</div><div class="sc-sub">de ${total} pedidos</div></div>`;
+  const totalEuros=PS.pedidos.reduce((s,p)=>s+(p.totalContratado||0),0);
+  const conPrecioAlerta=PS.pedidos.filter(p=>p.precioAlerta).length;
+  const fmtEur=v=>v>=1000?(v/1000).toFixed(1)+'k€':v.toFixed(0)+'€';
+  document.getElementById('ped-stat-grid').innerHTML=`
+    <div class="stat-card animate-in"><div class="sc-label">Total pedidos</div><div class="sc-val">${total}</div><div class="sc-sub">${totalLineas} líneas en total</div></div>
+    <div class="stat-card animate-in" style="border-color:rgba(255,92,92,0.2);background:var(--red-dim)"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:var(--red)">${conError}</div><div class="sc-sub">${total>0?Math.round(conError/total*100):0}% requieren corrección</div></div>
+    <div class="stat-card accent animate-in"><div class="sc-label">Completos</div><div class="sc-val">${ok}</div><div class="sc-sub">${total>0?Math.round(ok/total*100):0}% sin errores</div></div>
+    <div class="stat-card animate-in" style="${conPrecioAlerta>0?'border-color:rgba(255,183,77,0.3);background:rgba(255,183,77,0.05);':''}">
+      <div class="sc-label">Importe total</div>
+      <div class="sc-val" style="font-size:22px">${fmtEur(totalEuros)}</div>
+      <div class="sc-sub">${conPrecioAlerta>0?`⚠️ ${conPrecioAlerta} pedido${conPrecioAlerta>1?'s':''} con precio bajo tarifa`:`Media ${total>0?fmtEur(totalEuros/total):'—'}/pedido`}</div>
+    </div>`;
 }
 function renderPedidosTable(){
   const tb=document.getElementById('ped-tbody');
@@ -1379,12 +1438,16 @@ function renderPedidosTable(){
     const tieneError=p.erroresTotales>0,badgeCls=tieneError?'badge-bad':'badge-ok',badgeLabel=tieneError?`${p.erroresTotales} error${p.erroresTotales>1?'es':''}`:'Completo';
     const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
     const selected=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
+    const imp=p.totalContratado||0;
+    const impColor=p.precioAlerta?'var(--red)':imp===0?'var(--text3)':'var(--accent)';
+    const impStr=imp>0?(imp>=1000?(imp/1000).toFixed(2)+'k€':imp.toFixed(2)+'€'):'—';
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.numeroSAP||p.codigo}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${p.fecha||'—'}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
       <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.creador||'—'}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${impColor}">${impStr}</span>${p.precioAlerta?'<span title="Precio bajo tarifa" style="margin-left:4px;font-size:11px;">⚠️</span>':''}</td>
       <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
       <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;

@@ -1286,6 +1286,7 @@ function tipoServicio(c){c=(c||'').toUpperCase();
   // ── Comunidades de Propietarios ──
   if(/\bCP\b/.test(c))return'REBT_ZC';
   // ── Aparatos a Presión ──
+  if(/CLASIF|COMPRES/.test(c))return'AP_CLASIF';
   if(/OCAAP|\bAP\b/.test(c))return'AP';
   // ── Estaciones de Servicio (Petrolíferas) ──
   if(/GASOL/.test(c))return'GASOL';

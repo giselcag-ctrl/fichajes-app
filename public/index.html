@@ -1379,10 +1379,36 @@ function aeUnidades(servicio){
   const m=s.match(/(\d+)\s*U[D.]?/);
   return m?parseInt(m[1]):1;
 }
+// ── Tabla de precios AEGT 2026 ───────────────────────────────────────────────
+// Formato: {subtipo: {primera|siguiente: {p1|p2: precio}}}
+// 1ª visita @106€/h · 2ª visita @100€/h · km mín 60 (1ª) / 30 (2ª)
+const AEGT_PRECIOS = {
+  automontante:             { primera:{ p1:202.17, p2:140.33 }, siguiente:{ p1:202.17, p2: 93.70 } },
+  torre_desmontada:         { primera:{ p1:202.17, p2:140.33 }, siguiente:{ p1:202.17, p2: 93.70 } },
+  torre_montada:            { primera:{ p1:308.17, p2:193.33 }, siguiente:{ p1:229.67, p2:114.83 } },
+  extraordinaria_torre:     { primera:{ p1:414.17, p2:214.53 }, siguiente:{ p1:335.67, p2:136.03 } },
+  extraordinaria_automontante:{ primera:{ p1:202.17, p2:140.33 }, siguiente:{ p1:123.67, p2: 61.83 } },
+};
+function aegtSubtipo(s){
+  s=(s||'').toUpperCase();
+  if(/EXTRAORDINAR.*TORRE|TORRE.*EXTRAORDINAR/.test(s))return'extraordinaria_torre';
+  if(/EXTRAORDINAR.*AUTOMONTANTE|AUTOMONTANTE.*EXTRAORDINAR/.test(s))return'extraordinaria_automontante';
+  if(/TORRE.*MONTADA|MONTADA.*TORRE/.test(s))return'torre_montada';
+  if(/TORRE/.test(s))return'torre_desmontada';
+  return'automontante';
+}
+function aegtGruas(s){
+  const m=(s||'').toUpperCase().match(/(\d+)\s*GR[ÚU]/);
+  return m?parseInt(m[1]):1;
+}
+function aegtEsSiguiente(s){
+  return/SIGUIENTES?|SEGUNDA\s*Y|MISMO\s*EMPLAZ/i.test(s||'');
+}
 // ── Tasa horaria por tipo de servicio ────────────────────────────────────────
-// La mayoría: 106 €/h. RITE y PI: 100 €/h (confirmado en cuadro de tarifas)
-function getTarifaHora(tipo){
+// La mayoría: 106 €/h. RITE, PI y AEGT 2ª: 100 €/h
+function getTarifaHora(tipo,esSeg){
   if(/RITE|PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
+  if(tipo==='AEGT'&&esSeg)return 100;
   return 106;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────
@@ -1412,6 +1438,15 @@ function validarLinea(linea,tipo,km){
     const esperado=u*precioUnit;
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × '+precioUnit+'€)');
+  } else if(tipo==='AEGT'){
+    // ── AEGT: tabla fija por subtipo y si es primera/siguiente grúa ──
+    const subtipo=aegtSubtipo(servFull);
+    const esSig=aegtEsSiguiente(servFull);
+    const tabla=AEGT_PRECIOS[subtipo]||(AEGT_PRECIOS.automontante);
+    const fila=esSig?tabla.siguiente:tabla.primera;
+    const esperado=esSeg?fila.p2:fila.p1;
+    if(precio<esperado-0.50)
+      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+subtipo.replace(/_/g,' ')+(esSig?' siguientes':'')+')')
   } else if(tipo==='EICIAE'){
     // ── EICIAE: tarifa fija €169.60/ud ──
     const u=aeUnidades(servFull);
@@ -1420,7 +1455,7 @@ function validarLinea(linea,tipo,km){
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × 169,60€)');
   } else if(tpce>0&&tpie>0){
     // ── Servicios por tiempo: fórmula Simecal con tasa correcta ──
-    const esperado=calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo));
+    const esperado=calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo,esSeg));
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');
   } else {

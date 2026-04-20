@@ -1375,9 +1375,8 @@ function validarLinea(linea,tipo,km){
   } else if(tpce>0&&tpie>0){
     // Calcular precio esperado con la fórmula real
     const esperado=calcularPrecioEsperado(tpce,tpie,km);
-    const diff=(precio-esperado)/esperado*100;
-    if(diff<-15)
-      errores.push('Precio '+precio.toFixed(2)+'€ − esperado '+esperado.toFixed(2)+'€ ('+Math.abs(diff).toFixed(0)+'% bajo)');
+    if(precio < esperado - 0.50)
+      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');
   } else {
     // Sin tiempos, solo validar mínimo absoluto
     const esSeg=esSegundaVisita(linea);
@@ -1473,7 +1472,7 @@ function renderPedidosTable(){
     const fmtE=v=>v>=1000?(v/1000).toFixed(2)+'k€':v.toFixed(2)+'€';
     const impColor=p.precioAlerta?'var(--red)':imp===0?'var(--text3)':'var(--accent)';
     const diffPct=calc>0?Math.round((imp-calc)/calc*100):null;
-    const diffStr=diffPct!==null&&diffPct<0?` <span style="font-size:10px;color:${diffPct<-15?'var(--red)':'var(--text3)'}">(${diffPct}%)</span>`:'';
+    const diffStr=diffPct!==null&&diffPct<0?` <span style="font-size:10px;color:var(--red)">(${diffPct}%)</span>`:'';
     const calcStr=calc>0?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">esp. ${fmtE(calc)}</div>`:'';
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.numeroSAP||p.codigo}</span></td>

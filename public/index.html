@@ -555,6 +555,14 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <p id="ped-sub-lin">Detalle por línea con JSON · .xlsx</p>
             </div>
           </div>
+          <!-- Campo km desplazamiento -->
+          <div id="ped-km-row" style="display:none;margin-bottom:14px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);align-items:center;gap:14px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--text2);white-space:nowrap;">📍 Km desplazamiento (ida+vuelta)</span>
+            <input type="number" id="ped-km" min="0" max="2000" value="60"
+              oninput="document.getElementById('ped-km-coste').textContent=(parseFloat(this.value||0)*0.16).toFixed(2)+' €'"
+              style="width:80px;height:32px;padding:0 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text1);font-family:'DM Mono',monospace;font-size:13px;">
+            <span style="font-size:12px;color:var(--text3)">Coste desplaz.: <b id="ped-km-coste" style="color:var(--text2)">9,60 €</b> · Tarifa mano de obra: <b style="color:var(--text2)">€106/h</b></span>
+          </div>
           <button class="btn btn-accent" onclick="procesarPedidos()" id="btn-procesar-ped" style="display:none;width:100%;justify-content:center;height:44px;font-size:14px;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l1.5 1.5L10 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Analizar pedidos
@@ -1348,21 +1356,40 @@ function esSegundaVisita(linea){
   const s=(String(linea['Servicio']||'')+' '+String(linea['Sub-Servicio']||'')).toUpperCase();
   return /2[ª°\.]|SEGUNDA|REINSP|2DA\s*VIS/.test(s);
 }
-function validarLinea(linea,tipo){
+// Calcula precio esperado: fórmula de la calculadora Simecal
+// Precio = (TPCE + TPIE + km×0.65) / 60 × 106 + km×0.16
+// TPCE y TPIE en minutos; km = ida+vuelta
+function calcularPrecioEsperado(tpce, tpie, km){
+  const tTotal = tpce + tpie + km * 0.65;
+  return tTotal / 60 * 106 + km * 0.16;
+}
+function validarLinea(linea,tipo,km){
+  km = km || 60;
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
   const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
+  const tpce=parseFloat(String(linea['TPCE']||'0').replace(',','.'));
+  const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));
   if(!precio||precio<=0){
     errores.push('Precio = 0 o vacío');
+  } else if(tpce>0&&tpie>0){
+    // Calcular precio esperado con la fórmula real
+    const esperado=calcularPrecioEsperado(tpce,tpie,km);
+    const diff=(precio-esperado)/esperado*100;
+    if(diff<-15)
+      errores.push('Precio '+precio.toFixed(2)+'€ − esperado '+esperado.toFixed(2)+'€ ('+Math.abs(diff).toFixed(0)+'% bajo)');
+    else if(diff>30)
+      errores.push('Precio '+precio.toFixed(2)+'€ − esperado '+esperado.toFixed(2)+'€ ('+diff.toFixed(0)+'% sobre tarifa)');
   } else {
+    // Sin tiempos, solo validar mínimo absoluto
     const esSeg=esSegundaVisita(linea);
     const mins=TARIFAS_MIN[tipo]||TARIFAS_MIN.GENERAL;
     const minValido=esSeg?mins[1]:mins[0];
     if(precio<minValido)
-      errores.push('Precio '+precio.toFixed(2)+'€ < mínimo tarifa '+minValido.toFixed(2)+'€'+(esSeg?' (2ª visita)':''));
+      errores.push('Precio '+precio.toFixed(2)+'€ < mínimo '+minValido.toFixed(2)+'€'+(esSeg?' (2ª)':''));
   }
-  const tpce=parseFloat(linea['TPCE']||0);if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
-  const tpie=parseFloat(linea['TPIE']||0);if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
+  if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
+  if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
   if(tipo==='AE'){if(!(d.mantenedor&&d.mantenedor.razonSocial))errores.push('Mantenedor no asignado');if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');}
   if((tipo==='REBT_ZC'||tipo==='REBT_GARAJE')&&!(d.administrador&&d.administrador.razonSocial))errores.push('Administrador no asignado');
   return errores;
@@ -1382,7 +1409,7 @@ function handlePedFile(f,tipo){
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
     if(tipo==='cab'){PS.cabeceras=rows;document.getElementById('ped-icon-cab').textContent='✅';document.getElementById('ped-label-cab').textContent=f.name;document.getElementById('ped-sub-cab').textContent=rows.length+' pedidos cargados';}
     else{PS.lineas=rows;document.getElementById('ped-icon-lin').textContent='✅';document.getElementById('ped-label-lin').textContent=f.name;document.getElementById('ped-sub-lin').textContent=rows.length+' líneas cargadas';}
-    if(PS.cabeceras&&PS.lineas)document.getElementById('btn-procesar-ped').style.display='flex';
+    if(PS.cabeceras&&PS.lineas){document.getElementById('btn-procesar-ped').style.display='flex';document.getElementById('ped-km-row').style.display='flex';}
   }catch(err){showToast('Error leyendo archivo: '+err.message);}};
   reader.readAsArrayBuffer(f);
 }
@@ -1390,21 +1417,26 @@ function procesarPedidos(){
   if(!PS.lineas)return showToast('Falta el Excel de líneas de pedido');
   showLoading('Analizando pedidos…');
   setTimeout(()=>{try{
+    const km=parseFloat(document.getElementById('ped-km').value)||60;
     const pedidosMap={};
     PS.lineas.forEach(row=>{
       const codigo=String(row['Código']||'').trim();if(!codigo)return;
       const jsonData=extraerJSON(row);row._json=jsonData;
       const servicio=String(row['Servicio']||'').trim();
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
-      const errores=validarLinea(row,tipo);
+      const errores=validarLinea(row,tipo,km);
       const numSAP=String(row['Número SAP']||'').trim();
       const fechaRaw=parseFechaPed(row['Fecha Contratación']||row['Fecha Contratacion']||row['Fecha']||row['Fecha Creación']||row['Fecha Creacion']||row['Fecha Pedido']||row['F. Creación']||'');
       const precioLinea=parseFloat(String(row['Tot. Contratado']||'0').replace(',','.'))||0;
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,precioAlerta:false};
-      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea});
+      const tpce=parseFloat(String(row['TPCE']||'0').replace(',','.'))||0;
+      const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
+      const precioCalc=(tpce>0&&tpie>0)?calcularPrecioEsperado(tpce,tpie,km):0;
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false};
+      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea,precioCalc});
       pedidosMap[codigo].totalContratado+=precioLinea;
+      pedidosMap[codigo].totalCalculado+=precioCalc;
       pedidosMap[codigo].erroresTotales+=errores.length;
-      if(errores.some(e=>e.includes('mínimo tarifa')||e.includes('Precio = 0')))pedidosMap[codigo].precioAlerta=true;
+      if(errores.some(e=>e.includes('bajo)')||e.includes('sobre tarifa')||e.includes('Precio = 0')||e.includes('mínimo')))pedidosMap[codigo].precioAlerta=true;
     });
     PS.pedidos=Object.values(pedidosMap).sort((a,b)=>(parseInt(b.numeroSAP)||0)-(parseInt(a.numeroSAP)||0));
     PS.filtrados=[...PS.pedidos];
@@ -1439,15 +1471,22 @@ function renderPedidosTable(){
     const serviciosStr=[...new Set(p.lineas.map(l=>l.tipo))].join(', ');
     const selected=PS.selectedPedido&&PS.selectedPedido.codigo===p.codigo;
     const imp=p.totalContratado||0;
+    const calc=p.totalCalculado||0;
+    const fmtE=v=>v>=1000?(v/1000).toFixed(2)+'k€':v.toFixed(2)+'€';
     const impColor=p.precioAlerta?'var(--red)':imp===0?'var(--text3)':'var(--accent)';
-    const impStr=imp>0?(imp>=1000?(imp/1000).toFixed(2)+'k€':imp.toFixed(2)+'€'):'—';
+    const diffPct=calc>0?Math.round((imp-calc)/calc*100):null;
+    const diffStr=diffPct!==null?` <span style="font-size:10px;color:${Math.abs(diffPct)>15?'var(--red)':'var(--text3)'}">(${diffPct>0?'+':''}${diffPct}%)</span>`:'';
+    const calcStr=calc>0?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">esp. ${fmtE(calc)}</div>`:'';
     return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.numeroSAP||p.codigo}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${p.fecha||'—'}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
       <td><span style="font-size:11px;color:var(--text2)">${serviciosStr}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${p.creador||'—'}</span></td>
-      <td><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${impColor}">${impStr}</span>${p.precioAlerta?'<span title="Precio bajo tarifa" style="margin-left:4px;font-size:11px;">⚠️</span>':''}</td>
+      <td>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${impColor}">${imp>0?fmtE(imp):'—'}</span>${diffStr}${p.precioAlerta?'<span title="Revisar precio" style="margin-left:3px;font-size:11px;">⚠️</span>':''}
+        ${calcStr}
+      </td>
       <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
       <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;

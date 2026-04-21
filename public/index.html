@@ -1432,6 +1432,8 @@ function validarLinea(linea,tipo,km){
   km=km||60;
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
+  const nifTitular=d.titular&&d.titular.nif;if(!nifTitular||String(nifTitular).trim()==='')errores.push('NIF del titular vacío');
+  const nombreTitular=d.titular&&(d.titular.razonSocial||d.titular.nombre);if(!nombreTitular||String(nombreTitular).trim()==='')errores.push('Titular no asignado');
   const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
   const tpce=parseFloat(String(linea['TPCE']||'0').replace(',','.'));
   const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));

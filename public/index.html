@@ -1325,10 +1325,10 @@ function tipoServicio(c){c=(c||'').toUpperCase();
 // ── Tarifas mínimas 2026 (CALCULO DE TARIFAS 2025 – 12 ene 2026) ──────────
 // Formato: [precio_mínimo_1ª_visita, precio_mínimo_2ª_visita]
 const TARIFAS_MIN = {
-  REBT:           [153.30,  93.70],
-  REBT_GARAJE:    [153.30,  93.70],
-  REBT_ZC:        [153.30,  93.70],
-  REBT_IP:        [153.30,  93.70],
+  REBT:           [181.00, 104.00], // Pública Concurrencia 1ud @40km — mínimo visible
+  REBT_GARAJE:    [181.00, 104.00],
+  REBT_ZC:        [181.00, 104.00],
+  REBT_IP:        [181.00, 104.00],
   REBTFV:         [271.72, 123.84],
   REBT_PF:        [271.72, 123.84],
   AE:             [153.30,  93.70],
@@ -1423,10 +1423,18 @@ function getTarifaHora(tipo,esSeg){
   return 106;
 }
 // ── km mínimo por tipo de servicio ───────────────────────────────────────────
-// RIPCI: radio ~20km · RITE: ~40km · Resto (incl. RSCIEI): 60km por defecto
-function getKmMinimo(tipo,kmInput){
+// RIPCI: ~20km · RITE: ~40km · REBT: varía por subtipo · Resto: 60km
+function getKmMinimo(tipo,kmInput,servicio){
   if(tipo==='PI_RIPCI')return Math.max(kmInput||0,20);
   if(tipo==='RITE')return Math.max(kmInput||0,40);
+  if(/^REBT/.test(tipo)){
+    const s=(servicio||'').toUpperCase();
+    let kmMin=60;
+    if(/PISCIN/.test(s))kmMin=10;
+    else if(/CONCURRENCIA/.test(s))kmMin=40;
+    else if(/RIESGO|EXPLOSIÓN|EXPLOSION/.test(s))kmMin=0;
+    return Math.max(kmInput||0,kmMin);
+  }
   return kmInput||60;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────
@@ -1489,7 +1497,7 @@ function validarLinea(linea,tipo,km){
     // (cada línea = 1 unidad; validación acumulada por pedido)
   } else if(tpce>0&&tpie>0){
     // ── Servicios por tiempo: fórmula Simecal con tasa y km correctos ──
-    const kmEf=getKmMinimo(tipo,km);
+    const kmEf=getKmMinimo(tipo,km,servFull);
     const esperado=calcularPrecioEsperado(tpce,tpie,kmEf,getTarifaHora(tipo,esSeg));
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');

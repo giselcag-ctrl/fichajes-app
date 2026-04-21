@@ -1418,7 +1418,7 @@ function aegaSubtipo(s){
 // La mayoría: 106 €/h. RITE, PI y AEGT 2ª: 100 €/h
 function getTarifaHora(tipo,esSeg){
   if(/RITE|PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
-  if((tipo==='AEGT'||tipo==='AEGA')&&esSeg)return 100;
+  if((tipo==='AEGT'||tipo==='AEGA'||/^AP/.test(tipo))&&esSeg)return 100;
   return 106;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────

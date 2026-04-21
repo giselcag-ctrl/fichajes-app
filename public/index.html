@@ -1427,7 +1427,8 @@ function getTarifaHora(tipo,esSeg){
 function getKmMinimo(tipo,kmInput,servicio){
   if(tipo==='PI_RIPCI')return Math.max(kmInput||0,20);
   if(tipo==='RITE')return Math.max(kmInput||0,40);
-  if(/^REBT/.test(tipo)){
+  if(tipo==='REBT'){
+    // Solo REBT genérico tiene km variable por subtipo de instalación
     const s=(servicio||'').toUpperCase();
     let kmMin=60;
     if(/PISCIN/.test(s))kmMin=10;
@@ -1435,6 +1436,7 @@ function getKmMinimo(tipo,kmInput,servicio){
     else if(/RIESGO|EXPLOSIÓN|EXPLOSION/.test(s))kmMin=0;
     return Math.max(kmInput||0,kmMin);
   }
+  // REBT_ZC, REBT_GARAJE, REBT_IP, REBTFV, REBT_PF → siempre 60km
   return kmInput||60;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────

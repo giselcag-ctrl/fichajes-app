@@ -1447,6 +1447,10 @@ function validarLinea(linea,tipo,km){
   if(!telefono)errores.push('Teléfono de contacto vacío');
   const emailContacto=String(linea['Email Comunicaciones']||linea['Email Contacto']||'').trim();
   if(!emailContacto)errores.push('Email de contacto vacío');
+  const responsable=String(linea['Responsable']||'').trim();
+  if(!responsable)errores.push('Responsable no asignado');
+  const caract=String(linea['Caract. Prales.']||'').trim();
+  if(!caract)errores.push('Características principales vacías');
   const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
   const tpce=parseFloat(String(linea['TPCE']||'0').replace(',','.'));
   const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));

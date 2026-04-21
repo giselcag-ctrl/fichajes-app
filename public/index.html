@@ -1343,7 +1343,7 @@ const TARIFAS_MIN = {
   SM:             [153.30,  93.70],
   REAT:           [273.19, 175.84], // CT como referencia
   IP:             [216.30, 133.27], // IP-03 periódica @60km (fórmula: TPCE+TPIE siempre preferible)
-  RITE:           [153.30,  93.70],
+  RITE:           [328.00, 179.53], // mínimo visible: Gen.Frío 1ª/2ª @40km (106€/h)
   PI_RIPCI:       [153.30,  93.70],
   PI_RSCIEI:      [153.30,  93.70],
   AEGT:           [153.30,  93.70],
@@ -1416,11 +1416,18 @@ function aegaSubtipo(s){
   return /SIN\s*PLUM/i.test(s||'')?'sin_pluma':'con_pluma';
 }
 // ── Tasa horaria por tipo de servicio ────────────────────────────────────────
-// La mayoría: 106 €/h. RITE, PI y AEGT 2ª: 100 €/h
+// La mayoría: 106 €/h. PI y AEGT/AEGA/AP 2ª: 100 €/h
+// RITE: 106 €/h (tabla tarifas 2026 confirmado)
 function getTarifaHora(tipo,esSeg){
-  if(/RITE|PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
+  if(/PI_RIPCI|PI_RSCIEI/.test(tipo))return 100;
   if((tipo==='AEGT'||tipo==='AEGA'||/^AP/.test(tipo))&&esSeg)return 100;
   return 106;
+}
+// ── km mínimo por tipo de servicio ───────────────────────────────────────────
+// RITE: radio medio de actuación ~40 km. Resto: 60 km por defecto.
+function getKmMinimo(tipo,kmInput){
+  if(tipo==='RITE')return Math.max(kmInput||0,40);
+  return kmInput||60;
 }
 // ── Fórmula de precio por tiempo (Simecal) ───────────────────────────────────
 // Precio = (TPCE + TPIE + km×0.65) / 60 × tarifaHora + km×0.16
@@ -1481,8 +1488,9 @@ function validarLinea(linea,tipo,km){
     // ── EICIAE: precio validado a nivel de pedido en procesarPedidos ──
     // (cada línea = 1 unidad; validación acumulada por pedido)
   } else if(tpce>0&&tpie>0){
-    // ── Servicios por tiempo: fórmula Simecal con tasa correcta ──
-    const esperado=calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo,esSeg));
+    // ── Servicios por tiempo: fórmula Simecal con tasa y km correctos ──
+    const kmEf=getKmMinimo(tipo,km);
+    const esperado=calcularPrecioEsperado(tpce,tpie,kmEf,getTarifaHora(tipo,esSeg));
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€');
   } else {

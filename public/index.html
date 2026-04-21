@@ -1471,7 +1471,9 @@ function validarLinea(linea,tipo,km){
   const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));
   const esSeg=esSegundaVisita(linea);
   const servFull=String(linea['Servicio']||'');
-  if(!precio||precio<=0){
+  if(tipo==='AP_CLASIF'){
+    // ── AP_CLASIF: herramienta de clasificación ITC EP-6, sin tarifa → sin validación de precio ──
+  } else if(!precio||precio<=0){
     errores.push('Precio = 0 o vacío');
   } else if(tipo==='AE'){
     // ── AE: precio validado a nivel de pedido en procesarPedidos ──

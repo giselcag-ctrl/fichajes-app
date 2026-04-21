@@ -1434,6 +1434,17 @@ function validarLinea(linea,tipo,km){
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
   const nifTitular=String(linea['NIF Titular']||'').trim();if(!nifTitular)errores.push('NIF del titular vacío');
   const nombreTitular=String(linea['Titular']||'').trim();if(!nombreTitular)errores.push('Titular no asignado');
+  // ── Campos obligatorios para todos los servicios ──────────────────────────
+  const dirInsp=String(linea['Dirección Inspección']||linea['Direccion Inspeccion']||'').trim();
+  if(!dirInsp)errores.push('Dirección de inspección vacía');
+  const cpInsp=String(linea['Cód. Postal Inspección']||linea['Cod. Postal Inspeccion']||linea['CP Inspección']||'').trim();
+  if(!cpInsp)errores.push('Código postal de inspección vacío');
+  const contacto=String(linea['Persona de Contacto']||linea['Contacto']||d.contacto||'').trim();
+  if(!contacto)errores.push('Persona de contacto vacía');
+  const telefono=String(linea['Teléfono 1']||linea['Telefono 1']||linea['Teléfono']||d.telefono1||d.telefono||'').trim();
+  if(!telefono)errores.push('Teléfono de contacto vacío');
+  const emailContacto=String(linea['Email Comunicaciones']||linea['Email']||d.emailContacto||'').trim();
+  if(!emailContacto)errores.push('Email de contacto vacío');
   const precio=parseFloat(String(linea['Tot. Contratado']||'0').replace(',','.'));
   const tpce=parseFloat(String(linea['TPCE']||'0').replace(',','.'));
   const tpie=parseFloat(String(linea['TPIE']||'0').replace(',','.'));

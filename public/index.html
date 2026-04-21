@@ -1285,7 +1285,8 @@ function tipoServicio(c){c=(c||'').toUpperCase();
   if(/AEGT/.test(c))return'AEGT';
   if(/AEGA/.test(c))return'AEGA';
   // ── Elevadores ──
-  if(/OCAAE|EICIAE|\bAE\b/.test(c))return'AE';
+  if(/EICIAE/.test(c))return'EICIAE';
+  if(/OCAAE|\bAE\b/.test(c))return'AE';
   // ── REBT variants: más específicas primero ──
   if(/REBTFV|FOTOVOLT/.test(c))return'REBTFV';
   if(/OCAREBT24007|GARAJE/.test(c))return'REBT_GARAJE';
@@ -1439,15 +1440,8 @@ function validarLinea(linea,tipo,km){
   if(!precio||precio<=0){
     errores.push('Precio = 0 o vacío');
   } else if(tipo==='AE'){
-    // ── AE: tabla fija €/unidad × tier ──
-    const esInicial=/INICIAL/i.test(servFull);
-    const u=aeUnidades(servFull);
-    const tier=aeTier(u);
-    const tabla=AE_PRECIO_UNIT[esInicial?'inicial':'periodica'][esSeg?'p2':'p1'];
-    const precioUnit=tabla[tier];
-    const esperado=u*precioUnit;
-    if(precio<esperado-0.50)
-      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × '+precioUnit+'€)');
+    // ── AE: precio validado a nivel de pedido en procesarPedidos ──
+    // (cada línea = 1 ascensor; tier calculado con total líneas del pedido)
   } else if(tipo==='AEGT'){
     // ── AEGT: tabla fija por subtipo y si es primera/siguiente grúa ──
     const subtipo=aegtSubtipo(servFull);
@@ -1465,11 +1459,8 @@ function validarLinea(linea,tipo,km){
     if(precio<esperado-0.50)
       errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ (AEGA '+subtipo.replace('_',' ')+')');
   } else if(tipo==='EICIAE'){
-    // ── EICIAE: tarifa fija €169.60/ud ──
-    const u=aeUnidades(servFull);
-    const esperado=u*169.60;
-    if(precio<esperado-0.50)
-      errores.push('Precio '+precio.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+u+'u × 169,60€)');
+    // ── EICIAE: precio validado a nivel de pedido en procesarPedidos ──
+    // (cada línea = 1 unidad; validación acumulada por pedido)
   } else if(tpce>0&&tpie>0){
     // ── Servicios por tiempo: fórmula Simecal con tasa correcta ──
     const esperado=calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo,esSeg));
@@ -1530,7 +1521,42 @@ function procesarPedidos(){
       pedidosMap[codigo].totalContratado+=precioLinea;
       pedidosMap[codigo].totalCalculado+=precioCalc;
       pedidosMap[codigo].erroresTotales+=errores.length;
-      if(errores.some(e=>e.includes('bajo)')||e.includes('sobre tarifa')||e.includes('Precio = 0')||e.includes('mínimo')))pedidosMap[codigo].precioAlerta=true;
+      if(errores.some(e=>e.includes('inferior a tarifa')||e.includes('Precio = 0')||e.includes('mínimo')))pedidosMap[codigo].precioAlerta=true;
+    });
+    // ── Post-proceso AE: validación por pedido (cada línea SAP = 1 ascensor) ─
+    Object.values(pedidosMap).forEach(ped=>{
+      const aeLineas=ped.lineas.filter(l=>l.tipo==='AE');
+      if(!aeLineas.length)return;
+      const n=aeLineas.length;
+      const tier=aeTier(n);
+      const s0=(aeLineas[0].servicio||'').toUpperCase();
+      const esInicial=/INICIAL/.test(s0)?'inicial':'periodica';
+      const esSeg0=/2[ª°]|SEGUNDA|REINSP/.test(s0);
+      const visita=esSeg0?'p2':'p1';
+      const tabla=(AE_PRECIO_UNIT[esInicial]||AE_PRECIO_UNIT.periodica)[visita];
+      const pUnit=tabla[tier];
+      const esperado=n*pUnit;
+      const totalAE=aeLineas.reduce((s,l)=>s+l.precio,0);
+      aeLineas.forEach(l=>{l.precioCalc=pUnit;ped.totalCalculado+=pUnit;});
+      if(totalAE<esperado-0.50){
+        aeLineas[0].errores.push('Precio total AE '+totalAE.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+n+' asc × '+pUnit+'€/ud)');
+        ped.erroresTotales++;
+        ped.precioAlerta=true;
+      }
+    });
+    // ── Post-proceso EICIAE: validación por pedido (cada línea = 1 unidad) ──
+    Object.values(pedidosMap).forEach(ped=>{
+      const eiLineas=ped.lineas.filter(l=>l.tipo==='EICIAE');
+      if(!eiLineas.length)return;
+      const n=eiLineas.length;
+      const esperado=n*169.60;
+      const totalEI=eiLineas.reduce((s,l)=>s+l.precio,0);
+      eiLineas.forEach(l=>{l.precioCalc=169.60;ped.totalCalculado+=169.60;});
+      if(totalEI<esperado-0.50){
+        eiLineas[0].errores.push('Precio total EICIAE '+totalEI.toFixed(2)+'€ inferior a tarifa '+esperado.toFixed(2)+'€ ('+n+' u × 169,60€)');
+        ped.erroresTotales++;
+        ped.precioAlerta=true;
+      }
     });
     PS.pedidos=Object.values(pedidosMap).sort((a,b)=>(parseInt(b.numeroSAP)||0)-(parseInt(a.numeroSAP)||0));
     PS.filtrados=[...PS.pedidos];

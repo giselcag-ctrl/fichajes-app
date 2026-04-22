@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "SIMECAL Extractor Calendario",
+  "version": "1.0.0",
+  "description": "Extrae datos del calendario SIMECAL para el módulo de auditoría de fichajes",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting",
+    "activeTab",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://intranet.preprod.simecal.com/*",
+    "https://movilidad.api.preprod.simecal.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://intranet.preprod.simecal.com/*"],
+      "run_at": "document_start",
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SIMECAL Extractor Calendario"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

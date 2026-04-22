@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIMECAL Extractor</title>
+  <style>
+    /* ── CSS Variables — matching fichajes-app dark theme ────────────────── */
+    :root {
+      --bg-primary:    #0f1117;
+      --bg-secondary:  #1a1d2e;
+      --bg-card:       #1e2235;
+      --bg-input:      #252840;
+      --border:        #2d3154;
+      --border-focus:  #4a5568;
+      --text-primary:  #e2e8f0;
+      --text-secondary:#a0aec0;
+      --text-muted:    #718096;
+      --accent-blue:   #4299e1;
+      --accent-green:  #48bb78;
+      --accent-yellow: #ecc94b;
+      --accent-red:    #fc8181;
+      --accent-purple: #9f7aea;
+      --shadow:        0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 420px;
+      min-height: 600px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #1a1d2e 0%, #252840 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      letter-spacing: 0.3px;
+    }
+    .header-version {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-input);
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    /* ── Sections ─────────────────────────────────────────────────────────── */
+    .content {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 9px;
+    }
+
+    /* ── Form elements ────────────────────────────────────────────────────── */
+    label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    textarea, input[type="text"], input[type="url"], input[type="date"] {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-family: inherit;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus, input:focus {
+      border-color: var(--accent-blue);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+      max-height: 140px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 8px 14px;
+      transition: all 0.15s;
+      outline: none;
+      letter-spacing: 0.2px;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-start {
+      flex: 1;
+      background: linear-gradient(135deg, #2f855a, var(--accent-green));
+      color: #fff;
+      font-size: 13px;
+      padding: 10px;
+    }
+    .btn-start:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-pause {
+      background: linear-gradient(135deg, #b7791f, var(--accent-yellow));
+      color: #1a1d2e;
+    }
+    .btn-pause:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-stop {
+      background: linear-gradient(135deg, #c53030, var(--accent-red));
+      color: #fff;
+    }
+    .btn-stop:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-export {
+      flex: 1;
+      background: linear-gradient(135deg, #2b6cb0, var(--accent-blue));
+      color: #fff;
+    }
+    .btn-export:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-send {
+      flex: 1;
+      background: linear-gradient(135deg, #553c9a, var(--accent-purple));
+      color: #fff;
+    }
+    .btn-send:hover:not(:disabled) { filter: brightness(1.1); }
+
+    /* ── Progress ─────────────────────────────────────────────────────────── */
+    .progress-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .progress-pct {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-input);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2b6cb0, var(--accent-blue), #63b3ed);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .progress-detail {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-idle     { background: #2d3748; color: var(--text-muted); }
+    .status-running  { background: #1a365d; color: var(--accent-blue); }
+    .status-paused   { background: #5f370e; color: var(--accent-yellow); }
+    .status-done     { background: #1c4532; color: var(--accent-green); }
+    .status-error    { background: #3b1c1c; color: var(--accent-red); }
+
+    /* ── Log ──────────────────────────────────────────────────────────────── */
+    .log-area {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      height: 110px;
+      overflow-y: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 10px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .log-area::-webkit-scrollbar { width: 4px; }
+    .log-area::-webkit-scrollbar-track { background: transparent; }
+    .log-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-entry { color: var(--text-secondary); }
+    .log-entry.error { color: var(--accent-red); }
+    .log-entry.success { color: var(--accent-green); }
+    .log-entry.warn { color: var(--accent-yellow); }
+
+    /* ── Divider ──────────────────────────────────────────────────────────── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-title">📅 SIMECAL Extractor</span>
+    <span class="header-version">v1.0.0</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Section 1: Empleados -->
+    <div class="section">
+      <div class="section-title">Empleados</div>
+      <label for="employees">Códigos (uno por línea o separados por coma)</label>
+      <textarea id="employees" placeholder="SGG&#10;ABC&#10;DEF&#10;..."></textarea>
+    </div>
+
+    <!-- Section 2: Periodo -->
+    <div class="section">
+      <div class="section-title">Periodo</div>
+      <div class="row-2">
+        <div>
+          <label for="startDate">Desde</label>
+          <input type="date" id="startDate" value="2026-01-01" />
+        </div>
+        <div>
+          <label for="endDate">Hasta</label>
+          <input type="date" id="endDate" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Servidor -->
+    <div class="section">
+      <div class="section-title">Servidor</div>
+      <label for="appUrl">URL de fichajes-app</label>
+      <input type="url" id="appUrl" placeholder="http://localhost:3000" value="http://localhost:3000" />
+    </div>
+
+    <!-- Control buttons -->
+    <div class="btn-row">
+      <button class="btn-start" id="btnStart">▶ INICIAR</button>
+      <button class="btn-pause" id="btnPause" disabled>⏸ PAUSAR</button>
+      <button class="btn-stop"  id="btnStop"  disabled>■ DETENER</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="progress-label">
+          Estado: <span class="status-badge status-idle" id="statusBadge">Esperando</span>
+        </span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="progress-detail" id="progressDetail">—</div>
+    </div>
+
+    <!-- Log -->
+    <div class="section">
+      <div class="section-title">Log</div>
+      <div class="log-area" id="logArea">
+        <div class="log-entry">Listo para iniciar extracción.</div>
+      </div>
+    </div>
+
+    <!-- Export / Send buttons -->
+    <div class="btn-row">
+      <button class="btn-export" id="btnExport" disabled>⬇ EXPORTAR JSON</button>
+      <button class="btn-send"   id="btnSend"   disabled>⬆ ENVIAR A FICHAJES-APP</button>
+    </div>
+
+  </div><!-- /content -->
+
+  <script src="popup.js"></script>
+</body>
+</html>

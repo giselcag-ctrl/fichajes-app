@@ -361,21 +361,38 @@ async function runExtraction() {
 
 function waitForTabLoad(tabId, timeout = 20000) {
   return new Promise((resolve, reject) => {
-    const start = Date.now();
+    let done = false;
+
+    // Timer real para garantizar que nunca se quede colgado
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      chrome.tabs.onUpdated.removeListener(check);
+      resolve(); // resolver (no rechazar) para no interrumpir la extracción
+    }, timeout);
+
     function check(tabIdUpdated, changeInfo) {
+      if (done) return;
       if (tabIdUpdated === tabId && changeInfo.status === 'complete') {
+        done = true;
+        clearTimeout(timer);
         chrome.tabs.onUpdated.removeListener(check);
         resolve();
-      } else if (Date.now() - start > timeout) {
-        chrome.tabs.onUpdated.removeListener(check);
-        reject(new Error('Tab load timeout'));
       }
     }
     chrome.tabs.onUpdated.addListener(check);
-    // Also resolve if already complete
+
+    // Resolver inmediatamente si ya está cargada
     chrome.tabs.get(tabId, tab => {
-      if (chrome.runtime.lastError) { reject(new Error('Tab not found')); return; }
+      if (done) return;
+      if (chrome.runtime.lastError) {
+        done = true; clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(check);
+        reject(new Error('Tab not found'));
+        return;
+      }
       if (tab.status === 'complete') {
+        done = true; clearTimeout(timer);
         chrome.tabs.onUpdated.removeListener(check);
         resolve();
       }

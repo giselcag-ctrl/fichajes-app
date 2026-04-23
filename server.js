@@ -452,6 +452,10 @@ app.get('/api/analizar-empleado', async (req, res) => {
       const dias = (s.days || []).map(d => {
         const isWeekend  = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
         const justificado = isJustifiedDay(d.events);
+        // sinDatos: null TPC + no events on a weekday → no sabemos si es festivo/vacaciones
+        // Lo marcamos para que Claude NO lo cuente como incumplimiento (puede ser festivo no capturado)
+        const fichajeNull = fichaje_h === null || fichaje_h === 0;
+        const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
         const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
         const fichaje_h   = parseTpcHours(d.tpc);
         const eventos     = (d.events || []).map(ev => ({
@@ -469,7 +473,7 @@ app.get('/api/analizar-empleado', async (req, res) => {
 
         return {
           fecha: d.date, dia: d.weekday, esFinSemana: isWeekend,
-          justificado, justDesc,
+          justificado, sinDatos, justDesc,
           fichaje: d.tpc || null, fichaje_h,
           eventos, tareas_h, diferencia_h
         };
@@ -511,8 +515,9 @@ REGLAS OBLIGATORIAS:
 1. Jornada laboral = 8h diarias lun-vie (40h/semana).
 2. Un día con justificado=true está TOTALMENTE JUSTIFICADO. Esto incluye cualquier variante de: FESTIVO, FESTIVO NACIONAL, FESTIVO LOCAL, FESTIVO REGIONAL, VACACIONES, VACACIONES PREVISTAS, PREVISIÓN DE VACACIONES, ENFERMO, ENFERMEDAD, BAJA, BAJA MÉDICA, IT, ACCIDENTE LABORAL, LICENCIA, PERMISO. Estos días NO son error ni alerta.
 3. esFinSemana=true → ignorar completamente.
-4. Un día INCUMPLE solo si: justificado=false AND esFinSemana=false AND fichaje_h < 7.5 AND fichaje_h !== null.
-5. DIFERENCIA HORARIA: si diferencia_h > 1 → hay tiempo fichado no cubierto por tareas (posible tiempo de desplazamiento/admin sin registrar). Si diferencia_h < -0.5 → hay tareas fuera del fichaje.
+4. sinDatos=true → el día tiene 0h de fichaje y ningún evento registrado. Esto ocurre en festivos y vacaciones cuya información no fue capturada en la extracción. NO los cuentes como incumplimiento ni como alerta. Pueden aparecer como "días sin datos" en la nota de la semana pero nunca como error del empleado.
+5. Un día INCUMPLE solo si: justificado=false AND sinDatos=false AND esFinSemana=false AND fichaje_h < 7.5 AND fichaje_h !== null.
+6. DIFERENCIA HORARIA: si diferencia_h > 1 → hay tiempo fichado no cubierto por tareas (posible desplazamiento/admin sin registrar). Si diferencia_h < -0.5 → hay tareas fuera del fichaje.
 
 RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
 {

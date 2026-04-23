@@ -776,10 +776,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
     <!-- ── Análisis IA ── -->
     <div id="page-analisis-ia" class="page">
-      <div class="animate-in" style="max-width:860px;">
+      <div class="animate-in" style="max-width:960px;">
         <div style="margin-bottom:24px;">
           <h2 style="font-size:20px;font-weight:400;margin-bottom:6px;">Análisis de <span style="color:var(--accent)">Cumplimiento Horario</span></h2>
-          <p style="color:var(--text2);font-size:13px;">Analiza si el empleado cumple 8h diarias / 5 días semanales</p>
+          <p style="color:var(--text2);font-size:13px;">Compara fichaje (TPC) con tareas registradas · Detecta incumplimientos · Justifica festivos y vacaciones</p>
         </div>
 
         <!-- Controls card -->
@@ -791,8 +791,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;"
                 onkeydown="if(event.key==='Enter')analizarEmpleado()">
             </div>
-            <button class="btn" onclick="analizarEmpleado()"
-              style="background:#2e7d32;color:#fff;border:none;padding:8px 18px;border-radius:var(--radius);font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+            <button onclick="analizarEmpleado()"
+              style="background:#2e7d32;color:#fff;border:none;padding:9px 20px;border-radius:var(--radius);font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;font-weight:500;">
               🤖 Analizar con IA
             </button>
           </div>
@@ -801,35 +801,56 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <!-- Loading state -->
         <div id="ia-loading" style="display:none;text-align:center;padding:32px 0;color:var(--text2);font-size:13px;">
           <div style="width:36px;height:36px;border:3px solid rgba(76,175,80,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>
-          Claude está analizando el calendario…
+          Claude está analizando el calendario… puede tardar hasta 30 segundos
         </div>
 
         <!-- Results area -->
         <div id="ia-results" style="display:none;">
 
-          <!-- Summary card -->
-          <div id="ia-summary-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-            <p id="ia-resumen-text" style="font-size:13px;color:var(--text2);margin:0;flex:1;min-width:200px;"></p>
-            <div id="ia-cumplimiento-badge" style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;padding:8px 18px;border-radius:var(--radius-lg);border:1px solid var(--border);white-space:nowrap;"></div>
+          <!-- Fila: resumen + cumplimiento -->
+          <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
+            <div style="flex:2;min-width:240px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;display:flex;align-items:center;gap:18px;">
+              <p id="ia-resumen-text" style="font-size:13px;color:var(--text2);margin:0;flex:1;line-height:1.6;"></p>
+              <div id="ia-cumplimiento-badge" style="font-size:24px;font-weight:300;font-family:'DM Mono',monospace;padding:10px 18px;border-radius:var(--radius-lg);border:1px solid var(--border);white-space:nowrap;text-align:center;min-width:80px;"></div>
+            </div>
+          </div>
+
+          <!-- Tarjetas diferencia horaria global -->
+          <div id="ia-diff-row" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:130px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:6px;">Total Fichaje</div>
+              <div id="ia-total-fichaje" style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;color:var(--text);">—</div>
+            </div>
+            <div style="flex:1;min-width:130px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:6px;">Total Tareas</div>
+              <div id="ia-total-tareas" style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;color:var(--text);">—</div>
+            </div>
+            <div style="flex:1;min-width:130px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:6px;">Diferencia</div>
+              <div id="ia-total-diff" style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;">—</div>
+              <div id="ia-total-diff-label" style="font-size:10px;color:var(--text3);margin-top:2px;"></div>
+            </div>
           </div>
 
           <!-- Alerts card -->
-          <div id="ia-alertas-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:12px;">Alertas</div>
+          <div id="ia-alertas-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:10px;">⚠️ Alertas (excluye festivos y vacaciones)</div>
             <div id="ia-alertas-list"></div>
           </div>
 
           <!-- Weeks table -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;overflow-x:auto;">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;overflow-x:auto;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:12px;">Detalle semanal</div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px;">
               <thead>
                 <tr style="border-bottom:1px solid var(--border);">
-                  <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:400;white-space:nowrap;">Semana</th>
-                  <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:400;">Etiqueta</th>
-                  <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:400;white-space:nowrap;">TPC Total</th>
-                  <th style="text-align:center;padding:6px 10px;color:var(--text3);font-weight:400;">Cumple</th>
-                  <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:400;">Días Problema</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Semana</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Etiqueta</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Fichaje</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Tareas</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Diferencia</th>
+                  <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:400;">Cumple</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Días Problema</th>
                 </tr>
               </thead>
               <tbody id="ia-weeks-tbody"></tbody>
@@ -837,9 +858,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           </div>
 
           <!-- Recommendation card -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:10px;">Recomendación</div>
-            <p id="ia-recomendacion" style="font-size:13px;color:var(--text2);margin:0;line-height:1.6;"></p>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:10px;">💡 Recomendación</div>
+            <p id="ia-recomendacion" style="font-size:13px;color:var(--text2);margin:0;line-height:1.7;"></p>
           </div>
 
         </div>
@@ -2479,6 +2500,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm();});
 restoreSession();
 
 // ── Análisis IA ─────────────────────────────────────────────────────────────
+function fmtH(h){
+  if(h===null||h===undefined)return'—';
+  const abs=Math.abs(h);
+  const hh=Math.floor(abs);
+  const mm=Math.round((abs-hh)*60);
+  return (h<0?'-':'')+(hh>0?hh+'h ':'')+( mm>0?mm+'min':'')+(hh===0&&mm===0?'0h':'');
+}
 async function analizarEmpleado(){
   const emp=(document.getElementById('ia-emp-input').value||'').trim().toUpperCase();
   if(!emp){showToast('Introduce un código de empleado');return;}
@@ -2488,53 +2516,90 @@ async function analizarEmpleado(){
     const r=await fetch('/api/analizar-empleado?empleado='+encodeURIComponent(emp));
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error '+r.status);}
     const d=await r.json();
-    const a=d.analisis||d; // servidor devuelve { ok, analisis:{...} }
-    // Summary
+    const a=d.analisis||d;
+
+    // ── Resumen + cumplimiento ──────────────────────────────────────────
     document.getElementById('ia-resumen-text').textContent=a.resumenGeneral||'—';
     const pct=typeof a.cumplimientoGlobal==='number'?a.cumplimientoGlobal:parseFloat(a.cumplimientoGlobal)||0;
     const badge=document.getElementById('ia-cumplimiento-badge');
-    badge.textContent=pct+'%';
+    badge.innerHTML=pct+'%<br><span style="font-size:10px;font-family:\'DM Sans\',sans-serif;opacity:0.7;">cumplimiento</span>';
     badge.style.background=pct>=80?'rgba(46,125,50,0.18)':pct>=60?'rgba(245,158,11,0.18)':'rgba(185,28,28,0.18)';
     badge.style.color=pct>=80?'#81c784':pct>=60?'#fbbf24':'#f87171';
     badge.style.borderColor=pct>=80?'rgba(46,125,50,0.35)':pct>=60?'rgba(245,158,11,0.35)':'rgba(185,28,28,0.35)';
-    // Alerts
+
+    // ── Tarjetas diferencia global ──────────────────────────────────────
+    document.getElementById('ia-total-fichaje').textContent=fmtH(a.totalFichaje_h);
+    document.getElementById('ia-total-tareas').textContent=a.totalTareas_h!=null?fmtH(a.totalTareas_h):'Sin datos';
+    const diffEl=document.getElementById('ia-total-diff');
+    const diffLbl=document.getElementById('ia-total-diff-label');
+    if(a.totalDiferencia_h!=null){
+      diffEl.textContent=fmtH(a.totalDiferencia_h);
+      if(a.totalDiferencia_h>1){
+        diffEl.style.color='#fbbf24';
+        diffLbl.textContent='Tiempo fichado sin tareas';
+      }else if(a.totalDiferencia_h<-0.5){
+        diffEl.style.color='#f87171';
+        diffLbl.textContent='Tareas fuera del fichaje';
+      }else{
+        diffEl.style.color='#81c784';
+        diffLbl.textContent='Bien cubierto';
+      }
+    }else{
+      diffEl.textContent='N/A';diffEl.style.color='var(--text3)';
+      diffLbl.textContent='No hay duración en tareas';
+    }
+
+    // ── Alertas ─────────────────────────────────────────────────────────
     const alertasList=document.getElementById('ia-alertas-list');
     alertasList.innerHTML='';
     const alertas=Array.isArray(a.alertas)?a.alertas:[];
     if(alertas.length===0){
-      alertasList.innerHTML='<span style="font-size:12px;color:var(--text3);">Sin alertas</span>';
+      alertasList.innerHTML='<span style="font-size:12px;color:var(--text3);">✓ Sin alertas de incumplimiento</span>';
     }else{
-      alertas.forEach(a=>{
-        const el=document.createElement('span');
-        el.style.cssText='display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;border-radius:var(--radius);padding:4px 10px;font-size:12px;margin:0 6px 6px 0;';
-        el.textContent=a;
+      alertas.forEach(al=>{
+        const el=document.createElement('div');
+        el.style.cssText='padding:6px 12px;background:rgba(245,158,11,0.1);border-left:3px solid #fbbf24;border-radius:4px;color:var(--text);font-size:12px;margin-bottom:6px;line-height:1.5;';
+        el.textContent=al;
         alertasList.appendChild(el);
       });
     }
-    // Weeks table
+
+    // ── Tabla semanal ────────────────────────────────────────────────────
     const tbody=document.getElementById('ia-weeks-tbody');
     tbody.innerHTML='';
     const weeks=Array.isArray(a.semanas)?a.semanas:[];
     weeks.forEach(w=>{
       const tr=document.createElement('tr');
       tr.style.borderBottom='1px solid var(--border)';
-      const cumple=w.cumple===true||w.cumple==='true'||w.cumple==='✅';
-      const dias=(Array.isArray(w.diasProblema)?w.diasProblema:w.diasProblema?[w.diasProblema]:[]).join(', ')||'—';
-      tr.innerHTML=`<td style="padding:7px 10px;color:var(--text);white-space:nowrap;">${w.semana||'—'}</td>`+
-        `<td style="padding:7px 10px;color:var(--text2);">${w.etiqueta||'—'}</td>`+
-        `<td style="padding:7px 10px;color:var(--text);text-align:right;font-family:'DM Mono',monospace;">${w.tpcTotal!=null?w.tpcTotal:'—'}</td>`+
-        `<td style="padding:7px 10px;text-align:center;">${cumple?'✅':'❌'}</td>`+
-        `<td style="padding:7px 10px;color:var(--text3);font-size:11px;">${dias}</td>`;
+      const cumple=w.cumple===true||w.cumple==='true';
+      const dias=(Array.isArray(w.diasProblema)?w.diasProblema:w.diasProblema?[w.diasProblema]:[]);
+      const diasStr=dias.length?dias.map(dp=>`<span style="display:inline-block;background:rgba(248,113,113,0.1);border-radius:3px;padding:1px 5px;margin:1px 2px;font-size:10px;color:#f87171;">${dp}</span>`).join(''):'<span style="color:var(--text3);font-size:11px;">—</span>';
+      // diferencia semana
+      let diffCell='<span style="color:var(--text3);">—</span>';
+      if(w.semDiferencia_h!=null){
+        const dc=w.semDiferencia_h>1?'#fbbf24':w.semDiferencia_h<-0.5?'#f87171':'#81c784';
+        diffCell=`<span style="color:${dc};font-family:'DM Mono',monospace;">${fmtH(w.semDiferencia_h)}</span>`;
+      }
+      tr.innerHTML=
+        `<td style="padding:7px 8px;color:var(--text);white-space:nowrap;font-size:11px;">${w.semana||'—'}</td>`+
+        `<td style="padding:7px 8px;color:var(--text2);white-space:nowrap;">${w.etiqueta||'—'}</td>`+
+        `<td style="padding:7px 8px;color:var(--text);text-align:right;font-family:'DM Mono',monospace;white-space:nowrap;">${w.semFichaje_h!=null?fmtH(w.semFichaje_h):(w.tpcTotal||'—')}</td>`+
+        `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;white-space:nowrap;color:var(--text2);">${w.semTareas_h!=null?fmtH(w.semTareas_h):'—'}</td>`+
+        `<td style="padding:7px 8px;text-align:right;white-space:nowrap;">${diffCell}</td>`+
+        `<td style="padding:7px 8px;text-align:center;">${cumple?'✅':'❌'}</td>`+
+        `<td style="padding:7px 8px;">${diasStr}</td>`;
       tbody.appendChild(tr);
     });
     if(weeks.length===0){
-      tbody.innerHTML='<tr><td colspan="5" style="padding:14px 10px;color:var(--text3);text-align:center;font-size:12px;">Sin datos de semanas</td></tr>';
+      tbody.innerHTML='<tr><td colspan="7" style="padding:14px 10px;color:var(--text3);text-align:center;font-size:12px;">Sin datos de semanas</td></tr>';
     }
-    // Recommendation
+
+    // ── Recomendación ────────────────────────────────────────────────────
     document.getElementById('ia-recomendacion').textContent=a.recomendacion||'—';
     document.getElementById('ia-results').style.display='block';
   }catch(err){
     showToast('Error: '+err.message);
+    console.error(err);
   }finally{
     document.getElementById('ia-loading').style.display='none';
   }

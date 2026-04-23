@@ -70,7 +70,10 @@ function getPublicState() {
 
 async function saveStateToStorage() {
   try {
-    await chrome.storage.local.set({ simecalState: getPublicState() });
+    await chrome.storage.local.set({
+      simecalState: getPublicState(),
+      simecalData:  state.data          // guardar datos reales para sobrevivir restart del SW
+    });
   } catch (e) { /* ignore */ }
 }
 
@@ -174,6 +177,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         case 'EXPORT_DATA': {
+          // Si state.data está vacío (SW reiniciado), intentar recuperar de storage
+          if (!state.data || Object.keys(state.data).length === 0) {
+            const stored = await chrome.storage.local.get('simecalData');
+            if (stored.simecalData && Object.keys(stored.simecalData).length > 0) {
+              state.data = stored.simecalData;
+            }
+          }
           sendResponse({ ok: true, data: state.data });
           break;
         }
@@ -232,9 +242,18 @@ async function runExtraction() {
     addLog(`=== Empleado ${ei + 1}/${state.employees.length}: ${empCode} ===`);
     state.data[empCode] = [];
 
-    // Navigate to employee calendar
+    // Navigate to employee calendar — recuperar pestaña si fue cerrada
     const empUrl = `https://intranet.preprod.simecal.com/#!/calendario/${empCode}/`;
-    await navigateTab(state.tabId, empUrl);
+    try {
+      // Verificar que la pestaña sigue viva
+      if (state.tabId) await chrome.tabs.get(state.tabId);
+      await navigateTab(state.tabId, empUrl);
+    } catch (e) {
+      addLog(`Tab cerrada, reabriendo para ${empCode}...`);
+      const newTab = await chrome.tabs.create({ url: empUrl, active: false });
+      state.tabId = newTab.id;
+      await waitForTabLoad(state.tabId);
+    }
     await sleep(2500);
 
     // Also set employee code in the input field (belt & suspenders)
@@ -252,10 +271,10 @@ async function runExtraction() {
       if (!navResult || !navResult.ok) {
         addLog(`WARN: no se pudo navegar atrás (semana ${w + 1})`);
       }
-      await sleep(400);
+      await sleep(600);
     }
 
-    await sleep(1500);
+    await sleep(2000);
 
     // Now iterate over each week from startDate to endDate
     state.weekIndex = 0;
@@ -270,8 +289,8 @@ async function runExtraction() {
       // Reset API capture buffer for this week
       state.capturedApiData = [];
 
-      // Wait a moment for the week to render
-      await sleep(500);
+      // Content script polls for Vue render (up to 8s); we only need a short base wait
+      await sleep(800);
 
       // Extract DOM data
       let domResult = null;
@@ -290,11 +309,13 @@ async function runExtraction() {
 
       const weekEntry = {
         week: expectedWeekStart,
-        weekLabel: domResult ? domResult.weekLabel : '',
-        detectedStart: weekDateResp && weekDateResp.ok ? weekDateResp.date : null,
-        days: domResult ? domResult.days : [],
-        apiData: [...state.capturedApiData],
-        extractedAt: new Date().toISOString()
+        weekLabel:     domResult ? domResult.weekLabel  : '',
+        tpcTotal:      domResult ? domResult.tpcTotal   : null,
+        previsto:      domResult ? domResult.previsto   : null,
+        kmTotal:       domResult ? domResult.kmTotal    : null,
+        weekStart:     domResult ? domResult.weekStart  : null,
+        days:          domResult ? domResult.days       : [],
+        extractedAt:   new Date().toISOString()
       };
 
       state.data[empCode].push(weekEntry);
@@ -402,7 +423,11 @@ async function waitIfPaused() {
       state.appUrl    = s.appUrl    || 'http://localhost:3000';
       state.complete  = s.complete  || false;
       state.log       = s.log       || [];
-      // data is rebuilt per-run; don't restore running state
+    }
+    // Restaurar datos extraídos (sobreviven restart del SW)
+    const storedData = await chrome.storage.local.get('simecalData');
+    if (storedData.simecalData) {
+      state.data = storedData.simecalData;
     }
   } catch (e) { /* ignore */ }
 })();

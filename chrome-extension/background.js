@@ -289,8 +289,8 @@ async function runExtraction() {
       // Reset API capture buffer for this week
       state.capturedApiData = [];
 
-      // Content script polls for Vue render (up to 8s); we only need a short base wait
-      await sleep(800);
+      // Content script polls for Vue render (up to 10s); pequeña espera base
+      await sleep(1200);
 
       // Extract DOM data
       let domResult = null;

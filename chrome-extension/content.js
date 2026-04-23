@@ -11,103 +11,81 @@
 (function () {
   'use strict';
 
-  // ── 1. Inject the page-context interceptor ─────────────────────────────────
-  const script = document.createElement('script');
-  script.textContent = `
-    (function() {
-      const TARGET_HOST = 'movilidad.api.preprod.simecal.com';
+  // Note: fetch/XHR interception removed — blocked by intranet CSP.
+  // All calendar data is extracted from DOM (TPC, previsto, events).
 
-      // ── Intercept fetch ──────────────────────────────────────────────────
-      const _originalFetch = window.fetch;
-      window.fetch = async function(...args) {
-        const result = await _originalFetch.apply(this, args);
-        try {
-          const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
-          if (url.includes(TARGET_HOST)) {
-            const clone = result.clone();
-            clone.json().then(data => {
-              window.postMessage({
-                source: '__simecal_ext__',
-                type: 'API_RESPONSE',
-                url: url,
-                data: data
-              }, '*');
-            }).catch(() => {
-              clone.text().then(text => {
-                window.postMessage({
-                  source: '__simecal_ext__',
-                  type: 'API_RESPONSE',
-                  url: url,
-                  data: text
-                }, '*');
-              }).catch(() => {});
-            });
-          }
-        } catch (e) {}
-        return result;
-      };
-
-      // ── Intercept XMLHttpRequest ─────────────────────────────────────────
-      const _XHROpen = XMLHttpRequest.prototype.open;
-      const _XHRSend = XMLHttpRequest.prototype.send;
-
-      XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-        this.__simecal_url__ = url || '';
-        return _XHROpen.apply(this, [method, url, ...rest]);
-      };
-
-      XMLHttpRequest.prototype.send = function(...args) {
-        this.addEventListener('load', function() {
-          try {
-            if (this.__simecal_url__ && this.__simecal_url__.includes(TARGET_HOST)) {
-              let data;
-              try { data = JSON.parse(this.responseText); }
-              catch (e) { data = this.responseText; }
-              window.postMessage({
-                source: '__simecal_ext__',
-                type: 'API_RESPONSE',
-                url: this.__simecal_url__,
-                data: data
-              }, '*');
-            }
-          } catch (e) {}
-        });
-        return _XHRSend.apply(this, args);
-      };
-    })();
-  `;
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
-
-  // ── 2. Listen for postMessage from page context ────────────────────────────
-  window.addEventListener('message', function (event) {
-    if (
-      event.source !== window ||
-      !event.data ||
-      event.data.source !== '__simecal_ext__' ||
-      event.data.type !== 'API_RESPONSE'
-    ) return;
-
-    try {
-      chrome.runtime.sendMessage({
-        action: 'API_DATA_CAPTURED',
-        url: event.data.url,
-        data: event.data.data
-      });
-    } catch (e) {
-      // Extension context may be invalidated — ignore
-    }
-  });
-
-  // ── 3. Handle messages from background ────────────────────────────────────
+  // ── Handle messages from background ───────────────────────────────────────
   chrome.runtime.onMessage.addListener(function (msg, _sender, sendResponse) {
     try {
       switch (msg.action) {
 
         // ── DOM Extraction ───────────────────────────────────────────────
         case 'EXTRACT_DOM': {
-          const result = extractCalendarDOM();
-          sendResponse({ ok: true, data: result });
+          // Esperar hasta que Vue haya renderizado el contenido de la semana
+          // Señal fiable: .badges-totales existe Y los labels tienen texto
+          (async () => {
+            const MAX_WAIT = 8000;
+            const INTERVAL = 300;
+            const start = Date.now();
+            while (Date.now() - start < MAX_WAIT) {
+              const labels   = document.querySelectorAll('.v-calendar-daily_head-day-label');
+              const hasBadge = !!document.querySelector('.badges-totales');
+              // Listo cuando hay ≥5 labels Y el badge semanal está presente
+              if (labels.length >= 5 && hasBadge) break;
+              await new Promise(r => setTimeout(r, INTERVAL));
+            }
+            const result = extractCalendarDOM();
+            sendResponse({ ok: true, data: result });
+          })();
+          break;
+        }
+
+        case 'DEBUG_DOM': {
+          // 1. HTML del contenedor principal (más grande)
+          const mainArea =
+            document.querySelector('.sheetPadre') ||
+            document.querySelector('main') ||
+            document.querySelector('#app') ||
+            document.body;
+          const html = mainArea ? mainArea.innerHTML.substring(0, 15000) : 'No encontrado';
+
+          // 2. Todas las clases CSS únicas que existen en la página
+          const allClasses = new Set();
+          document.querySelectorAll('*').forEach(el => {
+            (el.className || '').toString().split(/\s+/).forEach(c => {
+              if (c && c.length > 2) allClasses.add(c);
+            });
+          });
+          const classesWithDia = [...allClasses].filter(c =>
+            /dia|day|col|tpc|hora|horas|semana|week|event|tarea|jornada|lun|mar|mie|jue|vie|sab|dom/i.test(c)
+          ).sort();
+
+          // 3. Elementos que contienen patrones de horas "Xh" o día "LUN MAR..."
+          const horaHits = [];
+          document.querySelectorAll('*').forEach(el => {
+            const t = (el.textContent || '').trim();
+            if (
+              (/\d+h\s*\d*m?/i.test(t) || /\b(LUN|MAR|MI[EÉ]|JUE|VIE|S[AÁ]B|DOM)\b/i.test(t))
+              && t.length < 150 && el.children.length < 5
+            ) {
+              horaHits.push({ tag: el.tagName, cls: el.className.toString().substring(0, 80), text: t.substring(0, 100) });
+            }
+          });
+
+          // 4. Primer elemento con cada clase "relevante" y su estructura
+          const classSamples = {};
+          classesWithDia.slice(0, 20).forEach(cls => {
+            const el = document.querySelector('.' + CSS.escape(cls));
+            if (el) classSamples[cls] = el.innerHTML.substring(0, 300);
+          });
+
+          sendResponse({
+            ok: true,
+            html: html,
+            classesWithDia: classesWithDia,
+            horaHits: horaHits.slice(0, 40),
+            classSamples: classSamples
+          });
           break;
         }
 
@@ -159,67 +137,213 @@
   });
 
   // ── DOM extraction helpers ─────────────────────────────────────────────────
+  // Based on Vuetify v-calendar DOM structure confirmed via debug:
+  //   .v-calendar-daily_head-day       → one column header per day
+  //     .v-calendar-daily_head-weekday → "lun" / "mar" / etc.
+  //     .v-calendar-daily_head-day-label → "20  8h 20m    8h 5min"
+  //       .datos-cabecera              → "8h 20m    8h 5min"
+  //         .badge.color-lime          → TPC del día
+  //         .badge.color-black         → previsto del día
+  //   .badges-totales                  → resumen semanal
+  //     .badge.color-lime              → TPC total semana
+  //     .badge.color-black             → previsto total
+  //     .badge.color-purple            → km total
+
+  const MONTHS_ES = {
+    'enero':1,'ene':1,
+    'febrero':2,'feb':2,
+    'marzo':3,
+    'abril':4,'abr':4,
+    'mayo':5,
+    'junio':6,'jun':6,
+    'julio':7,'jul':7,
+    'agosto':8,'ago':8,
+    'septiembre':9,'sep':9,'sept':9,
+    'octubre':10,'oct':10,
+    'noviembre':11,'nov':11,
+    'diciembre':12,'dic':12
+  };
+
+  function parseBadgeText(el) {
+    if (!el) return null;
+    const t = el.textContent.trim();
+    return t || null;
+  }
 
   function extractCalendarDOM() {
     const result = {
-      weekLabel: '',
-      weekStart: '',
-      weekEnd: '',
-      days: []
+      weekLabel:  '',
+      tpcTotal:   null,
+      previsto:   null,
+      kmTotal:    null,
+      weekStart:  null,
+      weekEnd:    null,
+      days:       []
     };
 
     try {
-      // ── Week label / date range ────────────────────────────────────────
-      // Try common selectors for week range header
-      const weekSelectors = [
-        '.semana-label', '.week-label', '.calendar-header .dates',
-        '[class*="semana"]', '[class*="week-range"]', '[class*="periodo"]',
-        'h2', 'h3', '.toolbar-title', '.calendar-title'
-      ];
-      for (const sel of weekSelectors) {
-        const el = document.querySelector(sel);
-        if (el && el.textContent.match(/\d{1,2}[\/\-\.]\d{1,2}/)) {
-          result.weekLabel = el.textContent.trim();
-          break;
+      // ── 1. Week label ("S 17 - abril 2026") from barraTareas ──────────
+      const header = document.querySelector('.barraTareas');
+      if (header) {
+        const ht = header.textContent || '';
+        const wm = ht.match(/S\s+\d+\s*[-–]\s*\w+\s+\d{4}/);
+        if (wm) result.weekLabel = wm[0].trim();
+      }
+
+      // ── 2. Week totals from .badges-totales ───────────────────────────
+      const bt = document.querySelector('.badges-totales');
+      if (bt) {
+        result.tpcTotal  = parseBadgeText(bt.querySelector('.badge.color-lime'));
+        result.previsto  = parseBadgeText(bt.querySelector('.badge.color-black'));
+        const kmEl = bt.querySelector('.badge.color-purple');
+        if (kmEl) result.kmTotal = kmEl.textContent.trim().replace('Km','').trim();
+      }
+
+      // ── 3. Reference month + year for date construction ───────────────
+      let refMonth = 0, refYear = 0;
+      if (result.weekLabel) {
+        const dm = result.weekLabel.toLowerCase().match(/(\w+)\s+(\d{4})/);
+        if (dm && MONTHS_ES[dm[1]]) {
+          refMonth = MONTHS_ES[dm[1]];
+          refYear  = parseInt(dm[2]);
         }
       }
 
-      // ── Day columns ───────────────────────────────────────────────────
-      // Look for column headers like "LUN 20", "MAR 21", etc.
-      const dayHeaders = findDayHeaders();
+      // ── 4. Day columns ────────────────────────────────────────────────
+      const dayHeads = document.querySelectorAll('.v-calendar-daily_head-day');
+      const rawNums  = [];
 
-      for (const header of dayHeaders) {
-        const dayData = {
-          label: header.label,   // e.g. "LUN 20"
-          date: header.date,     // parsed date string "2026-01-05"
-          tpc: null,
-          km: null,
-          oeb: null,
-          events: []
-        };
+      for (const dh of dayHeads) {
+        const weekdayEl = dh.querySelector('.v-calendar-daily_head-weekday');
+        const weekday   = (weekdayEl ? weekdayEl.textContent.trim() : '').toLowerCase();
 
-        // ── Summary chips ─────────────────────────────────────────────
-        // Each day column has summary chips: TPC, KM, OEB-P
-        const col = header.element;
-        if (col) {
-          const colParent = getColumnContainer(col);
-          if (colParent) {
-            dayData.tpc = extractChipValue(colParent, ['TPC', 'tpc', 'Tiempo']);
-            dayData.km  = extractChipValue(colParent, ['KM', 'km', 'Km']);
-            dayData.oeb = extractChipValue(colParent, ['OEB', 'oeb', '€']);
+        // Day number is the first digits in the label: "20  8h 20m  8h 5min"
+        const labelEl   = dh.querySelector('.v-calendar-daily_head-day-label');
+        const labelText = labelEl ? labelEl.textContent.trim() : '';
+        const numMatch  = labelText.match(/^(\d{1,2})/);
+        const dayNum    = numMatch ? parseInt(numMatch[1]) : null;
 
-            // ── Event blocks ──────────────────────────────────────────
-            dayData.events = extractEvents(colParent);
+        // TPC y previsto — fuente primaria: label text "29  8h 0min    8h 0min"
+        let tpc = null, previsto = null;
+        const horasMatches = [...labelText.matchAll(/(\d{1,3}h(?:\s*\d{1,2}m(?:in)?)?)/g)];
+        if (horasMatches[0]) tpc      = horasMatches[0][1].trim();
+        if (horasMatches[1]) previsto = horasMatches[1][1].trim();
+
+        // Fallback: .datos-cabecera badges (días con trabajo normal)
+        if (!tpc) {
+          const cab = dh.querySelector('.datos-cabecera');
+          if (cab) {
+            tpc      = parseBadgeText(cab.querySelector('.badge.color-lime'));
+            previsto = parseBadgeText(cab.querySelector('.badge.color-black'));
+            if (!tpc) {
+              const badges = cab.querySelectorAll('.div-badge.has-tooltip');
+              if (badges[0]) tpc      = badges[0].textContent.trim() || null;
+              if (badges[1]) previsto = badges[1].textContent.trim() || null;
+            }
           }
         }
 
-        result.days.push(dayData);
+        rawNums.push(dayNum);
+        result.days.push({ weekday, dayNum, date: null, tpc, previsto, events: [] });
       }
 
-      // ── Try to parse week start from first day ─────────────────────
-      if (result.days.length > 0 && result.days[0].date) {
-        result.weekStart = result.days[0].date;
-        result.weekEnd   = result.days[result.days.length - 1].date;
+      // ── 5. Assign ISO dates handling month rollovers ──────────────────
+      // Logic: if pre-rollover day numbers exceed the days in refMonth,
+      // those days belong to refMonth-1; otherwise they belong to refMonth.
+      if (refMonth > 0 && rawNums.length > 0) {
+        // Find first rollover (day number decreases)
+        let rolloverAt = -1;
+        for (let i = 1; i < rawNums.length; i++) {
+          if (rawNums[i] !== null && rawNums[i-1] !== null && rawNums[i] < rawNums[i-1]) {
+            rolloverAt = i;
+            break;
+          }
+        }
+
+        let curMonth = refMonth, curYear = refYear;
+
+        if (rolloverAt > 0) {
+          // Check if pre-rollover days exceed the capacity of refMonth
+          const validPre      = rawNums.slice(0, rolloverAt).filter(n => n !== null);
+          const maxPreRollover = validPre.length > 0 ? Math.max(...validPre) : 0;
+          const daysInRefMonth = new Date(refYear, refMonth, 0).getDate();
+
+          if (maxPreRollover > daysInRefMonth) {
+            // Pre-rollover days belong to refMonth-1 (e.g. Jan 28-31 when weekLabel=feb)
+            curMonth = refMonth - 1;
+            if (curMonth === 0) { curMonth = 12; curYear--; }
+          }
+          // else: pre-rollover days ARE refMonth, post-rollover will be refMonth+1
+        }
+
+        let prevNum = 0;
+        for (let i = 0; i < result.days.length; i++) {
+          const d   = result.days[i];
+          const num = rawNums[i];
+          if (num === null) { prevNum = 0; continue; }
+          if (prevNum > 0 && num < prevNum) {
+            curMonth++;
+            if (curMonth > 12) { curMonth = 1; curYear++; }
+          }
+          prevNum = num;
+          d.date = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(num).padStart(2,'0')}`;
+        }
+      }
+
+      // ── 6. Events: all-day (header) + timed (body) ───────────────────
+      // FESTIVO / VACACIONES / etc. are all-day events that appear as
+      // .v-event chips inside the column HEADER, not in the timed body.
+      const dayContainers = document.querySelectorAll('.v-calendar-daily__day');
+      const dayHeaders    = document.querySelectorAll('.v-calendar-daily_head-day');
+
+      for (let i = 0; i < result.days.length; i++) {
+        const seen = new Set();
+        const events = [];
+        const addEv = raw => {
+          const t = (raw || '').trim().replace(/\s+/g, ' ').substring(0, 150);
+          if (t.length > 2 && !seen.has(t)) { seen.add(t); events.push(t); }
+        };
+
+        // A. All-day events from the day-header (FESTIVO, VACACIONES PREVISTAS…)
+        const hd = dayHeaders[i];
+        if (hd) {
+          // v-event* elements not inside the TPC label / datos-cabecera
+          hd.querySelectorAll('[class*="v-event"]').forEach(el => {
+            if (!el.closest('.datos-cabecera') && !el.closest('.badges-totales') &&
+                !el.closest('.v-calendar-daily_head-day-label')) {
+              addEv(el.textContent);
+            }
+          });
+          // Vuetify chips
+          hd.querySelectorAll('.v-chip').forEach(el => addEv(el.textContent));
+          // title / aria-label tooltip hints
+          hd.querySelectorAll('[title]').forEach(el => {
+            const t = el.getAttribute('title');
+            if (t && t.length > 2) addEv(t);
+          });
+          // Classes explicitly named after day-types
+          hd.querySelectorAll('[class*="festivo"],[class*="vacacion"],[class*="holiday"],[class*="ausencia"]')
+            .forEach(el => addEv(el.textContent));
+        }
+
+        // B. Timed events from the body
+        if (i < dayContainers.length) {
+          const dc = dayContainers[i];
+          dc.querySelectorAll('.v-event-draggable').forEach(el => addEv(el.textContent));
+          // Fallback if no draggable events
+          if (events.length === 0) {
+            dc.querySelectorAll('.v-event-timed').forEach(el => addEv(el.textContent));
+          }
+        }
+
+        result.days[i].events = events;
+      }
+
+      // ── 7. weekStart / weekEnd ────────────────────────────────────────
+      const dated = result.days.filter(d => d.date);
+      if (dated.length > 0) {
+        result.weekStart = dated[0].date;
+        result.weekEnd   = dated[dated.length - 1].date;
       }
 
     } catch (e) {
@@ -227,171 +351,6 @@
     }
 
     return result;
-  }
-
-  function findDayHeaders() {
-    const headers = [];
-    const DAY_LABELS = ['LUN','MAR','MIÉ','MIE','JUE','VIE','SÁB','SAB','DOM'];
-
-    // Strategy 1: look for th / td / div elements with day abbreviations
-    const allEls = document.querySelectorAll(
-      'th, td, [class*="day-header"], [class*="dia-header"], [class*="col-header"], [class*="column-header"], .fc-day-header'
-    );
-
-    for (const el of allEls) {
-      const text = el.textContent.trim().toUpperCase();
-      const match = text.match(/^(LUN|MAR|MI[EÉ]|JUE|VIE|S[AÁ]B|DOM)\s*(\d{1,2})/);
-      if (match) {
-        headers.push({
-          label: text,
-          date: parseDayLabel(match[1], parseInt(match[2])),
-          element: el
-        });
-      }
-    }
-
-    // Strategy 2: look for any element whose text matches "LUN 20" pattern
-    if (headers.length === 0) {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
-      let node;
-      while ((node = walker.nextNode())) {
-        if (node.children.length > 3) continue; // skip containers
-        const text = node.textContent.trim().toUpperCase();
-        const match = text.match(/^(LUN|MAR|MI[EÉ]|JUE|VIE|S[AÁ]B|DOM)\s*(\d{1,2})$/);
-        if (match) {
-          headers.push({
-            label: text,
-            date: parseDayLabel(match[1], parseInt(match[2])),
-            element: node
-          });
-        }
-      }
-    }
-
-    return headers;
-  }
-
-  function parseDayLabel(dayAbbr, dayNum) {
-    // We don't know month/year from the DOM label alone.
-    // Try to read the URL or a date header in the page.
-    const urlMatch = window.location.href.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (urlMatch) {
-      return `${urlMatch[1]}-${urlMatch[2]}-${String(dayNum).padStart(2,'0')}`;
-    }
-    // Fallback: return day number only — background will combine with week context
-    return `day-${dayNum}`;
-  }
-
-  function getColumnContainer(headerEl) {
-    // Walk up to find the column wrapper, then return it
-    let el = headerEl;
-    for (let i = 0; i < 5; i++) {
-      if (el.parentElement) el = el.parentElement;
-      // If parent has sibling columns, we're at the right level
-      const siblings = Array.from(el.parentElement ? el.parentElement.children : []);
-      if (siblings.length >= 5 && siblings.length <= 8) {
-        // Find the column corresponding to headerEl
-        const colIdx = siblings.indexOf(el);
-        if (colIdx >= 0) return el;
-      }
-    }
-    // Fallback: just return the closest ancestor with enough content
-    el = headerEl;
-    for (let i = 0; i < 6; i++) {
-      if (el.parentElement) el = el.parentElement;
-      if (el.querySelectorAll('[class*="event"], [class*="evento"], [class*="inspeccion"]').length > 0) {
-        return el;
-      }
-    }
-    return headerEl.parentElement || headerEl;
-  }
-
-  function extractChipValue(container, keywords) {
-    // Look for chip/badge elements near the keywords
-    const chipSelectors = [
-      '[class*="chip"]', '[class*="badge"]', '[class*="resumen"]',
-      '[class*="summary"]', '[class*="tag"]', 'span', 'small'
-    ];
-
-    for (const sel of chipSelectors) {
-      const chips = container.querySelectorAll(sel);
-      for (const chip of chips) {
-        const text = chip.textContent.trim();
-        for (const kw of keywords) {
-          if (text.toUpperCase().includes(kw.toUpperCase())) {
-            // Extract numeric value from text like "TPC: 8.5h" or "KM: 120" or "OEB-P: 45.50€"
-            const numMatch = text.match(/([\d]+[.,]?[\d]*)\s*[hH€km]?/);
-            if (numMatch) return numMatch[1].replace(',', '.');
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  function extractEvents(container) {
-    const events = [];
-    const eventSelectors = [
-      '[class*="event"]', '[class*="evento"]', '[class*="inspeccion"]',
-      '[class*="inspection"]', '[class*="appointment"]', '.fc-event',
-      '[class*="card"]', '[class*="item"]'
-    ];
-
-    for (const sel of eventSelectors) {
-      const els = container.querySelectorAll(sel);
-      for (const el of els) {
-        const text = el.textContent.trim();
-        if (!text || text.length < 3) continue;
-
-        const event = {
-          raw: text,
-          location: null,
-          serviceType: null,
-          orderNumber: null,
-          timeRange: null
-        };
-
-        // Time range: "08:00 - 10:30" or "8:00-10:30"
-        const timeMatch = text.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
-        if (timeMatch) {
-          event.timeRange = `${timeMatch[1]}-${timeMatch[2]}`;
-        }
-
-        // Order/ESB number: typically "ESB-12345" or "OT-12345" or just numbers
-        const orderMatch = text.match(/\b([A-Z]{2,4}[-_]?\d{4,8})\b/);
-        if (orderMatch) {
-          event.orderNumber = orderMatch[1];
-        }
-
-        // Extract sub-elements
-        const spans = el.querySelectorAll('span, p, div, small');
-        const subTexts = Array.from(spans).map(s => s.textContent.trim()).filter(Boolean);
-
-        // Service type heuristics: look for known keywords
-        const serviceTypes = ['REBT', 'GAS', 'AP ', 'LINEAS', 'OEB', 'GASOL', 'BT', 'AT'];
-        for (const st of serviceTypes) {
-          if (text.toUpperCase().includes(st)) {
-            event.serviceType = st.trim();
-            break;
-          }
-        }
-
-        // Location: first meaningful text block that's not time/order
-        for (const sub of subTexts) {
-          if (sub && !sub.match(/^\d{1,2}:\d{2}/) && !sub.match(/^[A-Z]{2,4}[-_]\d+$/)) {
-            if (!event.location && sub.length > 3) {
-              event.location = sub;
-              break;
-            }
-          }
-        }
-
-        if (text.length > 0) events.push(event);
-      }
-      if (events.length > 0) break; // stop at first selector that yields results
-    }
-
-    return events;
   }
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
@@ -449,30 +408,20 @@
   }
 
   function getWeekStartDate() {
-    // Strategy 1: read from URL if it contains a date
-    const urlMatch = window.location.href.match(/(\d{4}-\d{2}-\d{2})/);
-    if (urlMatch) return urlMatch[1];
-
-    // Strategy 2: read from DOM — look for date-like text in header area
-    const headerEls = document.querySelectorAll(
-      'h1, h2, h3, .toolbar, .calendar-header, [class*="week-header"], [class*="semana"]'
-    );
-    for (const el of headerEls) {
-      const text = el.textContent.trim();
-      // Pattern: "01/01/2026 - 07/01/2026" or "1 ene 2026"
-      const dateMatch = text.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-      if (dateMatch) {
-        const [_, d, m, y] = dateMatch;
-        return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    // Use the real barraTareas header: "S 17 - abril 2026"
+    const header = document.querySelector('.barraTareas');
+    if (header) {
+      const ht = header.textContent || '';
+      const wm = ht.match(/S\s+\d+\s*[-–]\s*(\w+)\s+(\d{4})/);
+      if (wm && MONTHS_ES[wm[1].toLowerCase()]) {
+        // Return first day of the week from the DOM (via extractCalendarDOM)
+        const dom = extractCalendarDOM();
+        if (dom.weekStart) return dom.weekStart;
       }
     }
-
-    // Strategy 3: find first day column date
-    const dayHeaders = findDayHeaders();
-    if (dayHeaders.length > 0 && dayHeaders[0].date && !dayHeaders[0].date.startsWith('day-')) {
-      return dayHeaders[0].date;
-    }
-
+    // Fallback: URL
+    const urlMatch = window.location.href.match(/(\d{4}-\d{2}-\d{2})/);
+    if (urlMatch) return urlMatch[1];
     return null;
   }
 

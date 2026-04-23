@@ -405,7 +405,31 @@ app.get('/api/calendario-data/:empleado', async (req, res) => {
   }
 });
 
-// ─── Análisis IA – cumplimiento horario del empleado ──────────────────────
+// ── Helpers para análisis horario ─────────────────────────────────────────
+
+/** "8h 30min" → 8.5,  "8h" → 8,  null → null */
+function parseTpcHours(str) {
+  if (!str) return null;
+  const m = str.match(/(\d+)h\s*(\d*)/i);
+  if (!m) return null;
+  return parseInt(m[1]) + (m[2] ? parseInt(m[2]) / 60 : 0);
+}
+
+/** Extrae horas de una cadena de evento: "Inspección (2h 30min)" → 2.5 */
+function parseEventHours(str) {
+  if (!str) return 0;
+  const m = str.match(/\(?(\d+)\s*h\s*(\d*)\s*m?(?:in)?\)?/i);
+  if (!m) return 0;
+  return parseInt(m[1]) + (m[2] ? parseInt(m[2]) / 60 : 0);
+}
+
+/** Palabras clave que justifican ausencia/menos horas */
+const JUSTIFIED_RE = /festivo|vacaci[oó]n(es)?|previsi[oó]n|enferm(o|a|edad)?|\bbaja\b|accidente|licencia|permiso|\bIT\b/i;
+function isJustifiedDay(events) {
+  return (events || []).some(e => JUSTIFIED_RE.test(e));
+}
+
+// ─── Análisis IA – cumplimiento horario + diferencia fichaje/tareas ────────
 // GET /api/analizar-empleado?empleado=SGG
 app.get('/api/analizar-empleado', async (req, res) => {
   try {
@@ -416,71 +440,106 @@ app.get('/api/analizar-empleado', async (req, res) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey)   return res.status(503).json({ ok: false, error: 'ANTHROPIC_API_KEY no configurada' });
 
-    // ── Obtener datos del calendario desde MongoDB ─────────────────────────
-    const doc = await db.collection('calendario_datos')
-      .findOne({ empleado });
+    const doc = await db.collection('calendario_datos').findOne({ empleado });
     if (!doc) return res.status(404).json({ ok: false, error: `No hay datos de ${empleado}` });
 
     const semanas = doc.semanas || [];
 
-    // ── Construir resumen compacto para el prompt ──────────────────────────
+    // ── Pre-computar datos enriquecidos ──────────────────────────────────
+    let totalFichaje_h = 0, totalTareas_h = 0;
+
     const resumenSemanas = semanas.map(s => {
-      const diasLaboral = (s.days || []).filter(d =>
-        d.weekday && !['sáb','sab','dom'].includes(d.weekday.toLowerCase())
-      );
-      const diasConHoras = diasLaboral.map(d => {
-        const horasMatch = d.tpc ? d.tpc.match(/(\d+)h\s*(\d*)/) : null;
-        const horas = horasMatch
-          ? parseInt(horasMatch[1]) + (horasMatch[2] ? parseInt(horasMatch[2]) / 60 : 0)
+      const dias = (s.days || []).map(d => {
+        const isWeekend  = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
+        const justificado = isJustifiedDay(d.events);
+        const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
+        const fichaje_h   = parseTpcHours(d.tpc);
+        const eventos     = (d.events || []).map(ev => ({
+          texto: ev.substring(0, 80),
+          horas: parseEventHours(ev) || null
+        }));
+        const tareas_h_raw = eventos.reduce((acc, ev) => acc + (ev.horas || 0), 0);
+        const tareas_h     = tareas_h_raw > 0 ? Math.round(tareas_h_raw * 100) / 100 : null;
+        const diferencia_h = (fichaje_h !== null && tareas_h !== null)
+          ? Math.round((fichaje_h - tareas_h) * 100) / 100
           : null;
-        const tipoEvento = (d.events || []).length > 0
-          ? d.events[0].substring(0, 60)
-          : '';
-        return { fecha: d.date, dia: d.weekday, tpc: d.tpc, horas, evento: tipoEvento };
+
+        if (!isWeekend && fichaje_h  !== null) totalFichaje_h += fichaje_h;
+        if (!isWeekend && tareas_h   !== null) totalTareas_h  += tareas_h;
+
+        return {
+          fecha: d.date, dia: d.weekday, esFinSemana: isWeekend,
+          justificado, justDesc,
+          fichaje: d.tpc || null, fichaje_h,
+          eventos, tareas_h, diferencia_h
+        };
       });
+
+      const semFichaje = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
+                             .reduce((s, d) => s + d.fichaje_h, 0);
+      const semTareas  = dias.filter(d => !d.esFinSemana && d.tareas_h !== null)
+                             .reduce((s, d) => s + d.tareas_h, 0);
+
       return {
-        semana: s.week,
-        etiqueta: s.weekLabel,
-        tpcTotal: s.tpcTotal,
-        previsto: s.previsto,
-        km: s.kmTotal,
-        dias: diasConHoras
+        semana: s.week, etiqueta: s.weekLabel,
+        tpcTotal: s.tpcTotal, previsto: s.previsto,
+        semFichaje_h:    Math.round(semFichaje * 100) / 100,
+        semTareas_h:     semTareas  > 0 ? Math.round(semTareas  * 100) / 100 : null,
+        semDiferencia_h: semTareas  > 0 ? Math.round((semFichaje - semTareas) * 100) / 100 : null,
+        dias
       };
     });
 
-    // ── Prompt para Claude ─────────────────────────────────────────────────
-    const prompt = `Eres un asistente de RRHH de la empresa SIMECAL analizando el cumplimiento horario del empleado ${empleado}.
+    totalFichaje_h = Math.round(totalFichaje_h * 100) / 100;
+    totalTareas_h  = Math.round(totalTareas_h  * 100) / 100;
+    const totalDiferencia_h = totalTareas_h > 0
+      ? Math.round((totalFichaje_h - totalTareas_h) * 100) / 100
+      : null;
 
-DATOS DEL CALENDARIO (enero 2026 – hoy):
+    // ── Prompt para Claude ───────────────────────────────────────────────
+    const prompt = `Eres un asistente de RRHH de SIMECAL. Analiza el cumplimiento horario del empleado ${empleado}.
+
+DATOS ENRIQUECIDOS DEL CALENDARIO:
 ${JSON.stringify(resumenSemanas, null, 1)}
 
-INSTRUCCIONES:
-- La jornada laboral es de 8 horas diarias de lunes a viernes (40h/semana).
-- Días con evento "VACACIONES" o "FESTIVO" están justificados y NO cuentan como incumplimiento.
-- Analiza semana por semana si se cumplen las horas.
-- Identifica días con menos de 8h trabajadas (sin justificación de vacaciones/festivo).
-- Detecta patrones: ¿hay días de la semana que sistemáticamente tienen menos horas? ¿semanas problemáticas?
+TOTALES GLOBALES PRE-CALCULADOS:
+- Horas de fichaje (lun-vie): ${totalFichaje_h}h
+- Horas de tareas registradas: ${totalTareas_h > 0 ? totalTareas_h + 'h' : 'sin tareas con duración explícita'}
+- Diferencia total (fichaje − tareas): ${totalDiferencia_h !== null ? totalDiferencia_h + 'h' : 'N/A'}
 
-RESPONDE en JSON con este formato exacto:
+REGLAS OBLIGATORIAS:
+1. Jornada laboral = 8h diarias lun-vie (40h/semana).
+2. Un día con justificado=true está TOTALMENTE JUSTIFICADO. Esto incluye cualquier variante de: FESTIVO, FESTIVO NACIONAL, FESTIVO LOCAL, FESTIVO REGIONAL, VACACIONES, VACACIONES PREVISTAS, PREVISIÓN DE VACACIONES, ENFERMO, ENFERMEDAD, BAJA, BAJA MÉDICA, IT, ACCIDENTE LABORAL, LICENCIA, PERMISO. Estos días NO son error ni alerta.
+3. esFinSemana=true → ignorar completamente.
+4. Un día INCUMPLE solo si: justificado=false AND esFinSemana=false AND fichaje_h < 7.5 AND fichaje_h !== null.
+5. DIFERENCIA HORARIA: si diferencia_h > 1 → hay tiempo fichado no cubierto por tareas (posible tiempo de desplazamiento/admin sin registrar). Si diferencia_h < -0.5 → hay tareas fuera del fichaje.
+
+RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
 {
   "empleado": "${empleado}",
-  "resumenGeneral": "texto breve 2-3 frases",
-  "cumplimientoGlobal": número entre 0 y 100 (porcentaje de días que cumplieron 8h),
-  "alertas": ["lista de alertas concretas"],
+  "resumenGeneral": "2-3 frases con el estado general del empleado",
+  "cumplimientoGlobal": número 0-100,
+  "totalFichaje_h": ${totalFichaje_h},
+  "totalTareas_h": ${totalTareas_h || null},
+  "totalDiferencia_h": ${totalDiferencia_h},
+  "alertas": ["solo alertas de días NO justificados con horas insuficientes o anomalías reales"],
   "semanas": [
     {
-      "semana": "2026-01-05",
-      "etiqueta": "S 2 - ene 2026",
-      "tpcTotal": "40h 0min",
-      "cumple": true o false,
-      "diasProblema": ["lun 2026-01-05: solo 6h", ...],
-      "nota": "texto breve opcional"
+      "semana": "YYYY-MM-DD",
+      "etiqueta": "S X - mes YYYY",
+      "tpcTotal": "XXh Ymin",
+      "semFichaje_h": número,
+      "semTareas_h": número o null,
+      "semDiferencia_h": número o null,
+      "cumple": true/false,
+      "diasProblema": ["solo días NO justificados con < 7.5h: ej: lun 2026-01-12: 6h"],
+      "nota": "breve nota opcional"
     }
   ],
-  "recomendacion": "texto con recomendación final"
+  "recomendacion": "recomendación final"
 }`;
 
-    // ── Llamar a Claude API ────────────────────────────────────────────────
+    // ── Llamar a Claude API ──────────────────────────────────────────────
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
       model:      'claude-opus-4-5',
@@ -489,11 +548,15 @@ RESPONDE en JSON con este formato exacto:
     });
 
     const raw = message.content[0].text;
-    // Extraer JSON de la respuesta
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return res.status(500).json({ ok: false, error: 'Respuesta inválida de Claude', raw });
 
     const analisis = JSON.parse(jsonMatch[0]);
+    // Garantizar campos globales (fallback al pre-cómputo si Claude no los devolvió)
+    analisis.totalFichaje_h    = analisis.totalFichaje_h    ?? totalFichaje_h;
+    analisis.totalTareas_h     = analisis.totalTareas_h     ?? (totalTareas_h > 0 ? totalTareas_h : null);
+    analisis.totalDiferencia_h = analisis.totalDiferencia_h ?? totalDiferencia_h;
+
     res.json({ ok: true, analisis, extractedAt: doc.extractedAt });
 
   } catch (e) {

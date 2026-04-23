@@ -15,6 +15,7 @@ const btnPause       = document.getElementById('btnPause');
 const btnStop        = document.getElementById('btnStop');
 const btnExport      = document.getElementById('btnExport');
 const btnSend        = document.getElementById('btnSend');
+const btnDebug       = document.getElementById('btnDebug');
 const statusBadge    = document.getElementById('statusBadge');
 const progressPct    = document.getElementById('progressPct');
 const progressBar    = document.getElementById('progressBar');
@@ -209,6 +210,48 @@ btnSend.addEventListener('click', async () => {
   } finally {
     btnSend.disabled = false;
     btnSend.textContent = '⬆ ENVIAR A FICHAJES-APP';
+  }
+});
+
+// ── Debug DOM ─────────────────────────────────────────────────────────────────────
+
+btnDebug.addEventListener('click', async () => {
+  appendLog('Enviando DEBUG_DOM a la pestaña del calendario...', 'info');
+  try {
+    // Find the intranet tab
+    const tabs = await chrome.tabs.query({ url: 'https://intranet.preprod.simecal.com/*' });
+    if (tabs.length === 0) {
+      appendLog('ERROR: No hay pestaña de la intranet abierta. Abre el calendario primero.', 'error');
+      return;
+    }
+    const tabId = tabs[0].id;
+    chrome.tabs.sendMessage(tabId, { action: 'DEBUG_DOM' }, (resp) => {
+      if (chrome.runtime.lastError) {
+        appendLog('ERROR debug: ' + chrome.runtime.lastError.message, 'error');
+        return;
+      }
+      if (!resp || !resp.ok) {
+        appendLog('ERROR: sin respuesta del content script', 'error');
+        return;
+      }
+      // Export debug info as JSON
+      const debugData = {
+        html:           resp.html,
+        classesWithDia: resp.classesWithDia,
+        horaHits:       resp.horaHits,
+        classSamples:   resp.classSamples
+      };
+      const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'simecal_debug_dom.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      appendLog('Debug exportado: simecal_debug_dom.json', 'success');
+    });
+  } catch (e) {
+    appendLog('ERROR debug: ' + e.message, 'error');
   }
 });
 

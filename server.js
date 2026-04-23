@@ -10,6 +10,15 @@ const { MongoClient } = require('mongodb');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── CORS – permite peticiones desde extensiones Chrome y la web ───────────
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // ─── MongoDB ───────────────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://simecal:Simecal2026!@cgs-free.qu2mzke.mongodb.net/simecal?appName=CGS-Free';
 let db = null;

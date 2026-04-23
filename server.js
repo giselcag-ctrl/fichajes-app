@@ -561,7 +561,28 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
     analisis.totalTareas_h     = analisis.totalTareas_h     ?? (totalTareas_h > 0 ? totalTareas_h : null);
     analisis.totalDiferencia_h = analisis.totalDiferencia_h ?? totalDiferencia_h;
 
-    res.json({ ok: true, analisis, extractedAt: doc.extractedAt });
+    // diasData: datos diarios pre-computados para vistas Diario/Mensual en el frontend
+    const diasData = resumenSemanas.map(s => ({
+      semana:          s.semana,
+      etiqueta:        s.etiqueta,
+      semFichaje_h:    s.semFichaje_h,
+      semTareas_h:     s.semTareas_h,
+      semDiferencia_h: s.semDiferencia_h,
+      dias: s.dias.map(d => ({
+        fecha:        d.fecha,
+        dia:          d.dia,
+        esFinSemana:  d.esFinSemana,
+        justificado:  d.justificado,
+        sinDatos:     d.sinDatos,
+        justDesc:     d.justDesc,
+        fichaje_h:    d.fichaje_h,
+        tareas_h:     d.tareas_h,
+        diferencia_h: d.diferencia_h,
+        eventos:      d.eventos
+      }))
+    }));
+
+    res.json({ ok: true, analisis, diasData, extractedAt: doc.extractedAt });
 
   } catch (e) {
     console.error('/api/analizar-empleado error:', e.message);

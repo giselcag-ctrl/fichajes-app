@@ -816,7 +816,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           </div>
 
           <!-- Tarjetas diferencia horaria global -->
-          <div id="ia-diff-row" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
             <div style="flex:1;min-width:130px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;">
               <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:6px;">Total Fichaje</div>
               <div id="ia-total-fichaje" style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;color:var(--text);">—</div>
@@ -833,17 +833,38 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           </div>
 
           <!-- Alerts card -->
-          <div id="ia-alertas-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:10px;">⚠️ Alertas (excluye festivos y vacaciones)</div>
             <div id="ia-alertas-list"></div>
           </div>
 
-          <!-- Weeks table -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;overflow-x:auto;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:12px;">Detalle semanal</div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px;">
-              <thead>
-                <tr style="border-bottom:1px solid var(--border);">
+          <!-- Vista selector + tabla detalle -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);">Detalle</div>
+              <div style="display:flex;gap:4px;">
+                <button id="ia-btn-diario"  onclick="iaSetVista('diario')"  style="padding:5px 14px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--accent);color:#0d1b2e;font-weight:600;cursor:pointer;">Diario</button>
+                <button id="ia-btn-semanal" onclick="iaSetVista('semanal')" style="padding:5px 14px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;">Semanal</button>
+                <button id="ia-btn-mensual" onclick="iaSetVista('mensual')" style="padding:5px 14px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;">Mensual</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <!-- Vista DIARIO -->
+              <table id="ia-tbl-diario" style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px;">
+                <thead><tr style="border-bottom:1px solid var(--border);">
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Fecha</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Día</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Fichaje</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Tareas</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Diferencia</th>
+                  <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:400;">Estado</th>
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Eventos / Justificación</th>
+                </tr></thead>
+                <tbody id="ia-tbody-diario"></tbody>
+              </table>
+              <!-- Vista SEMANAL -->
+              <table id="ia-tbl-semanal" style="display:none;width:100%;border-collapse:collapse;font-size:12px;min-width:640px;">
+                <thead><tr style="border-bottom:1px solid var(--border);">
                   <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Semana</th>
                   <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Etiqueta</th>
                   <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Fichaje</th>
@@ -851,10 +872,23 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                   <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Diferencia</th>
                   <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:400;">Cumple</th>
                   <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Días Problema</th>
-                </tr>
-              </thead>
-              <tbody id="ia-weeks-tbody"></tbody>
-            </table>
+                </tr></thead>
+                <tbody id="ia-weeks-tbody"></tbody>
+              </table>
+              <!-- Vista MENSUAL -->
+              <table id="ia-tbl-mensual" style="display:none;width:100%;border-collapse:collapse;font-size:12px;min-width:560px;">
+                <thead><tr style="border-bottom:1px solid var(--border);">
+                  <th style="text-align:left;padding:6px 8px;color:var(--text3);font-weight:400;">Mes</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Días Lab.</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Justificados</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Fichaje</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Tareas</th>
+                  <th style="text-align:right;padding:6px 8px;color:var(--text3);font-weight:400;white-space:nowrap;">Diferencia</th>
+                  <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:400;">Cumplimiento</th>
+                </tr></thead>
+                <tbody id="ia-tbody-mensual"></tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Recommendation card -->
@@ -2500,6 +2534,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm();});
 restoreSession();
 
 // ── Análisis IA ─────────────────────────────────────────────────────────────
+let _iaDiasData = [];   // datos diarios pre-computados
+let _iaVista    = 'diario'; // vista activa
+
 function fmtH(h){
   if(h===null||h===undefined)return'—';
   const abs=Math.abs(h);
@@ -2507,6 +2544,107 @@ function fmtH(h){
   const mm=Math.round((abs-hh)*60);
   return (h<0?'-':'')+(hh>0?hh+'h ':'')+( mm>0?mm+'min':'')+(hh===0&&mm===0?'0h':'');
 }
+
+const MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function fmtMes(yyyymm){ const p=yyyymm.split('-'); return MESES_ES[parseInt(p[1])-1]+' '+p[0]; }
+
+function diaEstadoCell(d){
+  if(d.esFinSemana) return '<span style="color:var(--text3);font-size:11px;">— fin semana</span>';
+  if(d.justificado) return '<span title="'+( d.justDesc||'')+'">📅</span>';
+  if(d.sinDatos)    return '<span title="Sin datos (posible festivo)">❓</span>';
+  if(d.fichaje_h===null) return '<span style="color:var(--text3);">—</span>';
+  return d.fichaje_h>=7.5 ? '✅' : '❌';
+}
+
+function diffCell(v){
+  if(v===null||v===undefined) return '<span style="color:var(--text3);">—</span>';
+  const c=v>1?'#fbbf24':v<-0.5?'#f87171':'#81c784';
+  return `<span style="color:${c};font-family:'DM Mono',monospace;">${fmtH(v)}</span>`;
+}
+
+function iaSetVista(v){
+  _iaVista=v;
+  ['diario','semanal','mensual'].forEach(n=>{
+    document.getElementById('ia-tbl-'+n).style.display   = n===v ? '' : 'none';
+    const btn=document.getElementById('ia-btn-'+n);
+    btn.style.background = n===v ? 'var(--accent)' : 'var(--bg3)';
+    btn.style.color      = n===v ? '#0d1b2e'       : 'var(--text2)';
+    btn.style.fontWeight = n===v ? '600'            : '400';
+  });
+  if(v==='diario')  renderDiario();
+  if(v==='semanal') {} // ya renderizado
+  if(v==='mensual') renderMensual();
+}
+
+function renderDiario(){
+  const tbody=document.getElementById('ia-tbody-diario');
+  tbody.innerHTML='';
+  let prevMes='';
+  _iaDiasData.forEach(sem=>{
+    (sem.dias||[]).forEach(d=>{
+      if(d.esFinSemana) return; // ocultar fin de semana en vista diaria
+      // Separador de mes
+      const mes=(d.fecha||'').substring(0,7);
+      if(mes && mes!==prevMes){
+        prevMes=mes;
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td colspan="7" style="padding:10px 8px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);border-bottom:1px solid var(--border);">${fmtMes(mes)}</td>`;
+        tbody.appendChild(tr);
+      }
+      const tr=document.createElement('tr');
+      tr.style.borderBottom='1px solid rgba(255,255,255,0.04)';
+      const evTexto=(d.eventos||[]).map(e=>e.texto).join(' · ').substring(0,80) || (d.justDesc||'');
+      tr.innerHTML=
+        `<td style="padding:5px 8px;color:var(--text);white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px;">${d.fecha||'—'}</td>`+
+        `<td style="padding:5px 8px;color:var(--text2);text-transform:capitalize;">${d.dia||'—'}</td>`+
+        `<td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtH(d.fichaje_h)}</td>`+
+        `<td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(d.tareas_h)}</td>`+
+        `<td style="padding:5px 8px;text-align:right;">${diffCell(d.diferencia_h)}</td>`+
+        `<td style="padding:5px 8px;text-align:center;">${diaEstadoCell(d)}</td>`+
+        `<td style="padding:5px 8px;color:var(--text3);font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${evTexto}">${evTexto||'—'}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  if(!tbody.children.length) tbody.innerHTML='<tr><td colspan="7" style="padding:14px;color:var(--text3);text-align:center;">Sin datos diarios</td></tr>';
+}
+
+function renderMensual(){
+  const tbody=document.getElementById('ia-tbody-mensual');
+  tbody.innerHTML='';
+  const meses={};
+  _iaDiasData.forEach(sem=>{
+    (sem.dias||[]).forEach(d=>{
+      if(d.esFinSemana) return;
+      const mes=(d.fecha||'').substring(0,7); if(!mes) return;
+      if(!meses[mes]) meses[mes]={dias:0,justif:0,sinD:0,fich:0,tar:0,cumple:0};
+      const m=meses[mes];
+      m.dias++;
+      if(d.justificado||d.sinDatos){ m.justif++; return; }
+      if(d.fichaje_h!==null) m.fich+=d.fichaje_h;
+      if(d.tareas_h!==null)  m.tar +=d.tareas_h;
+      if(d.fichaje_h>=7.5)   m.cumple++;
+    });
+  });
+  Object.keys(meses).sort().forEach(mes=>{
+    const m=meses[mes];
+    const activos=m.dias-m.justif;
+    const pct=activos>0?Math.round(m.cumple/activos*100):100;
+    const pc=pct>=80?'#81c784':pct>=60?'#fbbf24':'#f87171';
+    const tr=document.createElement('tr');
+    tr.style.borderBottom='1px solid var(--border)';
+    tr.innerHTML=
+      `<td style="padding:7px 8px;color:var(--text);font-weight:500;">${fmtMes(mes)}</td>`+
+      `<td style="padding:7px 8px;text-align:right;color:var(--text2);">${m.dias}</td>`+
+      `<td style="padding:7px 8px;text-align:right;color:var(--text3);">${m.justif}</td>`+
+      `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtH(Math.round(m.fich*100)/100)}</td>`+
+      `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--text2);">${m.tar>0?fmtH(Math.round(m.tar*100)/100):'—'}</td>`+
+      `<td style="padding:7px 8px;text-align:right;">${diffCell(m.tar>0?Math.round((m.fich-m.tar)*100)/100:null)}</td>`+
+      `<td style="padding:7px 8px;text-align:center;font-family:'DM Mono',monospace;font-weight:600;color:${pc};">${pct}%</td>`;
+    tbody.appendChild(tr);
+  });
+  if(!tbody.children.length) tbody.innerHTML='<tr><td colspan="7" style="padding:14px;color:var(--text3);text-align:center;">Sin datos</td></tr>';
+}
+
 async function analizarEmpleado(){
   const emp=(document.getElementById('ia-emp-input').value||'').trim().toUpperCase();
   if(!emp){showToast('Introduce un código de empleado');return;}
@@ -2517,6 +2655,8 @@ async function analizarEmpleado(){
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error '+r.status);}
     const d=await r.json();
     const a=d.analisis||d;
+    _iaDiasData = d.diasData || [];
+    _iaVista    = 'diario';
 
     // ── Resumen + cumplimiento ──────────────────────────────────────────
     document.getElementById('ia-resumen-text').textContent=a.resumenGeneral||'—';
@@ -2596,6 +2736,9 @@ async function analizarEmpleado(){
 
     // ── Recomendación ────────────────────────────────────────────────────
     document.getElementById('ia-recomendacion').textContent=a.recomendacion||'—';
+
+    // ── Render inicial: vista Diario ─────────────────────────────────────
+    iaSetVista('diario');
     document.getElementById('ia-results').style.display='block';
   }catch(err){
     showToast('Error: '+err.message);

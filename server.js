@@ -457,12 +457,22 @@ app.get('/api/analizar-empleado', async (req, res) => {
         // sinDatos: null/0h TPC + no events en día laborable → posible festivo no capturado
         const fichajeNull = fichaje_h === null || fichaje_h === 0;
         const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
-        const eventos     = (d.events || []).map(ev => ({
+
+        // ── Horas de tareas/actividades: badge negro (d.previsto) ────────
+        // El badge negro del calendario = suma de horas en tareas ese día.
+        // Es más fiable que intentar parsear duraciones del texto de eventos.
+        const tareas_h_badge = parseTpcHours(d.previsto);
+        // Fallback: suma de duraciones parseadas de los eventos individuales
+        const eventos = (d.events || []).map(ev => ({
           texto: ev.substring(0, 80),
           horas: parseEventHours(ev) || null
         }));
-        const tareas_h_raw = eventos.reduce((acc, ev) => acc + (ev.horas || 0), 0);
-        const tareas_h     = tareas_h_raw > 0 ? Math.round(tareas_h_raw * 100) / 100 : null;
+        const tareas_h_eventos = eventos.reduce((acc, ev) => acc + (ev.horas || 0), 0);
+        // Usar badge negro si existe; si no, intentar con eventos
+        const tareas_h_raw = tareas_h_badge !== null ? tareas_h_badge
+                           : tareas_h_eventos > 0    ? tareas_h_eventos
+                           : null;
+        const tareas_h = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
         const diferencia_h = (fichaje_h !== null && tareas_h !== null)
           ? Math.round((fichaje_h - tareas_h) * 100) / 100
           : null;
@@ -516,7 +526,7 @@ REGLAS OBLIGATORIAS:
 3. esFinSemana=true → ignorar completamente.
 4. sinDatos=true → el día tiene 0h de fichaje y ningún evento registrado. Esto ocurre en festivos y vacaciones cuya información no fue capturada en la extracción. NO los cuentes como incumplimiento ni como alerta. Pueden aparecer como "días sin datos" en la nota de la semana pero nunca como error del empleado.
 5. Un día INCUMPLE solo si: justificado=false AND sinDatos=false AND esFinSemana=false AND fichaje_h < 7.5 AND fichaje_h !== null.
-6. DIFERENCIA HORARIA: si diferencia_h > 1 → hay tiempo fichado no cubierto por tareas (posible desplazamiento/admin sin registrar). Si diferencia_h < -0.5 → hay tareas fuera del fichaje.
+6. DIFERENCIA HORARIA: fichaje_h = horas del badge verde (tiempo total fichado). tareas_h = horas del badge negro (suma de horas en actividades/tareas del día). diferencia_h = fichaje_h − tareas_h. Si diferencia_h > 1h: hay tiempo fichado no cubierto por tareas registradas (posible desplazamiento, admin, tiempo no registrado). Si diferencia_h < -0.5h: hay tareas con más horas que el fichaje (tareas fuera del horario fichado).
 
 RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
 {

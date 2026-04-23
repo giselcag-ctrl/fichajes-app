@@ -450,14 +450,13 @@ app.get('/api/analizar-empleado', async (req, res) => {
 
     const resumenSemanas = semanas.map(s => {
       const dias = (s.days || []).map(d => {
-        const isWeekend  = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
+        const isWeekend   = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
         const justificado = isJustifiedDay(d.events);
-        // sinDatos: null TPC + no events on a weekday → no sabemos si es festivo/vacaciones
-        // Lo marcamos para que Claude NO lo cuente como incumplimiento (puede ser festivo no capturado)
-        const fichajeNull = fichaje_h === null || fichaje_h === 0;
-        const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
         const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
         const fichaje_h   = parseTpcHours(d.tpc);
+        // sinDatos: null/0h TPC + no events en día laborable → posible festivo no capturado
+        const fichajeNull = fichaje_h === null || fichaje_h === 0;
+        const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
         const eventos     = (d.events || []).map(ev => ({
           texto: ev.substring(0, 80),
           horas: parseEventHours(ev) || null

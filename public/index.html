@@ -2488,9 +2488,10 @@ async function analizarEmpleado(){
     const r=await fetch('/api/analizar-empleado?empleado='+encodeURIComponent(emp));
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error '+r.status);}
     const d=await r.json();
+    const a=d.analisis||d; // servidor devuelve { ok, analisis:{...} }
     // Summary
-    document.getElementById('ia-resumen-text').textContent=d.resumenGeneral||'—';
-    const pct=typeof d.cumplimientoGlobal==='number'?d.cumplimientoGlobal:parseFloat(d.cumplimientoGlobal)||0;
+    document.getElementById('ia-resumen-text').textContent=a.resumenGeneral||'—';
+    const pct=typeof a.cumplimientoGlobal==='number'?a.cumplimientoGlobal:parseFloat(a.cumplimientoGlobal)||0;
     const badge=document.getElementById('ia-cumplimiento-badge');
     badge.textContent=pct+'%';
     badge.style.background=pct>=80?'rgba(46,125,50,0.18)':pct>=60?'rgba(245,158,11,0.18)':'rgba(185,28,28,0.18)';
@@ -2499,7 +2500,7 @@ async function analizarEmpleado(){
     // Alerts
     const alertasList=document.getElementById('ia-alertas-list');
     alertasList.innerHTML='';
-    const alertas=Array.isArray(d.alertas)?d.alertas:[];
+    const alertas=Array.isArray(a.alertas)?a.alertas:[];
     if(alertas.length===0){
       alertasList.innerHTML='<span style="font-size:12px;color:var(--text3);">Sin alertas</span>';
     }else{
@@ -2513,7 +2514,7 @@ async function analizarEmpleado(){
     // Weeks table
     const tbody=document.getElementById('ia-weeks-tbody');
     tbody.innerHTML='';
-    const weeks=Array.isArray(d.semanas)?d.semanas:[];
+    const weeks=Array.isArray(a.semanas)?a.semanas:[];
     weeks.forEach(w=>{
       const tr=document.createElement('tr');
       tr.style.borderBottom='1px solid var(--border)';
@@ -2530,7 +2531,7 @@ async function analizarEmpleado(){
       tbody.innerHTML='<tr><td colspan="5" style="padding:14px 10px;color:var(--text3);text-align:center;font-size:12px;">Sin datos de semanas</td></tr>';
     }
     // Recommendation
-    document.getElementById('ia-recomendacion').textContent=d.recomendacion||'—';
+    document.getElementById('ia-recomendacion').textContent=a.recomendacion||'—';
     document.getElementById('ia-results').style.display='block';
   }catch(err){
     showToast('Error: '+err.message);

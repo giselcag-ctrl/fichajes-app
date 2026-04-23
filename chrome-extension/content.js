@@ -24,19 +24,31 @@
           // Esperar hasta que Vue haya renderizado el contenido de la semana
           // Señal fiable: .badges-totales existe Y los labels tienen texto
           (async () => {
-            const MAX_WAIT = 8000;
+            const MAX_WAIT = 10000;
             const INTERVAL = 300;
             const start = Date.now();
             while (Date.now() - start < MAX_WAIT) {
               const labels   = document.querySelectorAll('.v-calendar-daily_head-day-label');
               const hasBadge = !!document.querySelector('.badges-totales');
+
               if (labels.length >= 5 && hasBadge) {
-                // Condición principal lista. Dar hasta 1s extra para barraTareas
-                // pero NO bloquear si no aparece.
+                const elapsed = Date.now() - start;
+
+                // Esperar a que el week label (barraTareas) esté listo
                 const barra        = document.querySelector('.barraTareas');
                 const hasWeekLabel = barra && /S\s+\d+/i.test(barra.textContent || '');
-                if (hasWeekLabel || (Date.now() - start) > 3000) break;
+
+                // Esperar a que al menos un día tenga su TPC renderizado (Xh o XhYm)
+                // Esto evita extraer cuando los badges aún no han cargado
+                const hasHours = [...labels].some(el => /\d+h/i.test(el.textContent || ''));
+
+                // Listo cuando: week label OK + (hay horas YA o pasaron 5s → semana sin fichajes)
+                if (hasWeekLabel && (hasHours || elapsed > 5000)) break;
+
+                // Seguridad: nunca esperar más de 9s
+                if (elapsed > 9000) break;
               }
+
               await new Promise(r => setTimeout(r, INTERVAL));
             }
             const result = extractCalendarDOM();

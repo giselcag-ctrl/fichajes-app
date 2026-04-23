@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const { MongoClient } = require('mongodb');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -400,6 +401,103 @@ app.get('/api/calendario-data/:empleado', async (req, res) => {
     if (!doc) return res.status(404).json({ ok: false, error: 'Empleado no encontrado' });
     res.json({ ok: true, empleado: doc.empleado, semanas: doc.semanas, extractedAt: doc.extractedAt });
   } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── Análisis IA – cumplimiento horario del empleado ──────────────────────
+// GET /api/analizar-empleado?empleado=SGG
+app.get('/api/analizar-empleado', async (req, res) => {
+  try {
+    const empleado = (req.query.empleado || '').toUpperCase().trim();
+    if (!empleado) return res.status(400).json({ ok: false, error: 'Falta parámetro empleado' });
+    if (!db)       return res.status(503).json({ ok: false, error: 'DB no disponible' });
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey)   return res.status(503).json({ ok: false, error: 'ANTHROPIC_API_KEY no configurada' });
+
+    // ── Obtener datos del calendario desde MongoDB ─────────────────────────
+    const doc = await db.collection('calendario_datos')
+      .findOne({ empleado });
+    if (!doc) return res.status(404).json({ ok: false, error: `No hay datos de ${empleado}` });
+
+    const semanas = doc.semanas || [];
+
+    // ── Construir resumen compacto para el prompt ──────────────────────────
+    const resumenSemanas = semanas.map(s => {
+      const diasLaboral = (s.days || []).filter(d =>
+        d.weekday && !['sáb','sab','dom'].includes(d.weekday.toLowerCase())
+      );
+      const diasConHoras = diasLaboral.map(d => {
+        const horasMatch = d.tpc ? d.tpc.match(/(\d+)h\s*(\d*)/) : null;
+        const horas = horasMatch
+          ? parseInt(horasMatch[1]) + (horasMatch[2] ? parseInt(horasMatch[2]) / 60 : 0)
+          : null;
+        const tipoEvento = (d.events || []).length > 0
+          ? d.events[0].substring(0, 60)
+          : '';
+        return { fecha: d.date, dia: d.weekday, tpc: d.tpc, horas, evento: tipoEvento };
+      });
+      return {
+        semana: s.week,
+        etiqueta: s.weekLabel,
+        tpcTotal: s.tpcTotal,
+        previsto: s.previsto,
+        km: s.kmTotal,
+        dias: diasConHoras
+      };
+    });
+
+    // ── Prompt para Claude ─────────────────────────────────────────────────
+    const prompt = `Eres un asistente de RRHH de la empresa SIMECAL analizando el cumplimiento horario del empleado ${empleado}.
+
+DATOS DEL CALENDARIO (enero 2026 – hoy):
+${JSON.stringify(resumenSemanas, null, 1)}
+
+INSTRUCCIONES:
+- La jornada laboral es de 8 horas diarias de lunes a viernes (40h/semana).
+- Días con evento "VACACIONES" o "FESTIVO" están justificados y NO cuentan como incumplimiento.
+- Analiza semana por semana si se cumplen las horas.
+- Identifica días con menos de 8h trabajadas (sin justificación de vacaciones/festivo).
+- Detecta patrones: ¿hay días de la semana que sistemáticamente tienen menos horas? ¿semanas problemáticas?
+
+RESPONDE en JSON con este formato exacto:
+{
+  "empleado": "${empleado}",
+  "resumenGeneral": "texto breve 2-3 frases",
+  "cumplimientoGlobal": número entre 0 y 100 (porcentaje de días que cumplieron 8h),
+  "alertas": ["lista de alertas concretas"],
+  "semanas": [
+    {
+      "semana": "2026-01-05",
+      "etiqueta": "S 2 - ene 2026",
+      "tpcTotal": "40h 0min",
+      "cumple": true o false,
+      "diasProblema": ["lun 2026-01-05: solo 6h", ...],
+      "nota": "texto breve opcional"
+    }
+  ],
+  "recomendacion": "texto con recomendación final"
+}`;
+
+    // ── Llamar a Claude API ────────────────────────────────────────────────
+    const anthropic = new Anthropic({ apiKey });
+    const message = await anthropic.messages.create({
+      model:      'claude-opus-4-5',
+      max_tokens: 4096,
+      messages:   [{ role: 'user', content: prompt }]
+    });
+
+    const raw = message.content[0].text;
+    // Extraer JSON de la respuesta
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return res.status(500).json({ ok: false, error: 'Respuesta inválida de Claude', raw });
+
+    const analisis = JSON.parse(jsonMatch[0]);
+    res.json({ ok: true, analisis, extractedAt: doc.extractedAt });
+
+  } catch (e) {
+    console.error('/api/analizar-empleado error:', e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });

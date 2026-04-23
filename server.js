@@ -328,6 +328,73 @@ app.get('/api/db-status', (req, res) => {
   res.json({ ok: !!db, connected: !!db });
 });
 
+// ─── Calendario – recibir datos de la extensión Chrome ────────────────────
+// POST /api/calendario-data  { data: { SGG: [...], CGS: [...] }, extractedAt }
+app.post('/api/calendario-data', async (req, res) => {
+  try {
+    const { data, extractedAt } = req.body;
+    if (!data || typeof data !== 'object')
+      return res.status(400).json({ ok: false, error: 'Payload inválido: falta data' });
+
+    const empleados = Object.keys(data);
+    if (empleados.length === 0)
+      return res.status(400).json({ ok: false, error: 'No hay empleados en data' });
+
+    const ts = extractedAt || new Date().toISOString();
+
+    if (db) {
+      const col = db.collection('calendario_datos');
+      // Upsert por empleado: reemplaza el documento anterior del mismo empleado
+      const ops = empleados.map(emp => ({
+        updateOne: {
+          filter: { empleado: emp },
+          update: {
+            $set: {
+              empleado:    emp,
+              semanas:     data[emp],
+              extractedAt: ts,
+              updatedAt:   new Date()
+            }
+          },
+          upsert: true
+        }
+      }));
+      await col.bulkWrite(ops);
+    }
+
+    res.json({ ok: true, empleados, total: empleados.length, extractedAt: ts });
+  } catch (e) {
+    console.error('/api/calendario-data error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GET /api/calendario-data           → lista todos los empleados guardados
+// GET /api/calendario-data/:empleado → datos de un empleado concreto
+app.get('/api/calendario-data', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const docs = await db.collection('calendario_datos')
+      .find({}, { projection: { empleado: 1, extractedAt: 1, updatedAt: 1, _id: 0 } })
+      .toArray();
+    res.json({ ok: true, empleados: docs });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/calendario-data/:empleado', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const doc = await db.collection('calendario_datos')
+      .findOne({ empleado: req.params.empleado.toUpperCase() });
+    if (!doc) return res.status(404).json({ ok: false, error: 'Empleado no encontrado' });
+    res.json({ ok: true, empleado: doc.empleado, semanas: doc.semanas, extractedAt: doc.extractedAt });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ─── Iniciar servidor ──────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✓ Servidor corriendo en http://localhost:${PORT}`);

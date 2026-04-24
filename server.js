@@ -788,7 +788,7 @@ function computeCalResumen(doc) {
     // Fichaje total de la semana (todos los días, para información)
     const semFichajeTotal = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
                                 .reduce((s, d) => s + d.fichaje_h, 0);
-    // Diferencia y cumplimiento: solo días laborables activos
+    // Tareas y cumplimiento: solo días laborables activos
     const diasActivos = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos);
     const semFichajeActivo = diasActivos.filter(d => d.fichaje_h !== null)
                                         .reduce((s, d) => s + d.fichaje_h, 0);
@@ -798,15 +798,18 @@ function computeCalResumen(doc) {
     const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
     // Días justificados en la semana
     const semJustif  = dias.filter(d => !d.esFinSemana && d.justificado).length;
+    // Diferencia semanal = SUMA de (fichaje_dia − tareas_dia) solo días con ambos valores
+    const diasConDiff = dias.filter(d => d.diferencia_h !== null);
+    const semDiferencia = diasConDiff.reduce((s, d) => s + d.diferencia_h, 0);
 
     return {
       semana: s.week, etiqueta: s.weekLabel || '',
       tpcTotal: s.tpcTotal, previsto: s.previsto,
       kmTotal: s.kmTotal,
-      semFichaje_h:    Math.round(semFichajeTotal * 100) / 100,   // total real semana
-      semFichajeActivo_h: Math.round(semFichajeActivo * 100) / 100, // solo días activos
+      semFichaje_h:       Math.round(semFichajeTotal * 100) / 100,     // total real semana
+      semFichajeActivo_h: Math.round(semFichajeActivo * 100) / 100,    // solo días activos
       semTareas_h:        semTareas > 0 ? Math.round(semTareas * 100) / 100 : null,
-      semDiferencia_h:    semTareas > 0 ? Math.round((semFichajeActivo - semTareas) * 100) / 100 : null,
+      semDiferencia_h:    diasConDiff.length > 0 ? Math.round(semDiferencia * 100) / 100 : null,
       cumple: semCumple,
       semJustif,
       dias
@@ -815,8 +818,10 @@ function computeCalResumen(doc) {
 
   totalFichaje_h = Math.round(totalFichaje_h * 100) / 100;
   totalTareas_h  = Math.round(totalTareas_h  * 100) / 100;
-  const totalDiferencia_h = totalTareas_h > 0
-    ? Math.round((totalFichaje_h - totalTareas_h) * 100) / 100 : null;
+  // Diferencia total = SUMA de diferencia_h por día (fichaje_dia − tareas_dia por cada día válido)
+  const _allDiasConDiff = semanasData.flatMap(s => s.dias).filter(d => d.diferencia_h !== null);
+  const totalDiferencia_h = _allDiasConDiff.length > 0
+    ? Math.round(_allDiasConDiff.reduce((s, d) => s + d.diferencia_h, 0) * 100) / 100 : null;
   const cumplimientoPct = diasLaborables > 0
     ? Math.round((diasCumplen / diasLaborables) * 100) : null;
 

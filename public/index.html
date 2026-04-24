@@ -3115,7 +3115,8 @@ function calRenderMensual() {
     const mesNom = new Date(+y, +mo-1, 1).toLocaleDateString('es-ES', {month:'long', year:'numeric'});
 
     // Calcular totales del mes (solo días activos)
-    let mFich = 0, mTar = 0, mLab = 0, mOk = 0, mJustif = 0, mSinDatos = 0, mIncumple = 0;
+    let mFich = 0, mTar = 0, mDiffSum = 0, mDiffCount = 0;
+    let mLab = 0, mOk = 0, mJustif = 0, mSinDatos = 0, mIncumple = 0;
     dias.forEach(dia => {
       if (dia.justificado)  { mJustif++; return; }
       if (dia.sinDatos)     { mSinDatos++; return; }
@@ -3124,8 +3125,10 @@ function calRenderMensual() {
       mFich += dia.fichaje_h;
       if (dia.tareas_h !== null) mTar += dia.tareas_h;
       if (dia.fichaje_h >= 7.5) mOk++; else mIncumple++;
+      // Diferencia: SOLO días con ambos valores (fichaje_dia − tareas_dia)
+      if (dia.diferencia_h !== null) { mDiffSum += dia.diferencia_h; mDiffCount++; }
     });
-    const mDiff = mTar > 0 ? Math.round((mFich - mTar) * 100) / 100 : null;
+    const mDiff = mDiffCount > 0 ? Math.round(mDiffSum * 100) / 100 : null;
     const mPct  = mLab > 0 ? Math.round(mOk / mLab * 100) : null;
     const pctColor = mPct === null ? 'var(--text3)' : mPct >= 90 ? '#81c784' : mPct >= 70 ? '#fbbf24' : '#f87171';
 

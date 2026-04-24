@@ -3055,49 +3055,53 @@ function calRenderDetail() {
     badge.style.border = '1px solid ' + (pct === null ? 'var(--border)' : pct >= 90 ? 'rgba(76,175,80,0.25)' : pct >= 70 ? 'rgba(245,166,35,0.25)' : 'rgba(255,92,92,0.25)');
   }
 
-  // Stat cards
+  // Stat cards — usa fmtH igual que Análisis IA
   const stats = document.getElementById('cal-det-stats');
   if (stats) {
     const diffH = d.totalDiferencia_h;
+    const diffColor = diffH === null ? 'var(--text3)' : Math.abs(diffH)<0.5 ? '#81c784' : diffH>0 ? '#fbbf24' : '#f87171';
+    const diffSub   = diffH === null ? '' : diffH > 0.5 ? 'más fichaje que tareas' : diffH < -0.5 ? 'más tareas que fichaje' : 'equilibrado';
     stats.innerHTML = [
-      { label:'Horas fichadas', val: calFmtH(d.totalFichaje_h), color:'var(--text)' },
-      { label:'Horas tareas', val: d.totalTareas_h ? calFmtH(d.totalTareas_h) : '—', color:'var(--text)' },
-      { label:'Diferencia (fich−tar)', val: diffH !== null ? (diffH>=0?'+':'')+calFmtH(diffH) : '—',
-        color: diffH === null ? 'var(--text3)' : Math.abs(diffH)<0.5 ? 'var(--accent)' : diffH>0 ? 'var(--amber)' : 'var(--red)',
-        sub: diffH === null ? '' : diffH > 0.5 ? 'más fichaje que tareas' : diffH < -0.5 ? 'más tareas que fichaje' : 'equilibrado' },
-      { label:'Días OK (≥7.5h)', val: d.diasCumplen + ' / ' + d.diasLaborables, color:'var(--accent)' },
-      { label:'Días incumple', val: String(d.diasIncumple), color: d.diasIncumple>0?'var(--red)':'var(--text3)' },
-      { label:'Días justificados', val: String(d.diasJustif), color:'var(--text2)' },
-      { label:'Semanas extraídas', val: String(d.totalSemanas), color:'var(--text)' },
-    ].map(s => `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;">
+      { label:'Horas fichadas',       val: fmtH(d.totalFichaje_h),                      color:'var(--text)' },
+      { label:'Horas tareas',         val: d.totalTareas_h ? fmtH(d.totalTareas_h):'—', color:'var(--text)' },
+      { label:'Diferencia (fich−tar)',val: diffH!==null?(diffH>=0?'+':'')+fmtH(diffH):'—', color:diffColor, sub:diffSub },
+      { label:'Días OK (≥7.5h)',      val: d.diasCumplen+' / '+d.diasLaborables,         color:'#81c784' },
+      { label:'Días incumple',        val: String(d.diasIncumple),                       color: d.diasIncumple>0?'#f87171':'var(--text3)' },
+      { label:'Días justificados',    val: String(d.diasJustif),                         color:'var(--text2)' },
+      { label:'Semanas extraídas',    val: String(d.totalSemanas),                       color:'var(--text)' },
+    ].map(s=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:5px;">${s.label}</div>
       <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:400;color:${s.color};">${s.val}</div>
-      ${s.sub ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.sub}</div>` : ''}
+      ${s.sub?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.sub}</div>`:''}
     </div>`).join('');
   }
 
-  // Vista semanal
+  // Vista semanal — usa diffCell() y fmtH() igual que Análisis IA
   const tbSem = document.getElementById('cal-tbody-sem');
   if (tbSem) {
-    tbSem.innerHTML = (d.semanasData || []).map(s => {
-      const fich = calFmtH(s.semFichaje_h);
-      const tar  = s.semTareas_h !== null ? calFmtH(s.semTareas_h) : '<span style="color:var(--text3)">—</span>';
-      const diff = s.semDiferencia_h !== null ? `<span style="${calDiffStyle(s.semDiferencia_h)};font-family:'DM Mono',monospace">${s.semDiferencia_h>=0?'+':''}${calFmtH(s.semDiferencia_h)}</span>` : '<span style="color:var(--text3)">—</span>';
-      const estado = s.cumple === null ? '<span style="color:var(--text3);font-size:11px;">—</span>'
-        : s.cumple ? '<span class="badge badge-ok" style="font-size:10px;">OK</span>'
-        : '<span class="badge badge-bad" style="font-size:10px;">INCUMPLE</span>';
-      return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);">${s.semana||'—'}</td>
-        <td style="font-size:12px;">${s.etiqueta||'—'}</td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;">${fich}</td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;">${tar}</td>
-        <td style="text-align:right;">${diff}</td>
-        <td>${estado}</td>
-      </tr>`;
-    }).join('');
+    const rows = [];
+    (d.semanasData || []).forEach(s => {
+      const fich  = s.semFichaje_h != null ? fmtH(s.semFichaje_h) : (s.tpcTotal||'—');
+      const tar   = s.semTareas_h  != null ? `<span style="font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(s.semTareas_h)}</span>` : '<span style="color:var(--text3)">—</span>';
+      const diff  = diffCell(s.semDiferencia_h);
+      const cumple = s.cumple;
+      const estado = cumple === null ? '<span style="color:var(--text3);font-size:11px;">—</span>'
+        : cumple
+          ? '<span style="display:inline-block;background:rgba(46,125,50,0.15);border:1px solid rgba(46,125,50,0.3);color:#81c784;border-radius:4px;padding:1px 7px;font-size:10px;">✓ OK</span>'
+          : '<span style="display:inline-block;background:rgba(185,28,28,0.15);border:1px solid rgba(185,28,28,0.3);color:#f87171;border-radius:4px;padding:1px 7px;font-size:10px;">INCUMPLE</span>';
+      rows.push(`<tr>
+        <td style="padding:7px 8px;color:var(--text3);white-space:nowrap;font-size:11px;font-family:'DM Mono',monospace;">${s.semana||'—'}</td>
+        <td style="padding:7px 8px;color:var(--text2);white-space:nowrap;">${s.etiqueta||'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;white-space:nowrap;">${fich}</td>
+        <td style="padding:7px 8px;text-align:right;white-space:nowrap;">${tar}</td>
+        <td style="padding:7px 8px;text-align:right;white-space:nowrap;">${diff}</td>
+        <td style="padding:7px 8px;text-align:center;">${estado}</td>
+      </tr>`);
+    });
+    tbSem.innerHTML = rows.join('');
   }
 
-  // Vista diaria
+  // Vista diaria — usa diaEstadoCell() y diffCell() y fmtH() igual que Análisis IA
   const tbDia = document.getElementById('cal-tbody-dia');
   if (tbDia) {
     const rows = [];
@@ -3106,42 +3110,23 @@ function calRenderDetail() {
       (s.dias || []).forEach(dia => {
         if (dia.esFinSemana) return;
         // Separador de mes
-        const mes = dia.fecha ? dia.fecha.substring(0,7) : '';
+        const mes = (dia.fecha||'').substring(0,7);
         if (mes && mes !== lastMes) {
           lastMes = mes;
-          const [y,m] = mes.split('-');
-          const mesNom = new Date(+y,+m-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+          const [y,mo] = mes.split('-');
+          const mesNom = new Date(+y,+mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
           rows.push(`<tr><td colspan="7" style="background:var(--bg3);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:8px 16px;font-weight:500;">${mesNom}</td></tr>`);
         }
-        // Estado del día
-        let estadoCell, rowStyle = '';
-        if (dia.justificado) {
-          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);font-weight:600;">JUSTIF.</span>`;
-        } else if (dia.sinDatos) {
-          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);font-weight:600;">SIN DATOS</span>`;
-        } else if (dia.fichaje_h === null) {
-          estadoCell = `<span style="color:var(--text3);font-size:11px;">—</span>`;
-        } else if (dia.fichaje_h >= 7.5) {
-          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);font-weight:600;">✓ OK</span>`;
-        } else {
-          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,0.2);font-weight:600;">INCUMPLE</span>`;
-          rowStyle = 'background:rgba(255,92,92,0.03)';
-        }
-
-        const fich = dia.fichaje_h !== null ? `<span style="font-family:'DM Mono',monospace">${calFmtH(dia.fichaje_h)}</span>` : '<span style="color:var(--text3)">—</span>';
-        const tar  = dia.tareas_h  !== null ? `<span style="font-family:'DM Mono',monospace">${calFmtH(dia.tareas_h)}</span>` : '<span style="color:var(--text3)">—</span>';
-        const diff = dia.diferencia_h !== null
-          ? `<span style="font-family:'DM Mono',monospace;font-size:12px;${calDiffStyle(dia.diferencia_h)}">${dia.diferencia_h>=0?'+':''}${calFmtH(dia.diferencia_h)}</span>`
-          : '<span style="color:var(--text3)">—</span>';
-        const evs = (dia.eventos||[]).filter(Boolean).slice(0,3).join(', ') || (dia.justDesc ? dia.justDesc : '');
-        rows.push(`<tr style="${rowStyle}">
-          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);">${dia.fecha||'—'}</td>
-          <td style="font-size:12px;text-transform:capitalize;">${dia.dia||'—'}</td>
-          <td style="text-align:right;">${fich}</td>
-          <td style="text-align:right;">${tar}</td>
-          <td style="text-align:right;">${diff}</td>
-          <td>${estadoCell}</td>
-          <td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(dia.eventos||[]).join(', ')}">${evs}</td>
+        const rowBg = (!dia.justificado && !dia.sinDatos && dia.fichaje_h !== null && dia.fichaje_h < 7.5) ? 'background:rgba(255,92,92,0.03)' : '';
+        const evTexto = (dia.eventos||[]).filter(Boolean).slice(0,3).join(' · ') || (dia.justDesc||'');
+        rows.push(`<tr style="${rowBg}">
+          <td style="padding:5px 8px;color:var(--text3);font-size:12px;font-family:'DM Mono',monospace;">${dia.fecha||'—'}</td>
+          <td style="padding:5px 8px;color:var(--text2);text-transform:capitalize;">${dia.dia||'—'}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtH(dia.fichaje_h)}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(dia.tareas_h)}</td>
+          <td style="padding:5px 8px;text-align:right;">${diffCell(dia.diferencia_h)}</td>
+          <td style="padding:5px 8px;text-align:center;">${diaEstadoCell(dia)}</td>
+          <td style="padding:5px 8px;color:var(--text3);font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(dia.eventos||[]).join(', ')}">${evTexto||'—'}</td>
         </tr>`);
       });
     });

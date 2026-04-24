@@ -830,6 +830,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <div style="margin-left:auto;display:flex;gap:8px;">
               <button class="btn btn-sm" id="cal-det-btn-sem" onclick="calSetVista('semanal')"
                 style="background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600;">Semanal</button>
+              <button class="btn btn-ghost btn-sm" id="cal-det-btn-mes" onclick="calSetVista('mensual')">Mensual</button>
               <button class="btn btn-ghost btn-sm" id="cal-det-btn-dia" onclick="calSetVista('diario')">Diario</button>
             </div>
           </div>
@@ -855,6 +856,30 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                     <th>Estado</th>
                   </tr></thead>
                   <tbody id="cal-tbody-sem"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista mensual -->
+          <div id="cal-vista-mensual" style="display:none;">
+            <div class="table-container">
+              <div class="table-header">
+                <h3>Vista Mensual · día a día</h3>
+                <button class="btn btn-ghost btn-sm" onclick="calExportCSV()">Exportar CSV</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr>
+                    <th style="min-width:100px">Fecha</th>
+                    <th>Día</th>
+                    <th style="text-align:right;min-width:70px">Fichaje</th>
+                    <th style="text-align:right;min-width:70px">Tareas</th>
+                    <th style="text-align:right;min-width:80px">Diferencia</th>
+                    <th style="text-align:center;min-width:90px">Estado</th>
+                    <th>Eventos</th>
+                  </tr></thead>
+                  <tbody id="cal-tbody-mes"></tbody>
                 </table>
               </div>
             </div>
@@ -3052,16 +3077,106 @@ function calCloseDetail() {
 
 function calSetVista(v) {
   _calVista = v;
-  const btnSem = document.getElementById('cal-det-btn-sem');
-  const btnDia = document.getElementById('cal-det-btn-dia');
-  const vSem   = document.getElementById('cal-vista-semanal');
-  const vDia   = document.getElementById('cal-vista-diaria');
-  const activeStyle = 'background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600;';
-  const ghostStyle  = '';
-  if (btnSem) { btnSem.style.cssText = v==='semanal' ? activeStyle : ''; btnSem.className='btn btn-sm'+(v!=='semanal'?' btn-ghost':''); }
-  if (btnDia) { btnDia.style.cssText = v==='diario'  ? activeStyle : ''; btnDia.className='btn btn-sm'+(v!=='diario'?' btn-ghost':''); }
-  if (vSem) vSem.style.display = v==='semanal' ? 'block' : 'none';
-  if (vDia) vDia.style.display = v==='diario'  ? 'block' : 'none';
+  const vistas = ['semanal','mensual','diario'];
+  const btns   = ['cal-det-btn-sem','cal-det-btn-mes','cal-det-btn-dia'];
+  const divs   = ['cal-vista-semanal','cal-vista-mensual','cal-vista-diaria'];
+  const active = 'background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600;';
+  vistas.forEach((n,i) => {
+    const btn = document.getElementById(btns[i]);
+    const div = document.getElementById(divs[i]);
+    if (btn) { btn.style.cssText = n===v ? active : ''; btn.className='btn btn-sm'+(n!==v?' btn-ghost':''); }
+    if (div) div.style.display = n===v ? 'block' : 'none';
+  });
+  if (v==='mensual') calRenderMensual();
+}
+
+function calRenderMensual() {
+  const d = _calDetalle;
+  const tb = document.getElementById('cal-tbody-mes');
+  if (!d || !tb) return;
+
+  // Agrupa todos los días por YYYY-MM
+  const meses = {};
+  (d.semanasData || []).forEach(s => {
+    (s.dias || []).forEach(dia => {
+      if (dia.esFinSemana) return;
+      const mes = (dia.fecha || '').substring(0, 7);
+      if (!mes) return;
+      if (!meses[mes]) meses[mes] = [];
+      meses[mes].push(dia);
+    });
+  });
+
+  const rows = [];
+  Object.keys(meses).sort().forEach(mes => {
+    const dias = meses[mes];
+    // Encabezado de mes
+    const [y, mo] = mes.split('-');
+    const mesNom = new Date(+y, +mo-1, 1).toLocaleDateString('es-ES', {month:'long', year:'numeric'});
+
+    // Calcular totales del mes (solo días activos)
+    let mFich = 0, mTar = 0, mLab = 0, mOk = 0, mJustif = 0, mSinDatos = 0, mIncumple = 0;
+    dias.forEach(dia => {
+      if (dia.justificado)  { mJustif++; return; }
+      if (dia.sinDatos)     { mSinDatos++; return; }
+      if (dia.fichaje_h === null) return;
+      mLab++;
+      mFich += dia.fichaje_h;
+      if (dia.tareas_h !== null) mTar += dia.tareas_h;
+      if (dia.fichaje_h >= 7.5) mOk++; else mIncumple++;
+    });
+    const mDiff = mTar > 0 ? Math.round((mFich - mTar) * 100) / 100 : null;
+    const mPct  = mLab > 0 ? Math.round(mOk / mLab * 100) : null;
+    const pctColor = mPct === null ? 'var(--text3)' : mPct >= 90 ? '#81c784' : mPct >= 70 ? '#fbbf24' : '#f87171';
+
+    // Fila cabecera del mes
+    rows.push(`<tr>
+      <td colspan="7" style="background:var(--bg2);border-top:2px solid var(--border2);padding:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;">
+          <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text);">${mesNom}</span>
+          <div style="display:flex;gap:16px;font-size:11px;font-family:'DM Mono',monospace;align-items:center;">
+            ${mLab>0?`<span style="color:var(--text3);">Fichaje: <b style="color:var(--text)">${fmtH(Math.round(mFich*100)/100)}</b></span>`:''}
+            ${mTar>0?`<span style="color:var(--text3);">Tareas: <b style="color:var(--text2)">${fmtH(Math.round(mTar*100)/100)}</b></span>`:''}
+            ${mDiff!==null?`<span style="color:var(--text3);">Dif: <b style="${mDiff>1?'color:#fbbf24':mDiff<-0.5?'color:#f87171':'color:#81c784'}">${mDiff>=0?'+':''}${fmtH(mDiff)}</b></span>`:''}
+            ${mJustif>0?`<span style="color:#81c784;">${mJustif} justif.</span>`:''}
+            ${mIncumple>0?`<span style="color:#f87171;">${mIncumple} incumple</span>`:''}
+            ${mPct!==null?`<span style="font-size:13px;font-weight:700;color:${pctColor};">${mPct}%</span>`:''}
+          </div>
+        </div>
+      </td>
+    </tr>`);
+
+    // Filas de cada día
+    dias.forEach(dia => {
+      let rowBg = '';
+      if (dia.justificado)  rowBg = 'background:rgba(76,175,80,0.04)';
+      else if (!dia.sinDatos && dia.fichaje_h !== null && dia.fichaje_h < 7.5) rowBg = 'background:rgba(255,92,92,0.04)';
+
+      const fichCell = dia.fichaje_h !== null
+        ? `<span style="font-family:'DM Mono',monospace;font-weight:500;color:${dia.justificado?'var(--text2)':dia.fichaje_h>=7.5?'#81c784':dia.fichaje_h>0?'#fbbf24':'var(--text3)'};">${fmtH(dia.fichaje_h)}</span>`
+        : '<span style="color:var(--text3)">—</span>';
+      const tarCell = dia.tareas_h !== null
+        ? `<span style="font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(dia.tareas_h)}</span>`
+        : '<span style="color:var(--text3)">—</span>';
+      const evList  = (dia.eventos||[]).filter(Boolean);
+      const evShort = dia.justDesc ? dia.justDesc.substring(0,60) : evList.slice(0,2).join(' · ').substring(0,80);
+      const evCell  = evShort
+        ? `<span style="font-size:11px;color:var(--text2);" title="${evList.join('\n').replace(/"/g,"'")}">${evShort}</span>`
+        : '<span style="color:var(--text3);font-size:11px;">—</span>';
+
+      rows.push(`<tr style="${rowBg}">
+        <td style="padding:5px 8px 5px 20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);">${dia.fecha||'—'}</td>
+        <td style="padding:5px 8px;color:var(--text2);text-transform:capitalize;font-size:12px;">${dia.dia||'—'}</td>
+        <td style="padding:5px 8px;text-align:right;">${fichCell}</td>
+        <td style="padding:5px 8px;text-align:right;">${tarCell}</td>
+        <td style="padding:5px 8px;text-align:right;">${diffCell(dia.diferencia_h)}</td>
+        <td style="padding:5px 8px;text-align:center;">${diaEstadoCell(dia)}</td>
+        <td style="padding:5px 8px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${evCell}</td>
+      </tr>`);
+    });
+  });
+
+  tb.innerHTML = rows.join('') || `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3);">Sin datos mensuales</td></tr>`;
 }
 
 function calRenderDetail() {

@@ -2344,7 +2344,20 @@ function quickSelectResumen(tipo){
   const asc=fechas.sort((a,b)=>{const[da,ma,ya]=a.split('/');const[db,mb,yb]=b.split('/');return new Date(+ya,+ma-1,+da)-new Date(+yb,+mb-1,+db);});
   const desc=[...asc].reverse();
   if(tipo==='ultimo')_resumenFechas=new Set([desc[0]]);
-  else if(tipo==='semana')_resumenFechas=new Set(desc.slice(0,7));
+  else if(tipo==='semana'){
+    // Selecciona la semana Dom–Sáb que contiene el último día con datos
+    const diasConDatos=new Set(Object.keys(S.days||{}));
+    const[dd,mm,yy]=desc[0].split('/');
+    const ref=new Date(+yy,+mm-1,+dd);
+    const dom=new Date(ref);dom.setDate(ref.getDate()-ref.getDay()); // retrocede al domingo
+    const weekSet=new Set();
+    for(let i=0;i<7;i++){
+      const d=new Date(dom);d.setDate(dom.getDate()+i);
+      const f=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      if(diasConDatos.has(f))weekSet.add(f);
+    }
+    _resumenFechas=weekSet.size>0?weekSet:new Set(desc.slice(0,7));
+  }
   else _resumenFechas=new Set(fechas);
   const ref=[..._resumenFechas][0];
   if(ref){const[d,m,y]=ref.split('/');_resumenMes={y:parseInt(y),m:parseInt(m)};}

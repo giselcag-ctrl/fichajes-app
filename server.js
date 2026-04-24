@@ -556,12 +556,13 @@ app.get('/api/analizar-empleado', async (req, res) => {
                            : tareas_h_eventos > 0    ? tareas_h_eventos
                            : null;
         const tareas_h = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
-        const diferencia_h = (fichaje_h !== null && tareas_h !== null)
+        // Diferencia solo en días laborables activos (excluye festivos/vacaciones)
+        const diferencia_h = (!justificado && !sinDatos && fichaje_h !== null && tareas_h !== null)
           ? Math.round((fichaje_h - tareas_h) * 100) / 100
           : null;
 
-        if (!isWeekend && fichaje_h  !== null) totalFichaje_h += fichaje_h;
-        if (!isWeekend && tareas_h   !== null) totalTareas_h  += tareas_h;
+        if (!isWeekend && !justificado && fichaje_h !== null) totalFichaje_h += fichaje_h;
+        if (!isWeekend && !justificado && tareas_h  !== null) totalTareas_h  += tareas_h;
 
         return {
           fecha: d.date, dia: d.weekday, esFinSemana: isWeekend,
@@ -571,10 +572,12 @@ app.get('/api/analizar-empleado', async (req, res) => {
         };
       });
 
-      const semFichaje = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
-                             .reduce((s, d) => s + d.fichaje_h, 0);
-      const semTareas  = dias.filter(d => !d.esFinSemana && d.tareas_h !== null)
-                             .reduce((s, d) => s + d.tareas_h, 0);
+      // Diferencia semanal solo sobre días laborables activos
+      const diasActivos = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos);
+      const semFichaje = diasActivos.filter(d => d.fichaje_h !== null)
+                               .reduce((s, d) => s + d.fichaje_h, 0);
+      const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
+                               .reduce((s, d) => s + d.tareas_h, 0);
 
       return {
         semana: s.week, etiqueta: s.weekLabel,
@@ -735,12 +738,14 @@ function computeCalResumen(doc) {
       const tareas_h_raw    = tareas_h_badge !== null ? tareas_h_badge
                             : tareas_h_evts > 0       ? tareas_h_evts : null;
       const tareas_h        = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
-      const diferencia_h    = (fichaje_h !== null && tareas_h !== null)
+      // Diferencia solo en días laborables reales (no festivos ni vacaciones)
+      const diferencia_h    = (!justificado && !sinDatos && fichaje_h !== null && tareas_h !== null)
         ? Math.round((fichaje_h - tareas_h) * 100) / 100 : null;
 
       if (!isWeekend) {
-        if (fichaje_h  !== null) totalFichaje_h += fichaje_h;
-        if (tareas_h   !== null) totalTareas_h  += tareas_h;
+        // Horas de fichaje/tareas solo de días laborables activos (no festivos)
+        if (!justificado && fichaje_h  !== null) totalFichaje_h += fichaje_h;
+        if (!justificado && tareas_h   !== null) totalTareas_h  += tareas_h;
         if (justificado)         diasJustif++;
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
@@ -759,11 +764,13 @@ function computeCalResumen(doc) {
       };
     });
 
-    const semFichaje = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
+    // Solo días laborables activos (excluye festivos/vacaciones y fines de semana)
+    const diasActivos = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos);
+    const semFichaje = diasActivos.filter(d => d.fichaje_h !== null)
                            .reduce((s, d) => s + d.fichaje_h, 0);
-    const semTareas  = dias.filter(d => !d.esFinSemana && d.tareas_h !== null)
+    const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
                            .reduce((s, d) => s + d.tareas_h, 0);
-    const semLab     = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos && d.fichaje_h !== null);
+    const semLab     = diasActivos.filter(d => d.fichaje_h !== null);
     const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
 
     return {

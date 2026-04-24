@@ -265,6 +265,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 5 4 9a4 4 0 0 0 8 0c0-4-4-7-4-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 13v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 15h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Vacaciones
     </a>
+    <a class="nav-item" onclick="showPage('calendario')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 7h13" stroke="currentColor" stroke-width="1.3"/><path d="M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="4" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.7"/><rect x="7" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.7"/><rect x="10" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.3"/></svg>
+      Resumen Calendario
+    </a>
     <a class="nav-item" onclick="showPage('analisis-ia')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="currentColor" opacity="0.25"/></svg>
       Análisis IA 🤖
@@ -774,6 +778,115 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
+    <!-- ── Resumen Calendario ── -->
+    <div id="page-calendario" class="page">
+      <div class="animate-in" style="max-width:1100px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-size:20px;font-weight:400;margin-bottom:4px;">Resumen de <span style="color:var(--accent)">Calendario</span></h2>
+            <p style="font-size:13px;color:var(--text2);">Datos extraídos directamente del calendario SIMECAL — sin IA</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="calLoadAll()" id="cal-btn-refresh">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Actualizar datos
+          </button>
+        </div>
+
+        <!-- Estado -->
+        <div id="cal-status" style="padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;font-size:13px;color:var(--text2);text-align:center;">
+          Cargando datos del servidor…
+        </div>
+
+        <!-- Tarjetas resumen por empleado -->
+        <div id="cal-cards" style="display:none;">
+          <!-- Filtros -->
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+            <input type="text" id="cal-filter" placeholder="Buscar empleado…" oninput="calFilterCards()"
+              style="height:34px;width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:0 12px;background-image:none;">
+            <select id="cal-sort" onchange="calRenderCards()" style="height:34px;width:180px;font-size:12px;">
+              <option value="emp">Ordenar por empleado</option>
+              <option value="cumpl_asc">Cumplimiento ↑</option>
+              <option value="cumpl_desc">Cumplimiento ↓</option>
+              <option value="horas_desc">+ Horas fichadas</option>
+            </select>
+            <span id="cal-total-badge" style="font-size:12px;color:var(--text3);margin-left:auto;"></span>
+          </div>
+          <div id="cal-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px;"></div>
+        </div>
+
+        <!-- Vista detalle de un empleado -->
+        <div id="cal-detail" style="display:none;">
+          <!-- Cabecera detalle -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="calCloseDetail()">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M10 3L4 8l6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Todos los empleados
+            </button>
+            <div style="font-size:18px;font-weight:500;" id="cal-det-title"></div>
+            <span id="cal-det-badge-cumpl" style="font-size:12px;padding:3px 10px;border-radius:99px;font-weight:600;"></span>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+              <button class="btn btn-sm" id="cal-det-btn-sem" onclick="calSetVista('semanal')"
+                style="background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600;">Semanal</button>
+              <button class="btn btn-ghost btn-sm" id="cal-det-btn-dia" onclick="calSetVista('diario')">Diario</button>
+            </div>
+          </div>
+
+          <!-- Stat cards resumen -->
+          <div id="cal-det-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+          <!-- Vista semanal -->
+          <div id="cal-vista-semanal">
+            <div class="table-container">
+              <div class="table-header">
+                <h3>Vista Semanal</h3>
+                <button class="btn btn-ghost btn-sm" onclick="calExportCSV()">Exportar CSV</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr>
+                    <th>Semana</th>
+                    <th>Etiqueta</th>
+                    <th style="text-align:right">Fichaje</th>
+                    <th style="text-align:right">Tareas</th>
+                    <th style="text-align:right">Diferencia</th>
+                    <th>Estado</th>
+                  </tr></thead>
+                  <tbody id="cal-tbody-sem"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista diaria -->
+          <div id="cal-vista-diaria" style="display:none;">
+            <div class="table-container">
+              <div class="table-header">
+                <h3>Vista Diaria</h3>
+                <button class="btn btn-ghost btn-sm" onclick="calExportCSV()">Exportar CSV</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr>
+                    <th>Fecha</th>
+                    <th>Día</th>
+                    <th style="text-align:right">Fichaje</th>
+                    <th style="text-align:right">Tareas</th>
+                    <th style="text-align:right">Diferencia</th>
+                    <th>Estado</th>
+                    <th>Eventos</th>
+                  </tr></thead>
+                  <tbody id="cal-tbody-dia"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ── Análisis IA ── -->
     <div id="page-analisis-ia" class="page">
       <div class="animate-in" style="max-width:960px;">
@@ -1034,13 +1147,14 @@ function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={resumen:'page-resumen',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial','analisis-ia':'page-analisis-ia'};
-  const tm={resumen:'Resumen',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos','analisis-ia':'Análisis IA'};
+  const pm={resumen:'page-resumen',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial','analisis-ia':'page-analisis-ia',calendario:'page-calendario'};
+  const tm={resumen:'Resumen',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos','analisis-ia':'Análisis IA',calendario:'Resumen Calendario'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['resumen','emails','all-emails','pedidos','vacaciones','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['resumen','emails','all-emails','pedidos','vacaciones','calendario','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name==='historial')loadHistorial();
+  if(name==='calendario')calLoadAll();
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){
@@ -2764,6 +2878,297 @@ async function analizarEmpleado(){
   }finally{
     document.getElementById('ia-loading').style.display='none';
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO: Resumen Calendario (sin IA)
+// ══════════════════════════════════════════════════════════════
+let _calData = [];          // array de resúmenes de todos los empleados
+let _calDetalle = null;     // detalle del empleado seleccionado
+let _calVista = 'semanal';  // 'semanal' | 'diario'
+
+const CAL_APP_URL = (window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
+  ? 'http://localhost:3000' : '';
+
+function calFmtH(h) {
+  if (h === null || h === undefined) return '<span style="color:var(--text3)">—</span>';
+  const neg = h < 0;
+  const abs = Math.abs(h);
+  const hh  = Math.floor(abs);
+  const mm  = Math.round((abs - hh) * 60);
+  const s   = (neg ? '-' : '') + (hh > 0 ? hh + 'h' : '') + (mm > 0 ? (hh > 0 ? ' ' : '') + mm + 'min' : '') || '0h';
+  return s;
+}
+
+function calPctColor(pct) {
+  if (pct === null) return 'var(--text3)';
+  if (pct >= 90)   return 'var(--accent)';
+  if (pct >= 70)   return 'var(--amber)';
+  return 'var(--red)';
+}
+
+function calDiffStyle(diff) {
+  if (diff === null) return 'color:var(--text3)';
+  if (Math.abs(diff) < 0.5) return 'color:var(--accent)';
+  if (diff > 0) return 'color:var(--amber)';  // más fichaje que tareas
+  return 'color:var(--red)';                   // más tareas que fichaje
+}
+
+async function calLoadAll() {
+  const st = document.getElementById('cal-status');
+  const cards = document.getElementById('cal-cards');
+  const detail = document.getElementById('cal-detail');
+  if (st) { st.style.display='block'; st.textContent='Cargando datos del servidor…'; }
+  if (cards) cards.style.display='none';
+  if (detail) detail.style.display='none';
+  try {
+    const r = await fetch(CAL_APP_URL + '/api/resumen-calendario');
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    _calData = d.empleados || [];
+    if (_calData.length === 0) {
+      st.textContent = 'No hay datos extraídos todavía. Usa la extensión Chrome para extraer el calendario y enviarlo aquí.';
+      return;
+    }
+    st.style.display = 'none';
+    cards.style.display = 'block';
+    calRenderCards();
+  } catch (e) {
+    if (st) st.textContent = 'Error al cargar: ' + e.message;
+  }
+}
+
+function calFilterCards() {
+  calRenderCards();
+}
+
+function calRenderCards() {
+  const q = (document.getElementById('cal-filter')?.value || '').toLowerCase();
+  const sort = document.getElementById('cal-sort')?.value || 'emp';
+  let list = _calData.filter(e => !q || e.empleado.toLowerCase().includes(q));
+  list = list.slice().sort((a, b) => {
+    if (sort === 'emp')         return a.empleado.localeCompare(b.empleado);
+    if (sort === 'cumpl_asc')   return (a.cumplimientoPct??-1) - (b.cumplimientoPct??-1);
+    if (sort === 'cumpl_desc')  return (b.cumplimientoPct??-1) - (a.cumplimientoPct??-1);
+    if (sort === 'horas_desc')  return (b.totalFichaje_h||0) - (a.totalFichaje_h||0);
+    return 0;
+  });
+  const grid = document.getElementById('cal-grid');
+  const badge = document.getElementById('cal-total-badge');
+  if (badge) badge.textContent = list.length + ' empleado' + (list.length!==1?'s':'');
+  if (!grid) return;
+  grid.innerHTML = list.map(e => {
+    const pct = e.cumplimientoPct;
+    const pctColor = calPctColor(pct);
+    const diffH = e.totalDiferencia_h;
+    const diffTxt = diffH !== null
+      ? (diffH >= 0 ? '+' : '') + calFmtH(diffH)
+      : '—';
+    const diffLabel = diffH === null ? '' : diffH > 0.5 ? 'más fichaje que tareas' : diffH < -0.5 ? 'más tareas que fichaje' : 'equilibrado';
+    const upd = e.extractedAt ? new Date(e.extractedAt).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return `<div onclick="calOpenDetail('${e.empleado}')" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);">${e.empleado}</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;">${e.empleado}</div>
+            <div style="font-size:11px;color:var(--text3);">${e.totalSemanas} semanas</div>
+          </div>
+        </div>
+        ${pct !== null ? `<div style="font-size:22px;font-weight:300;font-family:'DM Mono',monospace;color:${pctColor};">${pct}%</div>` : '<div style="font-size:12px;color:var(--text3);">—%</div>'}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+        <div style="background:var(--bg3);border-radius:6px;padding:8px 10px;">
+          <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Fichaje total</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;">${calFmtH(e.totalFichaje_h)}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:6px;padding:8px 10px;">
+          <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Tareas registradas</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;">${e.totalTareas_h ? calFmtH(e.totalTareas_h) : '<span style="color:var(--text3)">—</span>'}</div>
+        </div>
+      </div>
+      ${diffH !== null ? `<div style="margin-top:10px;padding:6px 10px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;color:var(--text3);">Diferencia (fichaje − tareas)</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;${calDiffStyle(diffH)}">${diffTxt}</span>
+      </div>` : ''}
+      <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:11px;color:var(--text3);">
+        <span>${e.diasIncumple>0?`<span style="color:var(--red)">${e.diasIncumple} días incumple</span>`:'<span style="color:var(--accent)">Sin incumplimientos</span>'}</span>
+        <span>Actualizado ${upd}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function calOpenDetail(empCode) {
+  const st = document.getElementById('cal-status');
+  const cards = document.getElementById('cal-cards');
+  const detail = document.getElementById('cal-detail');
+  if (st) st.style.display='none';
+  if (cards) cards.style.display='none';
+  if (detail) { detail.style.display='block'; document.getElementById('cal-det-title').textContent='Cargando…'; }
+
+  try {
+    const r = await fetch(CAL_APP_URL + '/api/resumen-calendario/' + encodeURIComponent(empCode));
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    _calDetalle = d;
+    calRenderDetail();
+  } catch(e) {
+    showToast('Error al cargar detalle: ' + e.message);
+    calCloseDetail();
+  }
+}
+
+function calCloseDetail() {
+  document.getElementById('cal-detail').style.display = 'none';
+  document.getElementById('cal-status').style.display = 'none';
+  document.getElementById('cal-cards').style.display = 'block';
+  _calDetalle = null;
+}
+
+function calSetVista(v) {
+  _calVista = v;
+  const btnSem = document.getElementById('cal-det-btn-sem');
+  const btnDia = document.getElementById('cal-det-btn-dia');
+  const vSem   = document.getElementById('cal-vista-semanal');
+  const vDia   = document.getElementById('cal-vista-diaria');
+  const activeStyle = 'background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600;';
+  const ghostStyle  = '';
+  if (btnSem) { btnSem.style.cssText = v==='semanal' ? activeStyle : ''; btnSem.className='btn btn-sm'+(v!=='semanal'?' btn-ghost':''); }
+  if (btnDia) { btnDia.style.cssText = v==='diario'  ? activeStyle : ''; btnDia.className='btn btn-sm'+(v!=='diario'?' btn-ghost':''); }
+  if (vSem) vSem.style.display = v==='semanal' ? 'block' : 'none';
+  if (vDia) vDia.style.display = v==='diario'  ? 'block' : 'none';
+}
+
+function calRenderDetail() {
+  const d = _calDetalle;
+  if (!d) return;
+
+  // Título + badge cumplimiento
+  document.getElementById('cal-det-title').textContent = 'Empleado: ' + d.empleado;
+  const badge = document.getElementById('cal-det-badge-cumpl');
+  if (badge) {
+    const pct = d.cumplimientoPct;
+    badge.textContent = pct !== null ? pct + '% cumplimiento' : 'Sin datos';
+    badge.style.background = pct === null ? 'var(--bg3)' : pct >= 90 ? 'rgba(76,175,80,0.15)' : pct >= 70 ? 'var(--amber-dim)' : 'var(--red-dim)';
+    badge.style.color = calPctColor(pct);
+    badge.style.border = '1px solid ' + (pct === null ? 'var(--border)' : pct >= 90 ? 'rgba(76,175,80,0.25)' : pct >= 70 ? 'rgba(245,166,35,0.25)' : 'rgba(255,92,92,0.25)');
+  }
+
+  // Stat cards
+  const stats = document.getElementById('cal-det-stats');
+  if (stats) {
+    const diffH = d.totalDiferencia_h;
+    stats.innerHTML = [
+      { label:'Horas fichadas', val: calFmtH(d.totalFichaje_h), color:'var(--text)' },
+      { label:'Horas tareas', val: d.totalTareas_h ? calFmtH(d.totalTareas_h) : '—', color:'var(--text)' },
+      { label:'Diferencia (fich−tar)', val: diffH !== null ? (diffH>=0?'+':'')+calFmtH(diffH) : '—',
+        color: diffH === null ? 'var(--text3)' : Math.abs(diffH)<0.5 ? 'var(--accent)' : diffH>0 ? 'var(--amber)' : 'var(--red)',
+        sub: diffH === null ? '' : diffH > 0.5 ? 'más fichaje que tareas' : diffH < -0.5 ? 'más tareas que fichaje' : 'equilibrado' },
+      { label:'Días OK (≥7.5h)', val: d.diasCumplen + ' / ' + d.diasLaborables, color:'var(--accent)' },
+      { label:'Días incumple', val: String(d.diasIncumple), color: d.diasIncumple>0?'var(--red)':'var(--text3)' },
+      { label:'Días justificados', val: String(d.diasJustif), color:'var(--text2)' },
+      { label:'Semanas extraídas', val: String(d.totalSemanas), color:'var(--text)' },
+    ].map(s => `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:5px;">${s.label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:400;color:${s.color};">${s.val}</div>
+      ${s.sub ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.sub}</div>` : ''}
+    </div>`).join('');
+  }
+
+  // Vista semanal
+  const tbSem = document.getElementById('cal-tbody-sem');
+  if (tbSem) {
+    tbSem.innerHTML = (d.semanasData || []).map(s => {
+      const fich = calFmtH(s.semFichaje_h);
+      const tar  = s.semTareas_h !== null ? calFmtH(s.semTareas_h) : '<span style="color:var(--text3)">—</span>';
+      const diff = s.semDiferencia_h !== null ? `<span style="${calDiffStyle(s.semDiferencia_h)};font-family:'DM Mono',monospace">${s.semDiferencia_h>=0?'+':''}${calFmtH(s.semDiferencia_h)}</span>` : '<span style="color:var(--text3)">—</span>';
+      const estado = s.cumple === null ? '<span style="color:var(--text3);font-size:11px;">—</span>'
+        : s.cumple ? '<span class="badge badge-ok" style="font-size:10px;">OK</span>'
+        : '<span class="badge badge-bad" style="font-size:10px;">INCUMPLE</span>';
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);">${s.semana||'—'}</td>
+        <td style="font-size:12px;">${s.etiqueta||'—'}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;">${fich}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;">${tar}</td>
+        <td style="text-align:right;">${diff}</td>
+        <td>${estado}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Vista diaria
+  const tbDia = document.getElementById('cal-tbody-dia');
+  if (tbDia) {
+    const rows = [];
+    let lastMes = '';
+    (d.semanasData || []).forEach(s => {
+      (s.dias || []).forEach(dia => {
+        if (dia.esFinSemana) return;
+        // Separador de mes
+        const mes = dia.fecha ? dia.fecha.substring(0,7) : '';
+        if (mes && mes !== lastMes) {
+          lastMes = mes;
+          const [y,m] = mes.split('-');
+          const mesNom = new Date(+y,+m-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+          rows.push(`<tr><td colspan="7" style="background:var(--bg3);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:8px 16px;font-weight:500;">${mesNom}</td></tr>`);
+        }
+        // Estado del día
+        let estadoCell, rowStyle = '';
+        if (dia.justificado) {
+          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);font-weight:600;">JUSTIF.</span>`;
+        } else if (dia.sinDatos) {
+          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);font-weight:600;">SIN DATOS</span>`;
+        } else if (dia.fichaje_h === null) {
+          estadoCell = `<span style="color:var(--text3);font-size:11px;">—</span>`;
+        } else if (dia.fichaje_h >= 7.5) {
+          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(76,175,80,0.1);color:var(--accent);border:1px solid rgba(76,175,80,0.2);font-weight:600;">✓ OK</span>`;
+        } else {
+          estadoCell = `<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,0.2);font-weight:600;">INCUMPLE</span>`;
+          rowStyle = 'background:rgba(255,92,92,0.03)';
+        }
+
+        const fich = dia.fichaje_h !== null ? `<span style="font-family:'DM Mono',monospace">${calFmtH(dia.fichaje_h)}</span>` : '<span style="color:var(--text3)">—</span>';
+        const tar  = dia.tareas_h  !== null ? `<span style="font-family:'DM Mono',monospace">${calFmtH(dia.tareas_h)}</span>` : '<span style="color:var(--text3)">—</span>';
+        const diff = dia.diferencia_h !== null
+          ? `<span style="font-family:'DM Mono',monospace;font-size:12px;${calDiffStyle(dia.diferencia_h)}">${dia.diferencia_h>=0?'+':''}${calFmtH(dia.diferencia_h)}</span>`
+          : '<span style="color:var(--text3)">—</span>';
+        const evs = (dia.eventos||[]).filter(Boolean).slice(0,3).join(', ') || (dia.justDesc ? dia.justDesc : '');
+        rows.push(`<tr style="${rowStyle}">
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);">${dia.fecha||'—'}</td>
+          <td style="font-size:12px;text-transform:capitalize;">${dia.dia||'—'}</td>
+          <td style="text-align:right;">${fich}</td>
+          <td style="text-align:right;">${tar}</td>
+          <td style="text-align:right;">${diff}</td>
+          <td>${estadoCell}</td>
+          <td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(dia.eventos||[]).join(', ')}">${evs}</td>
+        </tr>`);
+      });
+    });
+    tbDia.innerHTML = rows.join('');
+  }
+
+  calSetVista(_calVista);
+}
+
+function calExportCSV() {
+  if (!_calDetalle) return;
+  const d = _calDetalle;
+  const rows = [['Empleado','Semana','Etiqueta','Fecha','Día','Fichaje_h','Tareas_h','Diferencia_h','Estado','Eventos']];
+  (d.semanasData || []).forEach(s => {
+    (s.dias || []).forEach(dia => {
+      if (dia.esFinSemana) return;
+      const est = dia.justificado ? 'JUSTIF' : dia.sinDatos ? 'SIN_DATOS' : dia.fichaje_h === null ? '—' : dia.fichaje_h >= 7.5 ? 'OK' : 'INCUMPLE';
+      rows.push([d.empleado, s.semana||'', s.etiqueta||'', dia.fecha||'', dia.dia||'',
+        dia.fichaje_h??'', dia.tareas_h??'', dia.diferencia_h??'', est,
+        (dia.eventos||[]).join(' | ')]);
+    });
+  });
+  const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'calendario_' + d.empleado + '.csv';
+  a.click();
 }
 </script>
 </body>

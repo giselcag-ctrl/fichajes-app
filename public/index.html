@@ -806,6 +806,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
         <!-- Results area -->
         <div id="ia-results" style="display:none;">
+          <div id="ia-modo-badge" style="display:none;"></div>
 
           <!-- Fila: resumen + cumplimiento -->
           <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
@@ -2663,6 +2664,17 @@ async function analizarEmpleado(){
     _iaDiasData = d.diasData || [];
     _iaVista    = 'diario';
 
+    // ── Badge modo ───────────────────────────────────────────────────────
+    const modoBadge=document.getElementById('ia-modo-badge');
+    if(modoBadge){
+      if(a.modoLocal){
+        modoBadge.textContent='📊 Análisis automático';
+        modoBadge.style.cssText='display:inline-block;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;border-radius:6px;padding:3px 10px;font-size:11px;margin-bottom:12px;';
+      } else {
+        modoBadge.textContent='🤖 Análisis con IA';
+        modoBadge.style.cssText='display:inline-block;background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.3);color:#81c784;border-radius:6px;padding:3px 10px;font-size:11px;margin-bottom:12px;';
+      }
+    }
     // ── Resumen + cumplimiento ──────────────────────────────────────────
     document.getElementById('ia-resumen-text').textContent=a.resumenGeneral||'—';
     const pct=typeof a.cumplimientoGlobal==='number'?a.cumplimientoGlobal:parseFloat(a.cumplimientoGlobal)||0;

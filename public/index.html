@@ -1975,11 +1975,12 @@ function getWorkingDaysBetween(iniDDMMYYYY,finDDMMYYYY){
 
 function buildVacMapFromTareas(){
   if(!_tareasVac.loaded)return{};
-  const estadoCol=parseInt((document.getElementById('vac-col-estado')||{}).value??_tareasVac.colMap.estado);
-  const empCol=parseInt((document.getElementById('vac-col-emp')||{}).value??_tareasVac.colMap.emp);
-  const descCol=parseInt((document.getElementById('vac-col-desc')||{}).value??_tareasVac.colMap.desc);
-  const iniCol=parseInt((document.getElementById('vac-col-fechaini')||{}).value??_tareasVac.colMap.fechaIni);
-  const finCol=parseInt((document.getElementById('vac-col-fechafin')||{}).value??_tareasVac.colMap.fechaFin);
+  const _getColIdx=(id,fallback)=>{const el=document.getElementById(id);const v=el?parseInt(el.value):-1;return(v>=0)?v:(fallback>=0?fallback:-1);};
+  const estadoCol=_getColIdx('vac-col-estado',_tareasVac.colMap.estado);
+  const empCol=_getColIdx('vac-col-emp',_tareasVac.colMap.emp);
+  const descCol=_getColIdx('vac-col-desc',_tareasVac.colMap.desc);
+  const iniCol=_getColIdx('vac-col-fechaini',_tareasVac.colMap.fechaIni);
+  const finCol=_getColIdx('vac-col-fechafin',_tareasVac.colMap.fechaFin);
   const kw=((document.getElementById('vac-keyword')||{}).value||'Vacaciones').trim().toLowerCase();
   const exactMode=(document.getElementById('vac-match-exact')||{}).checked!==false;
   const vacMap={};
@@ -2393,8 +2394,8 @@ function restoreSession(){
     S.weeklyData=data.weeklyData||{};
     S.weeks=data.weeks||[];
     enrichWeeklyWithDays();
-    initApp();
     if(_tareasVac.loaded)renderVacColMap();
+    initApp();
   }catch(e){
     console.warn('Error restaurando sesión:',e);
     try{localStorage.removeItem('simecal_session');localStorage.removeItem('simecal_tareas');}catch(ex){}

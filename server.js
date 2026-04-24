@@ -697,6 +697,119 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
   }
 });
 
+// ─── Resumen Calendario (sin IA) ──────────────────────────────────────────
+// Helper: computa métricas para un documento de calendario
+function computeCalResumen(doc) {
+  const semanas = doc.semanas || [];
+  let totalFichaje_h = 0, totalTareas_h = 0;
+  let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
+
+  const semanasData = semanas.map(s => {
+    const dias = (s.days || []).map(d => {
+      const isWeekend   = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
+      const justificado = isJustifiedDay(d.events);
+      const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
+      const fichaje_h   = parseTpcHours(d.tpc);
+      const fichajeNull = fichaje_h === null || fichaje_h === 0;
+      const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
+
+      const tareas_h_badge  = parseTpcHours(d.previsto);
+      const tareas_h_evts   = (d.events || []).reduce((a, ev) => a + parseEventHours(ev), 0);
+      const tareas_h_raw    = tareas_h_badge !== null ? tareas_h_badge
+                            : tareas_h_evts > 0       ? tareas_h_evts : null;
+      const tareas_h        = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
+      const diferencia_h    = (fichaje_h !== null && tareas_h !== null)
+        ? Math.round((fichaje_h - tareas_h) * 100) / 100 : null;
+
+      if (!isWeekend) {
+        if (fichaje_h  !== null) totalFichaje_h += fichaje_h;
+        if (tareas_h   !== null) totalTareas_h  += tareas_h;
+        if (justificado)         diasJustif++;
+        else if (sinDatos)       diasSinDatos++;
+        else if (fichaje_h !== null) {
+          diasLaborables++;
+          if (fichaje_h >= 7.5) diasCumplen++;
+          else                  diasIncumple++;
+        }
+      }
+
+      return {
+        fecha: d.date, dia: d.weekday, esFinSemana: isWeekend,
+        justificado, sinDatos, justDesc,
+        fichaje: d.tpc || null, fichaje_h,
+        tareas_h, diferencia_h,
+        eventos: (d.events || []).map(e => e.substring(0, 100))
+      };
+    });
+
+    const semFichaje = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
+                           .reduce((s, d) => s + d.fichaje_h, 0);
+    const semTareas  = dias.filter(d => !d.esFinSemana && d.tareas_h !== null)
+                           .reduce((s, d) => s + d.tareas_h, 0);
+    const semLab     = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos && d.fichaje_h !== null);
+    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
+
+    return {
+      semana: s.week, etiqueta: s.weekLabel || '',
+      tpcTotal: s.tpcTotal, previsto: s.previsto,
+      kmTotal: s.kmTotal,
+      semFichaje_h:    Math.round(semFichaje * 100) / 100,
+      semTareas_h:     semTareas > 0 ? Math.round(semTareas * 100) / 100 : null,
+      semDiferencia_h: semTareas > 0 ? Math.round((semFichaje - semTareas) * 100) / 100 : null,
+      cumple: semCumple,
+      dias
+    };
+  });
+
+  totalFichaje_h = Math.round(totalFichaje_h * 100) / 100;
+  totalTareas_h  = Math.round(totalTareas_h  * 100) / 100;
+  const totalDiferencia_h = totalTareas_h > 0
+    ? Math.round((totalFichaje_h - totalTareas_h) * 100) / 100 : null;
+  const cumplimientoPct = diasLaborables > 0
+    ? Math.round((diasCumplen / diasLaborables) * 100) : null;
+
+  return {
+    empleado: doc.empleado,
+    extractedAt: doc.extractedAt,
+    totalSemanas: semanas.length,
+    totalFichaje_h, totalTareas_h, totalDiferencia_h,
+    diasLaborables, diasCumplen, diasIncumple, diasJustif, diasSinDatos,
+    cumplimientoPct,
+    semanasData
+  };
+}
+
+// GET /api/resumen-calendario        → lista con métricas de todos los empleados
+app.get('/api/resumen-calendario', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const docs = await db.collection('calendario_datos').find({}).toArray();
+    const empleados = docs.map(doc => {
+      const r = computeCalResumen(doc);
+      // Sólo datos resumen (sin semanasData para que la respuesta sea ligera)
+      const { semanasData, ...summary } = r;
+      return summary;
+    });
+    res.json({ ok: true, empleados });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GET /api/resumen-calendario/:empleado  → detalle completo de un empleado
+app.get('/api/resumen-calendario/:empleado', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const empCode = req.params.empleado.toUpperCase();
+    const doc = await db.collection('calendario_datos').findOne({ empleado: empCode });
+    if (!doc) return res.status(404).json({ ok: false, error: `No hay datos de ${empCode}` });
+    const result = computeCalResumen(doc);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ─── Iniciar servidor ──────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✓ Servidor corriendo en http://localhost:${PORT}`);

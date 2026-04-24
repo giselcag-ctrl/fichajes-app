@@ -366,9 +366,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <button class="cal-nav-btn" onclick="navMesResumen(1)">&#8250;</button>
       </div>
       <div class="cal-dow">
-        <div class="cal-dow-h">L</div><div class="cal-dow-h">M</div><div class="cal-dow-h">X</div>
-        <div class="cal-dow-h">J</div><div class="cal-dow-h">V</div><div class="cal-dow-h">S</div>
-        <div class="cal-dow-h">D</div>
+        <div class="cal-dow-h">D</div><div class="cal-dow-h">L</div><div class="cal-dow-h">M</div>
+        <div class="cal-dow-h">X</div><div class="cal-dow-h">J</div><div class="cal-dow-h">V</div>
+        <div class="cal-dow-h">S</div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
       <div class="cal-quick">
@@ -2316,7 +2316,7 @@ function renderCalendarResumen(){
   const{y,m}=_resumenMes;
   const diasConDatos=new Set(Object.keys(S.days||{}));
   const diasEnMes=new Date(y,m,0).getDate();
-  const inicioSemana=(new Date(y,m-1,1).getDay()+6)%7;
+  const inicioSemana=new Date(y,m-1,1).getDay(); // 0=Dom, semana empieza el domingo
   document.getElementById('cal-month-label').textContent=`${MESES_LARGOS[m-1]} ${y}`;
   let html='';
   for(let i=0;i<inicioSemana;i++)html+=`<div class="cal-day"></div>`;

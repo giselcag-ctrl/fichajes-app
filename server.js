@@ -405,6 +405,89 @@ app.get('/api/calendario-data/:empleado', async (req, res) => {
   }
 });
 
+// ── Análisis local (sin IA) ────────────────────────────────────────────────
+function fmtHServer(h) {
+  if (h === null || h === undefined) return '—';
+  const abs = Math.abs(h);
+  const hh  = Math.floor(abs);
+  const mm  = Math.round((abs - hh) * 60);
+  return (h < 0 ? '-' : '') + (hh > 0 ? hh + 'h ' : '') + (mm > 0 ? mm + 'min' : '') + (hh === 0 && mm === 0 ? '0h' : '');
+}
+
+function computeLocalAnalysis(empleado, semanas, totalFichaje_h, totalTareas_h, totalDiferencia_h) {
+  let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0;
+  const alertas = [];
+  const semanasResult = [];
+
+  semanas.forEach(s => {
+    const diasProblema = [];
+    let semCumple = true;
+    let semDiasLab = 0, semDiasCumple = 0;
+
+    (s.dias || []).forEach(d => {
+      if (d.esFinSemana) return;
+      if (d.justificado) { diasJustif++; return; }
+      if (d.sinDatos)    { diasSinDatos++; return; }
+      if (d.fichaje_h === null) return;
+
+      diasLaborables++;
+      semDiasLab++;
+
+      if (d.fichaje_h >= 7.5) {
+        diasCumplen++;
+        semDiasCumple++;
+      } else {
+        semCumple = false;
+        const faltanMin = Math.round((7.5 - d.fichaje_h) * 60);
+        diasProblema.push(`${d.dia} ${d.fecha}: ${fmtHServer(d.fichaje_h)} (faltan ${faltanMin}min)`);
+        if (d.fichaje_h < 6) {
+          alertas.push(`${d.fecha} (${d.dia?.toUpperCase()}): solo ${fmtHServer(d.fichaje_h)} fichados`);
+        }
+      }
+    });
+
+    semanasResult.push({
+      semana:          s.semana,
+      etiqueta:        s.etiqueta,
+      tpcTotal:        s.tpcTotal,
+      semFichaje_h:    s.semFichaje_h,
+      semTareas_h:     s.semTareas_h,
+      semDiferencia_h: s.semDiferencia_h,
+      cumple:          semCumple,
+      diasProblema,
+      nota: semDiasLab > 0 ? `${semDiasCumple}/${semDiasLab} días OK` : ''
+    });
+  });
+
+  const cumplimientoGlobal = diasLaborables > 0
+    ? Math.round((diasCumplen / diasLaborables) * 100) : 100;
+
+  const resumenGeneral =
+    `${empleado} — Cumplimiento ${cumplimientoGlobal}%: ${diasCumplen} de ${diasLaborables} días laborables con ≥7.5h fichadas. ` +
+    `${diasJustif} días justificados (festivos/vacaciones/enfermedad).` +
+    (diasSinDatos > 0 ? ` ${diasSinDatos} días sin datos de fichaje.` : '') +
+    (totalDiferencia_h !== null ? ` Diferencia total fichaje−tareas: ${fmtHServer(totalDiferencia_h)}.` : '');
+
+  const recomendacion = cumplimientoGlobal >= 90
+    ? `Buen cumplimiento horario. Continuar seguimiento habitual.`
+    : cumplimientoGlobal >= 70
+    ? `Se detectan incidencias en algunos días. Revisar los días marcados y solicitar justificación si corresponde.`
+    : `Patrón de incumplimiento significativo (${100 - cumplimientoGlobal}% de días con menos de 7.5h). Se recomienda revisión con el empleado.`;
+
+  return {
+    empleado,
+    resumenGeneral,
+    cumplimientoGlobal,
+    totalFichaje_h,
+    totalTareas_h,
+    totalDiferencia_h,
+    alertas: alertas.slice(0, 30),
+    semanas: semanasResult,
+    recomendacion,
+    modoLocal: true
+  };
+}
+
 // ── Helpers para análisis horario ─────────────────────────────────────────
 
 /** "8h 30min" → 8.5,  "8h" → 8,  null → null */
@@ -553,23 +636,37 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
   "recomendacion": "recomendación final"
 }`;
 
-    // ── Llamar a Claude API ──────────────────────────────────────────────
-    const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model:      'claude-opus-4-5',
-      max_tokens: 4096,
-      messages:   [{ role: 'user', content: prompt }]
-    });
+    // ── Llamar a Claude API (o usar análisis local si no hay créditos) ──
+    const useLocal = req.query.local === '1' || !apiKey;
+    let analisis;
 
-    const raw = message.content[0].text;
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return res.status(500).json({ ok: false, error: 'Respuesta inválida de Claude', raw });
-
-    const analisis = JSON.parse(jsonMatch[0]);
-    // Garantizar campos globales (fallback al pre-cómputo si Claude no los devolvió)
-    analisis.totalFichaje_h    = analisis.totalFichaje_h    ?? totalFichaje_h;
-    analisis.totalTareas_h     = analisis.totalTareas_h     ?? (totalTareas_h > 0 ? totalTareas_h : null);
-    analisis.totalDiferencia_h = analisis.totalDiferencia_h ?? totalDiferencia_h;
+    if (!useLocal) {
+      try {
+        const anthropic = new Anthropic({ apiKey });
+        const message = await anthropic.messages.create({
+          model:      'claude-opus-4-5',
+          max_tokens: 4096,
+          messages:   [{ role: 'user', content: prompt }]
+        });
+        const raw = message.content[0].text;
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Respuesta inválida de Claude');
+        analisis = JSON.parse(jsonMatch[0]);
+        analisis.totalFichaje_h    = analisis.totalFichaje_h    ?? totalFichaje_h;
+        analisis.totalTareas_h     = analisis.totalTareas_h     ?? (totalTareas_h > 0 ? totalTareas_h : null);
+        analisis.totalDiferencia_h = analisis.totalDiferencia_h ?? totalDiferencia_h;
+      } catch (apiErr) {
+        // Créditos agotados u otro error → fallback a análisis local
+        console.warn('Claude API error, usando análisis local:', apiErr.message);
+        analisis = computeLocalAnalysis(empleado, resumenSemanas, totalFichaje_h,
+                                        totalTareas_h > 0 ? totalTareas_h : null,
+                                        totalDiferencia_h);
+      }
+    } else {
+      analisis = computeLocalAnalysis(empleado, resumenSemanas, totalFichaje_h,
+                                      totalTareas_h > 0 ? totalTareas_h : null,
+                                      totalDiferencia_h);
+    }
 
     // diasData: datos diarios pre-computados para vistas Diario/Mensual en el frontend
     const diasData = resumenSemanas.map(s => ({

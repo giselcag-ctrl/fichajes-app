@@ -534,12 +534,16 @@ app.get('/api/analizar-empleado', async (req, res) => {
     const resumenSemanas = semanas.map(s => {
       const dias = (s.days || []).map(d => {
         const isWeekend   = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
-        const justificado = isJustifiedDay(d.events);
-        const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
+        const fecha       = d.date || deriveDate(s.week, d.weekday);
+        const justificadoEvento   = isJustifiedDay(d.events);
+        const justificadoNacional = !isWeekend && isFestivoNacional(fecha);
+        const justificado = justificadoEvento || justificadoNacional;
+        const justDesc    = justificado
+          ? ((d.events || []).find(e => JUSTIFIED_RE.test(e)) || (justificadoNacional ? 'Festivo nacional' : ''))
+          : null;
         const fichaje_h   = parseTpcHours(d.tpc);
-        // sinDatos: null/0h TPC + no events en día laborable → posible festivo no capturado
         const fichajeNull = fichaje_h === null || fichaje_h === 0;
-        const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
+        const sinDatos    = !isWeekend && !justificado && fichajeNull && (d.events || []).length === 0;
 
         // ── Horas de tareas/actividades: badge negro (d.previsto) ────────
         // El badge negro del calendario = suma de horas en tareas ese día.
@@ -700,6 +704,19 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
   }
 });
 
+// ─── Festivos nacionales España (fijos) ───────────────────────────────────
+const FESTIVOS_ES = new Set([
+  // 2025
+  '2025-01-01','2025-01-06','2025-04-18','2025-05-01','2025-08-15',
+  '2025-10-12','2025-11-01','2025-12-06','2025-12-08','2025-12-25',
+  // 2026
+  '2026-01-01','2026-01-06','2026-04-03','2026-05-01','2026-08-15',
+  '2026-10-12','2026-11-01','2026-12-06','2026-12-08','2026-12-25',
+]);
+function isFestivoNacional(fecha) {
+  return fecha ? FESTIVOS_ES.has(fecha) : false;
+}
+
 // ─── Resumen Calendario (sin IA) ──────────────────────────────────────────
 
 /** Deriva la fecha ISO a partir del inicio de semana (lunes) + día de la semana */
@@ -724,28 +741,32 @@ function computeCalResumen(doc) {
   const semanasData = semanas.map(s => {
     const dias = (s.days || []).map((d, idx) => {
       const isWeekend   = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
-      const justificado = isJustifiedDay(d.events);
-      const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
-      const fichaje_h   = parseTpcHours(d.tpc);
-      const fichajeNull = fichaje_h === null || fichaje_h === 0;
-      const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
-
       // Derivar fecha si no está presente
       const fecha = d.date || deriveDate(s.week, d.weekday);
+      // Justificado: por evento extraído O por ser festivo nacional de España
+      const justificadoEvento  = isJustifiedDay(d.events);
+      const justificadoNacional = !isWeekend && isFestivoNacional(fecha);
+      const justificado = justificadoEvento || justificadoNacional;
+      const justDesc    = justificado
+        ? ((d.events || []).find(e => JUSTIFIED_RE.test(e)) || (justificadoNacional ? 'Festivo nacional' : ''))
+        : null;
+      const fichaje_h   = parseTpcHours(d.tpc);
+      const fichajeNull = fichaje_h === null || fichaje_h === 0;
+      const sinDatos    = !isWeekend && !justificado && fichajeNull && (d.events || []).length === 0;
 
       const tareas_h_badge  = parseTpcHours(d.previsto);
       const tareas_h_evts   = (d.events || []).reduce((a, ev) => a + parseEventHours(ev), 0);
       const tareas_h_raw    = tareas_h_badge !== null ? tareas_h_badge
                             : tareas_h_evts > 0       ? tareas_h_evts : null;
       const tareas_h        = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
-      // Diferencia solo en días laborables reales (no festivos ni vacaciones)
+      // Diferencia solo en días laborables activos (no festivos, no sinDatos)
       const diferencia_h    = (!justificado && !sinDatos && fichaje_h !== null && tareas_h !== null)
         ? Math.round((fichaje_h - tareas_h) * 100) / 100 : null;
 
       if (!isWeekend) {
-        // Horas de fichaje/tareas solo de días laborables activos (no festivos)
-        if (!justificado && fichaje_h  !== null) totalFichaje_h += fichaje_h;
-        if (!justificado && tareas_h   !== null) totalTareas_h  += tareas_h;
+        // Totales globales: solo días activos (no festivos)
+        if (!justificado && fichaje_h !== null) totalFichaje_h += fichaje_h;
+        if (!justificado && tareas_h  !== null) totalTareas_h  += tareas_h;
         if (justificado)         diasJustif++;
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
@@ -764,23 +785,30 @@ function computeCalResumen(doc) {
       };
     });
 
-    // Solo días laborables activos (excluye festivos/vacaciones y fines de semana)
+    // Fichaje total de la semana (todos los días, para información)
+    const semFichajeTotal = dias.filter(d => !d.esFinSemana && d.fichaje_h !== null)
+                                .reduce((s, d) => s + d.fichaje_h, 0);
+    // Diferencia y cumplimiento: solo días laborables activos
     const diasActivos = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos);
-    const semFichaje = diasActivos.filter(d => d.fichaje_h !== null)
-                           .reduce((s, d) => s + d.fichaje_h, 0);
+    const semFichajeActivo = diasActivos.filter(d => d.fichaje_h !== null)
+                                        .reduce((s, d) => s + d.fichaje_h, 0);
     const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
                            .reduce((s, d) => s + d.tareas_h, 0);
     const semLab     = diasActivos.filter(d => d.fichaje_h !== null);
     const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
+    // Días justificados en la semana
+    const semJustif  = dias.filter(d => !d.esFinSemana && d.justificado).length;
 
     return {
       semana: s.week, etiqueta: s.weekLabel || '',
       tpcTotal: s.tpcTotal, previsto: s.previsto,
       kmTotal: s.kmTotal,
-      semFichaje_h:    Math.round(semFichaje * 100) / 100,
-      semTareas_h:     semTareas > 0 ? Math.round(semTareas * 100) / 100 : null,
-      semDiferencia_h: semTareas > 0 ? Math.round((semFichaje - semTareas) * 100) / 100 : null,
+      semFichaje_h:    Math.round(semFichajeTotal * 100) / 100,   // total real semana
+      semFichajeActivo_h: Math.round(semFichajeActivo * 100) / 100, // solo días activos
+      semTareas_h:        semTareas > 0 ? Math.round(semTareas * 100) / 100 : null,
+      semDiferencia_h:    semTareas > 0 ? Math.round((semFichajeActivo - semTareas) * 100) / 100 : null,
       cumple: semCumple,
+      semJustif,
       dias
     };
   });

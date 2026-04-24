@@ -698,6 +698,20 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
 });
 
 // ─── Resumen Calendario (sin IA) ──────────────────────────────────────────
+
+/** Deriva la fecha ISO a partir del inicio de semana (lunes) + día de la semana */
+function deriveDate(weekStart, weekday) {
+  if (!weekStart || !weekday) return null;
+  const wd = weekday.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').substring(0, 3);
+  const map = { lun:0, mar:1, mie:2, jue:3, vie:4, sab:5, dom:6 };
+  const offset = map[wd];
+  if (offset === undefined) return null;
+  const d = new Date(weekStart + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 // Helper: computa métricas para un documento de calendario
 function computeCalResumen(doc) {
   const semanas = doc.semanas || [];
@@ -705,13 +719,16 @@ function computeCalResumen(doc) {
   let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
 
   const semanasData = semanas.map(s => {
-    const dias = (s.days || []).map(d => {
+    const dias = (s.days || []).map((d, idx) => {
       const isWeekend   = d.weekday && ['sáb','sab','dom'].includes(d.weekday.toLowerCase());
       const justificado = isJustifiedDay(d.events);
       const justDesc    = justificado ? (d.events || []).find(e => JUSTIFIED_RE.test(e)) || '' : null;
       const fichaje_h   = parseTpcHours(d.tpc);
       const fichajeNull = fichaje_h === null || fichaje_h === 0;
       const sinDatos    = !isWeekend && fichajeNull && (d.events || []).length === 0;
+
+      // Derivar fecha si no está presente
+      const fecha = d.date || deriveDate(s.week, d.weekday);
 
       const tareas_h_badge  = parseTpcHours(d.previsto);
       const tareas_h_evts   = (d.events || []).reduce((a, ev) => a + parseEventHours(ev), 0);
@@ -734,7 +751,7 @@ function computeCalResumen(doc) {
       }
 
       return {
-        fecha: d.date, dia: d.weekday, esFinSemana: isWeekend,
+        fecha, dia: d.weekday, esFinSemana: isWeekend,
         justificado, sinDatos, justDesc,
         fichaje: d.tpc || null, fichaje_h,
         tareas_h, diferencia_h,

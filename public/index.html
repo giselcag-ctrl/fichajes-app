@@ -865,18 +865,26 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <div class="table-container">
               <div class="table-header">
                 <h3>Vista Diaria</h3>
-                <button class="btn btn-ghost btn-sm" onclick="calExportCSV()">Exportar CSV</button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:11px;color:var(--text3);" id="cal-dia-legend">
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(76,175,80,0.4);border:1px solid #81c784;"></span>JUSTIF.</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(160,174,192,0.2);border:1px solid var(--border2);"></span>SIN DATOS</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(46,125,50,0.3);border:1px solid #81c784;"></span>OK</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(185,28,28,0.3);border:1px solid #f87171;"></span>INCUMPLE</span>
+                  </span>
+                  <button class="btn btn-ghost btn-sm" onclick="calExportCSV()">Exportar CSV</button>
+                </div>
               </div>
               <div style="overflow-x:auto;">
                 <table>
                   <thead><tr>
-                    <th>Fecha</th>
+                    <th style="min-width:100px">Fecha</th>
                     <th>Día</th>
-                    <th style="text-align:right">Fichaje</th>
-                    <th style="text-align:right">Tareas</th>
-                    <th style="text-align:right">Diferencia</th>
-                    <th>Estado</th>
-                    <th>Eventos</th>
+                    <th style="text-align:right;min-width:70px">Fichaje</th>
+                    <th style="text-align:right;min-width:70px">Tareas</th>
+                    <th style="text-align:right;min-width:80px">Diferencia</th>
+                    <th style="text-align:center;min-width:90px">Estado</th>
+                    <th>Eventos / Observaciones</th>
                   </tr></thead>
                   <tbody id="cal-tbody-dia"></tbody>
                 </table>
@@ -3117,7 +3125,7 @@ function calRenderDetail() {
     tbSem.innerHTML = rows.join('');
   }
 
-  // Vista diaria — usa diaEstadoCell() y diffCell() y fmtH() igual que Análisis IA
+  // Vista diaria — lista completa de días laborables con toda la info
   const tbDia = document.getElementById('cal-tbody-dia');
   if (tbDia) {
     const rows = [];
@@ -3125,28 +3133,63 @@ function calRenderDetail() {
     (d.semanasData || []).forEach(s => {
       (s.dias || []).forEach(dia => {
         if (dia.esFinSemana) return;
+
         // Separador de mes
         const mes = (dia.fecha||'').substring(0,7);
         if (mes && mes !== lastMes) {
           lastMes = mes;
           const [y,mo] = mes.split('-');
           const mesNom = new Date(+y,+mo-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
-          rows.push(`<tr><td colspan="7" style="background:var(--bg3);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:8px 16px;font-weight:500;">${mesNom}</td></tr>`);
+          rows.push(`<tr><td colspan="7" style="background:var(--bg3);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:7px 16px;font-weight:500;border-top:1px solid var(--border2);">${mesNom}</td></tr>`);
         }
-        const rowBg = (!dia.justificado && !dia.sinDatos && dia.fichaje_h !== null && dia.fichaje_h < 7.5) ? 'background:rgba(255,92,92,0.03)' : '';
-        const evTexto = (dia.eventos||[]).filter(Boolean).slice(0,3).join(' · ') || (dia.justDesc||'');
+
+        // Color de fila según estado
+        let rowBg = '';
+        if (dia.justificado)  rowBg = 'background:rgba(76,175,80,0.04)';
+        else if (dia.sinDatos) rowBg = '';
+        else if (dia.fichaje_h !== null && dia.fichaje_h < 7.5) rowBg = 'background:rgba(255,92,92,0.04)';
+
+        // Fecha legible: "Lun 05 Ene" si fecha disponible
+        let fechaDisplay = dia.fecha || '—';
+        if (dia.fecha) {
+          try {
+            const fd = new Date(dia.fecha + 'T00:00:00Z');
+            fechaDisplay = `<span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text);">${dia.fecha}</span>`;
+          } catch(e) {}
+        }
+
+        // Fichaje — resaltar si hay horas
+        const fichCell = dia.fichaje_h !== null
+          ? `<span style="font-family:'DM Mono',monospace;font-weight:500;color:${dia.fichaje_h>=7.5?'#81c784':dia.fichaje_h>0?'var(--amber)':'var(--text3)'};">${fmtH(dia.fichaje_h)}</span>`
+          : '<span style="color:var(--text3)">—</span>';
+
+        // Tareas
+        const tarCell = dia.tareas_h !== null
+          ? `<span style="font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(dia.tareas_h)}</span>`
+          : '<span style="color:var(--text3)">—</span>';
+
+        // Eventos — mostrar texto completo con tooltip
+        const evList  = (dia.eventos||[]).filter(Boolean);
+        const evShort = dia.justDesc
+          ? dia.justDesc.substring(0,60)
+          : evList.slice(0,2).join(' · ').substring(0,80);
+        const evFull  = evList.join('\n');
+        const evCell  = evShort
+          ? `<span style="font-size:11px;color:var(--text2);" title="${evFull.replace(/"/g,"'")}">${evShort}${evFull.length>80?'…':''}</span>`
+          : '<span style="color:var(--text3);font-size:11px;">—</span>';
+
         rows.push(`<tr style="${rowBg}">
-          <td style="padding:5px 8px;color:var(--text3);font-size:12px;font-family:'DM Mono',monospace;">${dia.fecha||'—'}</td>
-          <td style="padding:5px 8px;color:var(--text2);text-transform:capitalize;">${dia.dia||'—'}</td>
-          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">${fmtH(dia.fichaje_h)}</td>
-          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--text2);">${fmtH(dia.tareas_h)}</td>
-          <td style="padding:5px 8px;text-align:right;">${diffCell(dia.diferencia_h)}</td>
-          <td style="padding:5px 8px;text-align:center;">${diaEstadoCell(dia)}</td>
-          <td style="padding:5px 8px;color:var(--text3);font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(dia.eventos||[]).join(', ')}">${evTexto||'—'}</td>
+          <td style="padding:6px 8px;white-space:nowrap;">${fechaDisplay}</td>
+          <td style="padding:6px 8px;color:var(--text2);text-transform:capitalize;font-size:12px;">${dia.dia||'—'}</td>
+          <td style="padding:6px 8px;text-align:right;">${fichCell}</td>
+          <td style="padding:6px 8px;text-align:right;">${tarCell}</td>
+          <td style="padding:6px 8px;text-align:right;">${diffCell(dia.diferencia_h)}</td>
+          <td style="padding:6px 8px;text-align:center;">${diaEstadoCell(dia)}</td>
+          <td style="padding:6px 8px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${evCell}</td>
         </tr>`);
       });
     });
-    tbDia.innerHTML = rows.join('');
+    tbDia.innerHTML = rows.join('') || `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3);">No hay datos diarios disponibles</td></tr>`;
   }
 
   calSetVista(_calVista);

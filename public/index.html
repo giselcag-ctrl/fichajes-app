@@ -803,8 +803,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div id="cal-cards" style="display:none;">
           <!-- Filtros -->
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
-            <input type="text" id="cal-filter" placeholder="Buscar empleado…" oninput="calFilterCards()"
-              style="height:34px;width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:0 12px;background-image:none;">
+            <select id="cal-filter" onchange="calOnSelectEmp()" style="height:34px;width:220px;font-size:13px;">
+              <option value="">Todos los empleados</option>
+            </select>
             <select id="cal-sort" onchange="calRenderCards()" style="height:34px;width:180px;font-size:12px;">
               <option value="emp">Ordenar por empleado</option>
               <option value="cumpl_asc">Cumplimiento ↑</option>
@@ -2932,20 +2933,33 @@ async function calLoadAll() {
     }
     st.style.display = 'none';
     cards.style.display = 'block';
+    // Poblar el select de empleados
+    const sel = document.getElementById('cal-filter');
+    if (sel) {
+      const sorted = [..._calData].sort((a,b) => a.empleado.localeCompare(b.empleado));
+      sel.innerHTML = '<option value="">Todos los empleados</option>'
+        + sorted.map(e => `<option value="${e.empleado}">${e.empleado}</option>`).join('');
+    }
     calRenderCards();
   } catch (e) {
     if (st) st.textContent = 'Error al cargar: ' + e.message;
   }
 }
 
-function calFilterCards() {
-  calRenderCards();
+function calOnSelectEmp() {
+  const sel = document.getElementById('cal-filter');
+  const val = sel ? sel.value : '';
+  if (val) {
+    calOpenDetail(val);
+  } else {
+    calCloseDetail();
+  }
 }
 
 function calRenderCards() {
   const q = (document.getElementById('cal-filter')?.value || '').toLowerCase();
   const sort = document.getElementById('cal-sort')?.value || 'emp';
-  let list = _calData.filter(e => !q || e.empleado.toLowerCase().includes(q));
+  let list = _calData.filter(e => !q || e.empleado.toLowerCase() === q || e.empleado.toLowerCase().includes(q));
   list = list.slice().sort((a, b) => {
     if (sort === 'emp')         return a.empleado.localeCompare(b.empleado);
     if (sort === 'cumpl_asc')   return (a.cumplimientoPct??-1) - (b.cumplimientoPct??-1);
@@ -3023,6 +3037,8 @@ function calCloseDetail() {
   document.getElementById('cal-detail').style.display = 'none';
   document.getElementById('cal-status').style.display = 'none';
   document.getElementById('cal-cards').style.display = 'block';
+  const sel = document.getElementById('cal-filter');
+  if (sel) sel.value = '';
   _calDetalle = null;
 }
 

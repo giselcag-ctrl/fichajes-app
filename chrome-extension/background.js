@@ -297,17 +297,27 @@ async function runExtraction() {
     for (let w = 0; w < weeksBack; w++) {
       if (!state.running) break;
       await waitIfPaused();
-      // NAV_PREV espera internamente a que .barraTareas reaparezca (hasta 10s)
-      // antes de devolver ok:true — el calendario ya está listo cuando retorna.
+      // NAV_PREV espera internamente hasta 12s para que el label de semana cambie.
       const navResult = await execInTab(state.tabId, 'NAV_PREV', {});
       if (!navResult || !navResult.ok) {
         const diag = navResult
           ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}`
           : 'sin respuesta';
         addLog(`WARN: no se pudo navegar atrás (paso ${w + 1}/${weeksBack}) — ${diag}`);
+        // Recuperación: si la página está rota, recargar y reintentar este paso
+        if (navResult && navResult.hasBarraTareas === false) {
+          addLog(`  Recargando página para recuperar calendario...`);
+          const empUrl2 = `https://intranet.preprod.simecal.com/#!/calendario/${empCode}/`;
+          try { await navigateTab(state.tabId, empUrl2); } catch(e) {}
+          await sleep(3000);
+          // Reintentar este mismo paso (w) en la siguiente iteración
+          w--; // retroceder índice para repetir
+          if (w < -1) w = -1; // evitar loop infinito
+        }
+      } else if (navResult.changed === false) {
+        addLog(`  WARN: click enviado pero semana no cambió (paso ${w + 1})`);
       }
-      // Pequeña pausa adicional de seguridad tras confirmar que el calendario está listo
-      await sleep(400);
+      await sleep(500);
     }
 
     await sleep(2000);

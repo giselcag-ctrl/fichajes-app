@@ -109,14 +109,21 @@
         // ── Navigation: Previous week ────────────────────────────────────
         case 'NAV_PREV': {
           (async () => {
-            // 1. Esperar a que .barraTareas esté presente antes de buscar el botón
-            //    (puede no estarlo si llegamos justo durante una transición de Vue)
-            await waitForBarra(5000);
+            // 1. Esperar a que .barraTareas esté presente y estable
+            const barraReady = await waitForBarra(8000);
+            if (!barraReady) {
+              const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
+              sendResponse({ ok: false, error: 'barraTareas not found before click', beforeCount: -1, totalButtons: allBtns2.length, hasBarraTareas: false });
+              return;
+            }
 
-            // 2. Buscar y clickear el botón (hasta 4 intentos)
+            // 2. Capturar el label actual para detectar el cambio después
+            const oldLabel = getCurrentBarraLabel();
+
+            // 3. Buscar y clickear el botón
             let clicked = false;
             let btnInfo = '';
-            for (let attempt = 0; attempt < 4; attempt++) {
+            for (let attempt = 0; attempt < 3; attempt++) {
               const btn = findNavButton('prev');
               if (btn) {
                 btnInfo = btn.className.substring(0, 80);
@@ -133,14 +140,14 @@
               const beforeCount = barra2
                 ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length
                 : -1;
-              sendResponse({ ok: false, error: 'Prev button not found', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
+              sendResponse({ ok: false, error: 'Prev button not found', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: true });
               return;
             }
 
-            // 3. Esperar a que .barraTareas VUELVA al DOM tras el click
-            //    (el calendario puede desaparecer brevemente durante la transición)
-            const barraBack = await waitForBarra(10000);
-            sendResponse({ ok: true, btnClass: btnInfo, barraReady: barraBack });
+            // 4. Esperar que el label CAMBIE — confirma que la navegación ocurrió
+            //    Si no cambia en 12s, algo salió mal pero el click sí ocurrió
+            const changed = await waitForBarraChange(oldLabel, 12000);
+            sendResponse({ ok: true, changed, btnClass: btnInfo });
           })();
           break;
         }
@@ -148,11 +155,17 @@
         // ── Navigation: Next week ────────────────────────────────────────
         case 'NAV_NEXT': {
           (async () => {
-            await waitForBarra(5000);
+            const barraReady = await waitForBarra(8000);
+            if (!barraReady) {
+              sendResponse({ ok: false, error: 'barraTareas not found before click' });
+              return;
+            }
+
+            const oldLabel = getCurrentBarraLabel();
 
             let clicked = false;
             let btnInfo = '';
-            for (let attempt = 0; attempt < 4; attempt++) {
+            for (let attempt = 0; attempt < 3; attempt++) {
               const btn = findNavButton('next');
               if (btn) {
                 btnInfo = btn.className.substring(0, 80);
@@ -168,8 +181,8 @@
               return;
             }
 
-            const barraBack = await waitForBarra(10000);
-            sendResponse({ ok: true, btnClass: btnInfo, barraReady: barraBack });
+            const changed = await waitForBarraChange(oldLabel, 12000);
+            sendResponse({ ok: true, changed, btnClass: btnInfo });
           })();
           break;
         }
@@ -417,8 +430,7 @@
   // ── Navigation helpers ─────────────────────────────────────────────────────
 
   /**
-   * Espera a que .barraTareas esté en el DOM Y tenga un label de semana válido ("S N").
-   * Retorna true si apareció dentro del timeout, false si se agotó el tiempo.
+   * Espera a que .barraTareas esté en el DOM con un label válido ("S N").
    */
   async function waitForBarra(timeoutMs) {
     const start = Date.now();
@@ -428,6 +440,28 @@
       await new Promise(r => setTimeout(r, 250));
     }
     return false;
+  }
+
+  /**
+   * Espera a que el label de .barraTareas CAMBIE respecto a oldLabel.
+   * Garantiza que la navegación realmente ocurrió antes de continuar.
+   */
+  async function waitForBarraChange(oldLabel, timeoutMs) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const barra = document.querySelector('.barraTareas');
+      if (barra) {
+        const newLabel = (barra.textContent || '').trim();
+        if (/S\s+\d+/i.test(newLabel) && newLabel !== oldLabel) return true;
+      }
+      await new Promise(r => setTimeout(r, 250));
+    }
+    return false;
+  }
+
+  function getCurrentBarraLabel() {
+    const barra = document.querySelector('.barraTareas');
+    return barra ? (barra.textContent || '').trim() : '';
   }
 
   function findNavButton(direction) {

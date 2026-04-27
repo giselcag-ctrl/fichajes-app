@@ -21,37 +21,46 @@
 
         // ── DOM Extraction ───────────────────────────────────────────────
         case 'EXTRACT_DOM': {
-          // Esperar hasta que Vue haya renderizado el contenido de la semana
-          // Señal fiable: .badges-totales existe Y los labels tienen texto
           (async () => {
-            const MAX_WAIT = 10000;
+            const MAX_WAIT = 12000;
             const INTERVAL = 300;
             const start = Date.now();
+
             while (Date.now() - start < MAX_WAIT) {
-              const labels   = document.querySelectorAll('.v-calendar-daily_head-day-label');
-              const hasBadge = !!document.querySelector('.badges-totales');
+              const elapsed = Date.now() - start;
 
-              if (labels.length >= 5 && hasBadge) {
-                const elapsed = Date.now() - start;
+              // Señal mínima: barraTareas con label válido
+              const barra        = document.querySelector('.barraTareas');
+              const hasWeekLabel = barra && /S\s+\d+/i.test(barra.textContent || '');
+              if (!hasWeekLabel) { await new Promise(r => setTimeout(r, INTERVAL)); continue; }
 
-                // Esperar a que el week label (barraTareas) esté listo
-                const barra        = document.querySelector('.barraTareas');
-                const hasWeekLabel = barra && /S\s+\d+/i.test(barra.textContent || '');
+              // Buscar columnas de día con cualquiera de los dos selectores conocidos
+              const labels = document.querySelectorAll(
+                '.v-calendar-daily_head-day-label, .v-calendar-daily__head-day-label'
+              );
+              const hasLabels = labels.length >= 5;
 
-                // Esperar a que al menos un día tenga su TPC renderizado (Xh o XhYm)
-                // Esto evita extraer cuando los badges aún no han cargado
-                const hasHours = [...labels].some(el => /\d+h/i.test(el.textContent || ''));
+              // Buscar horas en los labels
+              const hasHours = hasLabels && [...labels].some(el => /\d+h/i.test(el.textContent || ''));
 
-                // Listo cuando: week label OK + (hay horas YA o pasaron 5s → semana sin fichajes)
-                if (hasWeekLabel && (hasHours || elapsed > 5000)) break;
+              // Salir cuando: tenemos labels + horas, O esperamos >6s (semana sin datos)
+              if (hasLabels && (hasHours || elapsed > 6000)) break;
 
-                // Seguridad: nunca esperar más de 9s
-                if (elapsed > 9000) break;
-              }
+              // Salir por seguridad a los 11s
+              if (elapsed > 11000) break;
 
               await new Promise(r => setTimeout(r, INTERVAL));
             }
+
             const result = extractCalendarDOM();
+            // Diagnóstico mínimo incluido en el resultado
+            result._debug = {
+              hasBarra:  !!document.querySelector('.barraTareas'),
+              labelCount: document.querySelectorAll('.v-calendar-daily_head-day-label').length,
+              labelCountAlt: document.querySelectorAll('.v-calendar-daily__head-day-label').length,
+              hasBadgesTotales: !!document.querySelector('.badges-totales'),
+              hasDayHeads: document.querySelectorAll('.v-calendar-daily_head-day').length,
+            };
             sendResponse({ ok: true, data: result });
           })();
           break;

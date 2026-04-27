@@ -354,18 +354,17 @@ async function runExtraction() {
         addLog(`  WARN: Error extrayendo DOM: ${e.message}`);
       }
 
-      // ── Verificar que estamos en la semana correcta (primeras 2 semanas) ──
-      if (domResult && domResult.weekLabel) {
-        addLog(`  DOM: "${domResult.weekLabel}" (esperado ~${expectedWeekStart})`);
-        // Si el DOM dice que estamos en una fecha muy alejada (>30 días) de la esperada,
-        // la navegación atrás probablemente falló — advertir al usuario.
-        if (domResult.weekStart) {
-          const domDate  = new Date(domResult.weekStart);
-          const expDate  = new Date(expectedWeekStart);
-          const diffDays = Math.abs((domDate - expDate) / (1000 * 86400));
-          if (diffDays > 30) {
-            addLog(`  ⚠ DESFASE: DOM=${domResult.weekStart} vs esperado=${expectedWeekStart} (${Math.round(diffDays)}d)`);
-          }
+      // ── Verificar semana y diagnosticar DOM ──────────────────────────────
+      if (domResult) {
+        const d = domResult._debug || {};
+        // Primera semana: mostrar diagnóstico completo del DOM
+        if (wi === 0) {
+          addLog(`  DOM diagnóstico: barra=${d.hasBarra} labels=${d.labelCount}(alt:${d.labelCountAlt}) dayHeads=${d.hasDayHeads} badges-totales=${d.hasBadgesTotales}`);
+        }
+        if (domResult.weekLabel) {
+          addLog(`  DOM: "${domResult.weekLabel}" tpc=${domResult.tpcTotal} días=${domResult.days ? domResult.days.filter(d=>d.tpc).length : 0}`);
+        } else {
+          addLog(`  WARN: weekLabel vacío — DOM puede no estar listo`);
         }
       }
 

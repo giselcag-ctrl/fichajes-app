@@ -181,7 +181,12 @@
             }
 
             if (!clicked) {
-              sendResponse({ ok: false, error: 'Next button not found' });
+              const barra3   = document.querySelector('.barraTareas');
+              const allBtns3 = Array.from(document.querySelectorAll('button, [role="button"]'));
+              const beforeCount3 = barra3
+                ? allBtns3.filter(b => barra3.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length
+                : -1;
+              sendResponse({ ok: false, error: 'Next button not found', beforeCount: beforeCount3, totalButtons: allBtns3.length, hasBarraTareas: !!barra3 });
               return;
             }
 

@@ -386,10 +386,14 @@ async function runExtraction() {
 
       // Navigate to next week (unless last)
       if (wi < weeksFromStartToEnd(state.startDate, state.endDate)) {
-        // El content script ya reintenta internamente 4×400ms antes de fallar
         const navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
         if (!navNext || !navNext.ok) {
-          addLog(`  WARN: no se pudo navegar adelante (semana ${wi + 1})`);
+          const diag2 = navNext
+            ? `beforeCount=${navNext.beforeCount} totalBtns=${navNext.totalButtons} hasBarra=${navNext.hasBarraTareas}`
+            : 'sin respuesta';
+          addLog(`  WARN: no se pudo navegar adelante (semana ${wi + 1}) — ${diag2}`);
+        } else if (navNext.changed === false) {
+          addLog(`  INFO: nav adelante OK pero label no cambió (semana ${wi + 1})`);
         }
         // 1500ms para que Vue renderice la semana siguiente antes de extraer
         await sleep(1500);

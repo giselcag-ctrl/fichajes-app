@@ -252,7 +252,9 @@ async function runExtraction() {
   const url = `https://intranet.preprod.simecal.com/#!/calendario/${firstEmp}/`;
 
   addLog(`Abriendo pestaña: ${url}`);
-  const tab = await chrome.tabs.create({ url, active: false });
+  // active: true — tab debe ser visible para que Chrome no throttlee los setTimeouts
+  // del content script ni congele el render de Vue durante la navegación.
+  const tab = await chrome.tabs.create({ url, active: true });
   state.tabId = tab.id;
   await saveStateToStorage();
 
@@ -278,7 +280,7 @@ async function runExtraction() {
       await navigateTab(state.tabId, empUrl);
     } catch (e) {
       addLog(`Tab cerrada, reabriendo para ${empCode}...`);
-      const newTab = await chrome.tabs.create({ url: empUrl, active: false });
+      const newTab = await chrome.tabs.create({ url: empUrl, active: true });
       state.tabId = newTab.id;
       await waitForTabLoad(state.tabId);
     }

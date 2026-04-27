@@ -370,6 +370,22 @@ async function runExtraction() {
     }
 
     addLog(`  Completado empleado ${empCode}: ${state.data[empCode].length} semanas`);
+
+    // ── Guardar empleado en fichajes-app inmediatamente ───────────────────
+    const appUrl = (state.appUrl || '').replace(/\/$/, '');
+    if (appUrl) {
+      try {
+        const payload = { data: { [empCode]: state.data[empCode] }, extractedAt: new Date().toISOString() };
+        const r = await fetch(`${appUrl}/api/calendario-data`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) addLog(`  ✓ ${empCode} guardado en fichajes-app.`);
+        else      addLog(`  WARN: ${empCode} no se pudo guardar (${r.status}).`);
+      } catch (e) {
+        addLog(`  WARN: ${empCode} error al guardar: ${e.message}`);
+      }
+    }
   }
 
   // ── Wrap up ──────────────────────────────────────────────────────────────

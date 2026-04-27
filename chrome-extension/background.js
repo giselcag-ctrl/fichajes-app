@@ -333,11 +333,20 @@ async function runExtraction() {
         addLog(`  WARN: Error extrayendo DOM: ${e.message}`);
       }
 
-      // Get current week date
-      let weekDateResp = null;
-      try {
-        weekDateResp = await execInTab(state.tabId, 'GET_WEEK_DATE', {});
-      } catch (e) {}
+      // ── Verificar que estamos en la semana correcta (primeras 2 semanas) ──
+      if (domResult && domResult.weekLabel) {
+        addLog(`  DOM: "${domResult.weekLabel}" (esperado ~${expectedWeekStart})`);
+        // Si el DOM dice que estamos en una fecha muy alejada (>30 días) de la esperada,
+        // la navegación atrás probablemente falló — advertir al usuario.
+        if (domResult.weekStart) {
+          const domDate  = new Date(domResult.weekStart);
+          const expDate  = new Date(expectedWeekStart);
+          const diffDays = Math.abs((domDate - expDate) / (1000 * 86400));
+          if (diffDays > 30) {
+            addLog(`  ⚠ DESFASE: DOM=${domResult.weekStart} vs esperado=${expectedWeekStart} (${Math.round(diffDays)}d)`);
+          }
+        }
+      }
 
       const weekEntry = {
         week: expectedWeekStart,

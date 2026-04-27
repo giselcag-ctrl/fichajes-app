@@ -294,6 +294,7 @@ async function runExtraction() {
     const weeksBack = weeksFromStartToEnd(state.startDate, state.endDate);
     addLog(`Navegando ${weeksBack} semanas atrás hasta ${state.startDate}...`);
 
+    let navRecoveries = 0; // máximo 2 recargas por empleado
     for (let w = 0; w < weeksBack; w++) {
       if (!state.running) break;
       await waitIfPaused();
@@ -304,16 +305,18 @@ async function runExtraction() {
           ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}`
           : 'sin respuesta';
         addLog(`WARN: no se pudo navegar atrás (paso ${w + 1}/${weeksBack}) — ${diag}`);
-        // Recuperación: si la página está rota, recargar y reintentar este paso
-        if (navResult && navResult.hasBarraTareas === false) {
-          addLog(`  Recargando página para recuperar calendario...`);
+        // Recuperación: página rota (hasBarra=false) → recargar y reiniciar retroceso
+        if (navResult && navResult.hasBarraTareas === false && navRecoveries < 2) {
+          navRecoveries++;
+          addLog(`  Recargando página (recovery ${navRecoveries}/2) y reiniciando retroceso...`);
           const empUrl2 = `https://intranet.preprod.simecal.com/#!/calendario/${empCode}/`;
           try { await navigateTab(state.tabId, empUrl2); } catch(e) {}
           await sleep(3000);
-          // Reintentar este mismo paso (w) en la siguiente iteración
-          w--; // retroceder índice para repetir
-          if (w < -1) w = -1; // evitar loop infinito
+          await execInTab(state.tabId, 'SET_EMPLOYEE', { code: empCode });
+          await sleep(1500);
+          w = -1; // reiniciar desde paso 0 (el for hará w++ → w=0)
         }
+        // Si ya se agotaron los recoveries, seguir adelante (semana perdida)
       } else if (navResult.changed === false) {
         addLog(`  WARN: click enviado pero semana no cambió (paso ${w + 1})`);
       }

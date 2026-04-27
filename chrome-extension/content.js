@@ -375,39 +375,8 @@
   function findNavButton(direction) {
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
 
-    // ── Strategy 0: traversal DOM desde .barraTareas (sin depender de layout) ────
-    // En pestañas inactivas getBoundingClientRect() devuelve ceros, por eso usamos
-    // posición en el árbol DOM: hermanos antes de .barraTareas = prev, después = next.
-    const barra = document.querySelector('.barraTareas');
-    if (barra) {
-      let el = barra;
-      for (let depth = 0; depth < 6; depth++) {
-        const parent = el.parentElement;
-        if (!parent) break;
-        const children = Array.from(parent.children);
-        const idx = children.indexOf(el);
-
-        if (direction === 'prev' && idx > 0) {
-          // Buscar botón en hermanos ANTERIORES (DOM order)
-          for (let i = idx - 1; i >= 0; i--) {
-            const c = children[i];
-            const btn = (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button')
-              ? c : c.querySelector('button, [role="button"]');
-            if (btn) return btn;
-          }
-        }
-        if (direction === 'next' && idx < children.length - 1) {
-          // Buscar botón en hermanos POSTERIORES (DOM order)
-          for (let i = idx + 1; i < children.length; i++) {
-            const c = children[i];
-            const btn = (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button')
-              ? c : c.querySelector('button, [role="button"]');
-            if (btn) return btn;
-          }
-        }
-        el = parent; // subir un nivel
-      }
-    }
+    // Strategy 0 eliminada — causaba que se devolviera el botón incorrecto
+    // cuando el layout de simecal es [<][>][barraTareas] (ambos botones antes del label)
 
     // ── Strategy 1: texto exacto < > o símbolos ──────────────────────────────────
     const prevSymbols = ['<', '‹', '«', '←', 'prev', 'anterior'];

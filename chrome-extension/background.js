@@ -295,16 +295,16 @@ async function runExtraction() {
     for (let w = 0; w < weeksBack; w++) {
       if (!state.running) break;
       await waitIfPaused();
-      let navResult = await execInTab(state.tabId, 'NAV_PREV', {});
+      // El content script ya reintenta internamente 4×400ms antes de fallar
+      const navResult = await execInTab(state.tabId, 'NAV_PREV', {});
       if (!navResult || !navResult.ok) {
-        await sleep(800);
-        navResult = await execInTab(state.tabId, 'NAV_PREV', {});
-        if (!navResult || !navResult.ok) {
-          const diag = navResult ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}` : 'sin respuesta';
-          addLog(`WARN: no se pudo navegar atrás (semana ${w + 1}) — ${diag}`);
-        }
+        const diag = navResult
+          ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}`
+          : 'sin respuesta';
+        addLog(`WARN: no se pudo navegar atrás (paso ${w + 1}/${weeksBack}) — ${diag}`);
       }
-      await sleep(700);
+      // 1200ms: tiempo suficiente para que Vue renderice la semana anterior
+      await sleep(1200);
     }
 
     await sleep(2000);
@@ -366,15 +366,12 @@ async function runExtraction() {
 
       // Navigate to next week (unless last)
       if (wi < weeksFromStartToEnd(state.startDate, state.endDate)) {
-        let navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
+        // El content script ya reintenta internamente 4×400ms antes de fallar
+        const navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
         if (!navNext || !navNext.ok) {
-          // Retry once after a short wait (el botón puede no estar renderizado aún)
-          await sleep(1200);
-          navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
-          if (!navNext || !navNext.ok) {
-            addLog(`  WARN: no se pudo navegar adelante (semana ${wi + 1})`);
-          }
+          addLog(`  WARN: no se pudo navegar adelante (semana ${wi + 1})`);
         }
+        // 1500ms para que Vue renderice la semana siguiente antes de extraer
         await sleep(1500);
       }
     }

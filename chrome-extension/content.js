@@ -108,29 +108,43 @@
 
         // ── Navigation: Previous week ────────────────────────────────────
         case 'NAV_PREV': {
-          const btn = findNavButton('prev');
-          if (btn) {
-            btn.click();
-            sendResponse({ ok: true, btnText: btn.textContent.trim().substring(0, 40), btnClass: btn.className.substring(0, 80) });
-          } else {
-            // Diagnóstico: cuántos botones hay antes de .barraTareas
+          // Reintentar hasta 4 veces con 400ms de espera — por si Vue está en transición
+          (async () => {
+            for (let attempt = 0; attempt < 4; attempt++) {
+              const btn = findNavButton('prev');
+              if (btn) {
+                btn.click();
+                sendResponse({ ok: true, attempt, btnClass: btn.className.substring(0, 80) });
+                return;
+              }
+              await new Promise(r => setTimeout(r, 400));
+            }
+            // Diagnóstico final si todos los intentos fallaron
             const barra2 = document.querySelector('.barraTareas');
             const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
-            const beforeCount = barra2 ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length : -1;
-            sendResponse({ ok: false, error: 'Prev button not found', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
-          }
+            const beforeCount = barra2
+              ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length
+              : -1;
+            sendResponse({ ok: false, error: 'Prev button not found after 4 attempts', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
+          })();
           break;
         }
 
         // ── Navigation: Next week ────────────────────────────────────────
         case 'NAV_NEXT': {
-          const btn = findNavButton('next');
-          if (btn) {
-            btn.click();
-            sendResponse({ ok: true, btnText: btn.textContent.trim().substring(0, 40), btnClass: btn.className.substring(0, 80) });
-          } else {
-            sendResponse({ ok: false, error: 'Next button not found' });
-          }
+          // Reintentar hasta 4 veces con 400ms de espera
+          (async () => {
+            for (let attempt = 0; attempt < 4; attempt++) {
+              const btn = findNavButton('next');
+              if (btn) {
+                btn.click();
+                sendResponse({ ok: true, attempt, btnClass: btn.className.substring(0, 80) });
+                return;
+              }
+              await new Promise(r => setTimeout(r, 400));
+            }
+            sendResponse({ ok: false, error: 'Next button not found after 4 attempts' });
+          })();
           break;
         }
 

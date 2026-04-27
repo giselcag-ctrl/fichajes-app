@@ -300,7 +300,8 @@ async function runExtraction() {
         await sleep(800);
         navResult = await execInTab(state.tabId, 'NAV_PREV', {});
         if (!navResult || !navResult.ok) {
-          addLog(`WARN: no se pudo navegar atrás (semana ${w + 1})`);
+          const diag = navResult ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}` : 'sin respuesta';
+          addLog(`WARN: no se pudo navegar atrás (semana ${w + 1}) — ${diag}`);
         }
       }
       await sleep(700);

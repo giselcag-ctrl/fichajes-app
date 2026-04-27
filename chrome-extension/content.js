@@ -111,9 +111,13 @@
           const btn = findNavButton('prev');
           if (btn) {
             btn.click();
-            sendResponse({ ok: true });
+            sendResponse({ ok: true, btnText: btn.textContent.trim().substring(0, 40), btnClass: btn.className.substring(0, 80) });
           } else {
-            sendResponse({ ok: false, error: 'Prev button not found' });
+            // Diagnóstico: cuántos botones hay antes de .barraTareas
+            const barra2 = document.querySelector('.barraTareas');
+            const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
+            const beforeCount = barra2 ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length : -1;
+            sendResponse({ ok: false, error: 'Prev button not found', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
           }
           break;
         }
@@ -123,7 +127,7 @@
           const btn = findNavButton('next');
           if (btn) {
             btn.click();
-            sendResponse({ ok: true });
+            sendResponse({ ok: true, btnText: btn.textContent.trim().substring(0, 40), btnClass: btn.className.substring(0, 80) });
           } else {
             sendResponse({ ok: false, error: 'Next button not found' });
           }
@@ -375,8 +379,24 @@
   function findNavButton(direction) {
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
 
-    // Strategy 0 eliminada — causaba que se devolviera el botón incorrecto
-    // cuando el layout de simecal es [<][>][barraTareas] (ambos botones antes del label)
+    // ── Strategy 0: orden DOM relativo a .barraTareas ────────────────────────────
+    // Layout confirmado: [HOY][📅][<][>][barraTareas]
+    // Ambos botones de nav están ANTES del label en el DOM.
+    // Usamos compareDocumentPosition para detectar orden sin getBoundingClientRect
+    // (que devuelve 0 en tabs inactivas).
+    const barra = document.querySelector('.barraTareas');
+    if (barra) {
+      // Botones que aparecen ANTES de .barraTareas en el documento
+      const before = allButtons.filter(btn =>
+        barra.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_PRECEDING
+      );
+      if (before.length >= 2) {
+        // Los últimos 2 botones antes del label son [<] y [>]
+        // before[last-1] = < (prev),  before[last] = > (next)
+        if (direction === 'prev') return before[before.length - 2];
+        else                      return before[before.length - 1];
+      }
+    }
 
     // ── Strategy 1: texto exacto < > o símbolos ──────────────────────────────────
     const prevSymbols = ['<', '‹', '«', '←', 'prev', 'anterior'];
@@ -408,6 +428,7 @@
     }
 
     // ── Strategy 3: posicional — dos botones pequeños cerca entre sí ─────────────
+    // (sólo funciona si la pestaña está activa/visible)
     const small = allButtons.filter(btn => {
       const r = btn.getBoundingClientRect();
       return r.width > 0 && r.width < 80 && r.height > 0 && r.height < 80;

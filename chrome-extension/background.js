@@ -219,6 +219,15 @@ async function runExtraction() {
     return;
   }
 
+  // Cerrar cualquier pestaña de simecal que haya quedado abierta de ejecuciones anteriores
+  try {
+    const oldTabs = await chrome.tabs.query({ url: 'https://intranet.preprod.simecal.com/*' });
+    for (const t of oldTabs) {
+      try { await chrome.tabs.remove(t.id); } catch (e) {}
+    }
+    if (oldTabs.length > 0) addLog(`Cerradas ${oldTabs.length} pestaña(s) antiguas de simecal.`);
+  } catch (e) {}
+
   // Open the tab for the first employee
   const firstEmp = state.employees[0];
   const url = `https://intranet.preprod.simecal.com/#!/calendario/${firstEmp}/`;
@@ -324,9 +333,14 @@ async function runExtraction() {
 
       // Navigate to next week (unless last)
       if (wi < weeksFromStartToEnd(state.startDate, state.endDate)) {
-        const navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
+        let navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
         if (!navNext || !navNext.ok) {
-          addLog(`  WARN: no se pudo navegar adelante`);
+          // Retry once after a short wait (el botón puede no estar renderizado aún)
+          await sleep(1200);
+          navNext = await execInTab(state.tabId, 'NAV_NEXT', {});
+          if (!navNext || !navNext.ok) {
+            addLog(`  WARN: no se pudo navegar adelante (semana ${wi + 1})`);
+          }
         }
         await sleep(1500);
       }

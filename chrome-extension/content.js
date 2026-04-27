@@ -373,52 +373,66 @@
   // ── Navigation helpers ─────────────────────────────────────────────────────
 
   function findNavButton(direction) {
-    // Strategy 1: look for buttons with < > text
-    const allButtons = Array.from(document.querySelectorAll('button, [role="button"], a[class*="nav"], [class*="arrow"]'));
+    const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
 
-    const prevSymbols = ['<', '‹', '«', '←', 'prev', 'anterior', 'chevron-left', 'arrow-left'];
-    const nextSymbols = ['>', '›', '»', '→', 'next', 'siguiente', 'chevron-right', 'arrow-right'];
+    // ── Strategy 0: botones adyacentes a .barraTareas (header del calendario semanal) ──
+    // La barra de tareas es el título de la semana; sus botones hermanos son los de nav.
+    const barra = document.querySelector('.barraTareas');
+    if (barra) {
+      // Buscar en el ancestro más cercano que tenga botones
+      let ancestor = barra.parentElement;
+      for (let depth = 0; depth < 5 && ancestor; depth++, ancestor = ancestor.parentElement) {
+        const btns = Array.from(ancestor.querySelectorAll('button, [role="button"]'))
+          .filter(b => {
+            const rect = b.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          });
+        if (btns.length >= 2) {
+          btns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+          const candidate = direction === 'prev' ? btns[0] : btns[btns.length - 1];
+          // Verificar que no sea el mismo botón para ambas direcciones
+          if (btns[0] !== btns[btns.length - 1]) return candidate;
+        }
+      }
+    }
+
+    // ── Strategy 1: texto exacto < > o símbolos ──────────────────────────────────
+    const prevSymbols = ['<', '‹', '«', '←', 'prev', 'anterior'];
+    const nextSymbols = ['>', '›', '»', '→', 'next', 'siguiente'];
     const symbols = direction === 'prev' ? prevSymbols : nextSymbols;
 
     for (const btn of allButtons) {
-      const text = btn.textContent.trim().toLowerCase();
-      const title = (btn.getAttribute('title') || '').toLowerCase();
+      const text      = btn.textContent.trim().toLowerCase();
+      const title     = (btn.getAttribute('title') || '').toLowerCase();
       const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-      const classList = btn.className.toLowerCase();
-
       for (const sym of symbols) {
-        if (text === sym || title.includes(sym) || ariaLabel.includes(sym) || classList.includes(sym)) {
-          return btn;
-        }
+        if (text === sym || title.includes(sym) || ariaLabel.includes(sym)) return btn;
       }
     }
 
-    // Strategy 2: look for material icons or SVG chevrons inside buttons
+    // ── Strategy 2: iconos Material Design (mdi-chevron-left / mdi-chevron-right) ──
+    const mdiClass = direction === 'prev' ? 'mdi-chevron-left' : 'mdi-chevron-right';
+    const mdiEl = document.querySelector(`[class*="${mdiClass}"]`);
+    if (mdiEl) {
+      const btn = mdiEl.closest('button') || mdiEl.closest('[role="button"]');
+      if (btn) return btn;
+    }
+    // Material Icons font (iconText = "chevron_left" / "chevron_right")
+    const miText = direction === 'prev' ? 'chevron_left' : 'chevron_right';
     for (const btn of allButtons) {
-      const icons = btn.querySelectorAll('i, svg, mat-icon, [class*="icon"]');
-      for (const icon of icons) {
-        const iconText = icon.textContent.trim().toLowerCase();
-        const iconClass = icon.className.toLowerCase();
-        const symbols2 = direction === 'prev'
-          ? ['chevron_left', 'arrow_back', 'navigate_before', 'left']
-          : ['chevron_right', 'arrow_forward', 'navigate_next', 'right'];
-        for (const sym of symbols2) {
-          if (iconText.includes(sym) || iconClass.includes(sym)) return btn;
-        }
+      for (const icon of btn.querySelectorAll('i, .v-icon, mat-icon')) {
+        if ((icon.textContent || '').trim().toLowerCase() === miText) return btn;
       }
     }
 
-    // Strategy 3: positional — find two adjacent buttons near each other,
-    // leftmost = prev, rightmost = next
-    const navCandidates = allButtons.filter(btn => {
-      const rect = btn.getBoundingClientRect();
-      return rect.width > 0 && rect.width < 100 && rect.height > 0 && rect.height < 100;
+    // ── Strategy 3: posicional — dos botones pequeños cerca entre sí ─────────────
+    const small = allButtons.filter(btn => {
+      const r = btn.getBoundingClientRect();
+      return r.width > 0 && r.width < 80 && r.height > 0 && r.height < 80;
     });
-
-    if (navCandidates.length >= 2) {
-      navCandidates.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-      if (direction === 'prev') return navCandidates[0];
-      if (direction === 'next') return navCandidates[navCandidates.length - 1];
+    if (small.length >= 2) {
+      small.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+      return direction === 'prev' ? small[0] : small[small.length - 1];
     }
 
     return null;
@@ -504,12 +518,10 @@
       input.value = code;
     }
 
-    // Dispatch events to trigger Vue/Angular watchers
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    // Dispatch events to trigger Vue reactivity (SIN Enter — evita navegación no deseada)
+    input.dispatchEvent(new Event('input',  { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
-    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter' }));
-    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', keyCode: 13 }));
-    input.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, key: 'Enter', keyCode: 13 }));
+    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Tab' }));
 
     return true;
   }

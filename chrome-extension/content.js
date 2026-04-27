@@ -375,42 +375,37 @@
   function findNavButton(direction) {
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
 
-    // ── Strategy 0: botones en la misma fila que .barraTareas ────────────────────
-    // .barraTareas = label de la semana ("S 17 - Abril 2026").
-    // El botón PREV está a su izquierda, NEXT a su derecha, en la misma fila horizontal.
+    // ── Strategy 0: traversal DOM desde .barraTareas (sin depender de layout) ────
+    // En pestañas inactivas getBoundingClientRect() devuelve ceros, por eso usamos
+    // posición en el árbol DOM: hermanos antes de .barraTareas = prev, después = next.
     const barra = document.querySelector('.barraTareas');
     if (barra) {
-      const barraRect    = barra.getBoundingClientRect();
-      const barraVCenter = (barraRect.top + barraRect.bottom) / 2;
+      let el = barra;
+      for (let depth = 0; depth < 6; depth++) {
+        const parent = el.parentElement;
+        if (!parent) break;
+        const children = Array.from(parent.children);
+        const idx = children.indexOf(el);
 
-      // Todos los botones visibles en la misma banda vertical (±40px del centro)
-      const rowBtns = Array.from(document.querySelectorAll('button, [role="button"]'))
-        .filter(b => {
-          const r = b.getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return false;
-          const vc = (r.top + r.bottom) / 2;
-          return Math.abs(vc - barraVCenter) < 40;
-        });
-
-      if (direction === 'prev') {
-        // Botón más cercano a la izquierda de .barraTareas
-        const left = rowBtns.filter(b => b.getBoundingClientRect().right <= barraRect.left + 20);
-        if (left.length > 0) {
-          left.sort((a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
-          return left[0];
+        if (direction === 'prev' && idx > 0) {
+          // Buscar botón en hermanos ANTERIORES (DOM order)
+          for (let i = idx - 1; i >= 0; i--) {
+            const c = children[i];
+            const btn = (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button')
+              ? c : c.querySelector('button, [role="button"]');
+            if (btn) return btn;
+          }
         }
-      } else {
-        // Botón más cercano a la derecha de .barraTareas
-        const right = rowBtns.filter(b => b.getBoundingClientRect().left >= barraRect.right - 20);
-        if (right.length > 0) {
-          right.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-          return right[0];
+        if (direction === 'next' && idx < children.length - 1) {
+          // Buscar botón en hermanos POSTERIORES (DOM order)
+          for (let i = idx + 1; i < children.length; i++) {
+            const c = children[i];
+            const btn = (c.tagName === 'BUTTON' || c.getAttribute('role') === 'button')
+              ? c : c.querySelector('button, [role="button"]');
+            if (btn) return btn;
+          }
         }
-      }
-      // Fallback: el más a la izquierda / derecha de la fila
-      if (rowBtns.length >= 2) {
-        rowBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-        return direction === 'prev' ? rowBtns[0] : rowBtns[rowBtns.length - 1];
+        el = parent; // subir un nivel
       }
     }
 

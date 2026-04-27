@@ -5,6 +5,22 @@
 
 'use strict';
 
+// ── Keepalive: evita que Chrome mate el Service Worker durante la extracción ───
+// Chrome MV3 termina los SW tras ~30s de inactividad. El alarm se dispara cada
+// 20s y hace un acceso a storage, lo que reinicia el temporizador de inactividad.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'keepalive') {
+    chrome.storage.local.get('simecalKeepalive', () => {}); // dummy read
+  }
+});
+
+function startKeepalive() {
+  chrome.alarms.create('keepalive', { periodInMinutes: 0.33 }); // cada ~20s
+}
+function stopKeepalive() {
+  chrome.alarms.clear('keepalive');
+}
+
 // ── State ──────────────────────────────────────────────────────────────────────
 const DEFAULT_STATE = {
   running: false,
@@ -135,11 +151,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             capturedApiData: []
           };
           state.weeksTotal = weeksFromStartToEnd(state.startDate, state.endDate) + 1;
+          startKeepalive(); // mantener SW vivo durante toda la extracción
           sendResponse({ ok: true });
           // Start async — do NOT await inside the listener
           runExtraction().catch(e => {
             state.running = false;
             state.error = e.message;
+            stopKeepalive();
             addLog(`ERROR fatal: ${e.message}`);
           });
           break;
@@ -162,6 +180,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case 'STOP_EXTRACTION': {
           state.running = false;
           state.paused  = false;
+          stopKeepalive();
           addLog('Extracción detenida por el usuario.');
           if (state.tabId) {
             try { await chrome.tabs.remove(state.tabId); } catch (e) {}
@@ -355,7 +374,9 @@ async function runExtraction() {
 
   // ── Wrap up ──────────────────────────────────────────────────────────────
   state.running  = false;
+  state.running  = false;
   state.complete = true;
+  stopKeepalive();
   addLog('✓ Extracción completada.');
 
   if (state.tabId) {

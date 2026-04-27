@@ -375,24 +375,42 @@
   function findNavButton(direction) {
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
 
-    // ── Strategy 0: botones adyacentes a .barraTareas (header del calendario semanal) ──
-    // La barra de tareas es el título de la semana; sus botones hermanos son los de nav.
+    // ── Strategy 0: botones en la misma fila que .barraTareas ────────────────────
+    // .barraTareas = label de la semana ("S 17 - Abril 2026").
+    // El botón PREV está a su izquierda, NEXT a su derecha, en la misma fila horizontal.
     const barra = document.querySelector('.barraTareas');
     if (barra) {
-      // Buscar en el ancestro más cercano que tenga botones
-      let ancestor = barra.parentElement;
-      for (let depth = 0; depth < 5 && ancestor; depth++, ancestor = ancestor.parentElement) {
-        const btns = Array.from(ancestor.querySelectorAll('button, [role="button"]'))
-          .filter(b => {
-            const rect = b.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-          });
-        if (btns.length >= 2) {
-          btns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-          const candidate = direction === 'prev' ? btns[0] : btns[btns.length - 1];
-          // Verificar que no sea el mismo botón para ambas direcciones
-          if (btns[0] !== btns[btns.length - 1]) return candidate;
+      const barraRect    = barra.getBoundingClientRect();
+      const barraVCenter = (barraRect.top + barraRect.bottom) / 2;
+
+      // Todos los botones visibles en la misma banda vertical (±40px del centro)
+      const rowBtns = Array.from(document.querySelectorAll('button, [role="button"]'))
+        .filter(b => {
+          const r = b.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          const vc = (r.top + r.bottom) / 2;
+          return Math.abs(vc - barraVCenter) < 40;
+        });
+
+      if (direction === 'prev') {
+        // Botón más cercano a la izquierda de .barraTareas
+        const left = rowBtns.filter(b => b.getBoundingClientRect().right <= barraRect.left + 20);
+        if (left.length > 0) {
+          left.sort((a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+          return left[0];
         }
+      } else {
+        // Botón más cercano a la derecha de .barraTareas
+        const right = rowBtns.filter(b => b.getBoundingClientRect().left >= barraRect.right - 20);
+        if (right.length > 0) {
+          right.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+          return right[0];
+        }
+      }
+      // Fallback: el más a la izquierda / derecha de la fila
+      if (rowBtns.length >= 2) {
+        rowBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        return direction === 'prev' ? rowBtns[0] : rowBtns[rowBtns.length - 1];
       }
     }
 

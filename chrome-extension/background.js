@@ -276,11 +276,15 @@ async function runExtraction() {
     for (let w = 0; w < weeksBack; w++) {
       if (!state.running) break;
       await waitIfPaused();
-      const navResult = await execInTab(state.tabId, 'NAV_PREV', {});
+      let navResult = await execInTab(state.tabId, 'NAV_PREV', {});
       if (!navResult || !navResult.ok) {
-        addLog(`WARN: no se pudo navegar atrás (semana ${w + 1})`);
+        await sleep(800);
+        navResult = await execInTab(state.tabId, 'NAV_PREV', {});
+        if (!navResult || !navResult.ok) {
+          addLog(`WARN: no se pudo navegar atrás (semana ${w + 1})`);
+        }
       }
-      await sleep(600);
+      await sleep(700);
     }
 
     await sleep(2000);

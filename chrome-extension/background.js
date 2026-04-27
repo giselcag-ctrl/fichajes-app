@@ -374,7 +374,6 @@ async function runExtraction() {
 
   // ── Wrap up ──────────────────────────────────────────────────────────────
   state.running  = false;
-  state.running  = false;
   state.complete = true;
   stopKeepalive();
   addLog('✓ Extracción completada.');
@@ -387,13 +386,42 @@ async function runExtraction() {
   await saveStateToStorage();
   broadcastState();
 
-  // System notification
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/icon48.png',
-    title: 'SIMECAL Extractor',
-    message: `Extracción completada: ${state.employees.length} empleados procesados.`
-  });
+  // ── Auto-envío a fichajes-app ─────────────────────────────────────────
+  const appUrl = (state.appUrl || '').replace(/\/$/, '');
+  if (appUrl && Object.keys(state.data).length > 0) {
+    addLog(`Enviando datos a ${appUrl}...`);
+    try {
+      const resp = await fetch(`${appUrl}/api/calendario-data`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ data: state.data, extractedAt: new Date().toISOString() })
+      });
+      if (resp.ok) {
+        addLog('✓ Datos enviados automáticamente a fichajes-app.');
+        chrome.notifications.create({
+          type: 'basic', iconUrl: 'icons/icon48.png',
+          title: 'SIMECAL Extractor',
+          message: `✓ ${state.employees.length} empleados enviados a fichajes-app.`
+        });
+      } else {
+        addLog(`WARN: Error al enviar (${resp.status}) — usa el botón manual.`);
+      }
+    } catch (e) {
+      addLog(`WARN: No se pudo conectar con fichajes-app: ${e.message}`);
+      chrome.notifications.create({
+        type: 'basic', iconUrl: 'icons/icon48.png',
+        title: 'SIMECAL Extractor',
+        message: `Extracción OK pero no se pudo enviar. Usa "ENVIAR A FICHAJES-APP".`
+      });
+    }
+  } else {
+    chrome.notifications.create({
+      type: 'basic', iconUrl: 'icons/icon48.png',
+      title: 'SIMECAL Extractor',
+      message: `Extracción completada: ${state.employees.length} empleados.`
+    });
+  }
+  broadcastState();
 }
 
 // ── Tab helpers ─────────────────────────────────────────────────────────────────

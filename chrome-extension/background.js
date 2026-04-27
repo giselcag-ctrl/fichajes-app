@@ -305,6 +305,10 @@ async function runExtraction() {
           ? `beforeCount=${navResult.beforeCount} totalBtns=${navResult.totalButtons} hasBarra=${navResult.hasBarraTareas}`
           : 'sin respuesta';
         addLog(`WARN: no se pudo navegar atrás (paso ${w + 1}/${weeksBack}) — ${diag}`);
+        if (navResult && navResult.pageTitle !== undefined) {
+          addLog(`  Página: "${navResult.pageTitle}" | URL: ${(navResult.currentUrl||'').substring(30,80)}`);
+          addLog(`  Contenido: "${(navResult.bodySnippet||'').substring(0,120)}"`);
+        }
         // Recuperación: página rota (hasBarra=false) → recargar y reiniciar retroceso
         if (navResult && navResult.hasBarraTareas === false && navRecoveries < 2) {
           navRecoveries++;

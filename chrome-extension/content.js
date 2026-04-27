@@ -113,7 +113,11 @@
             const barraReady = await waitForBarra(8000);
             if (!barraReady) {
               const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
-              sendResponse({ ok: false, error: 'barraTareas not found before click', beforeCount: -1, totalButtons: allBtns2.length, hasBarraTareas: false });
+              // Diagnóstico: capturar qué hay en la página para identificar el estado
+              const pageTitle = document.title || '';
+              const bodySnippet = (document.body ? document.body.innerText : '').replace(/\s+/g,' ').substring(0, 300);
+              const currentUrl = window.location.href;
+              sendResponse({ ok: false, error: 'barraTareas not found before click', beforeCount: -1, totalButtons: allBtns2.length, hasBarraTareas: false, pageTitle, bodySnippet, currentUrl });
               return;
             }
 

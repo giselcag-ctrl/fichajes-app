@@ -108,42 +108,68 @@
 
         // ── Navigation: Previous week ────────────────────────────────────
         case 'NAV_PREV': {
-          // Reintentar hasta 4 veces con 400ms de espera — por si Vue está en transición
           (async () => {
+            // 1. Esperar a que .barraTareas esté presente antes de buscar el botón
+            //    (puede no estarlo si llegamos justo durante una transición de Vue)
+            await waitForBarra(5000);
+
+            // 2. Buscar y clickear el botón (hasta 4 intentos)
+            let clicked = false;
+            let btnInfo = '';
             for (let attempt = 0; attempt < 4; attempt++) {
               const btn = findNavButton('prev');
               if (btn) {
+                btnInfo = btn.className.substring(0, 80);
                 btn.click();
-                sendResponse({ ok: true, attempt, btnClass: btn.className.substring(0, 80) });
-                return;
+                clicked = true;
+                break;
               }
               await new Promise(r => setTimeout(r, 400));
             }
-            // Diagnóstico final si todos los intentos fallaron
-            const barra2 = document.querySelector('.barraTareas');
-            const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
-            const beforeCount = barra2
-              ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length
-              : -1;
-            sendResponse({ ok: false, error: 'Prev button not found after 4 attempts', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
+
+            if (!clicked) {
+              const barra2   = document.querySelector('.barraTareas');
+              const allBtns2 = Array.from(document.querySelectorAll('button, [role="button"]'));
+              const beforeCount = barra2
+                ? allBtns2.filter(b => barra2.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING).length
+                : -1;
+              sendResponse({ ok: false, error: 'Prev button not found', beforeCount, totalButtons: allBtns2.length, hasBarraTareas: !!barra2 });
+              return;
+            }
+
+            // 3. Esperar a que .barraTareas VUELVA al DOM tras el click
+            //    (el calendario puede desaparecer brevemente durante la transición)
+            const barraBack = await waitForBarra(10000);
+            sendResponse({ ok: true, btnClass: btnInfo, barraReady: barraBack });
           })();
           break;
         }
 
         // ── Navigation: Next week ────────────────────────────────────────
         case 'NAV_NEXT': {
-          // Reintentar hasta 4 veces con 400ms de espera
           (async () => {
+            await waitForBarra(5000);
+
+            let clicked = false;
+            let btnInfo = '';
             for (let attempt = 0; attempt < 4; attempt++) {
               const btn = findNavButton('next');
               if (btn) {
+                btnInfo = btn.className.substring(0, 80);
                 btn.click();
-                sendResponse({ ok: true, attempt, btnClass: btn.className.substring(0, 80) });
-                return;
+                clicked = true;
+                break;
               }
               await new Promise(r => setTimeout(r, 400));
             }
-            sendResponse({ ok: false, error: 'Next button not found after 4 attempts' });
+
+            if (!clicked) {
+              sendResponse({ ok: false, error: 'Next button not found' });
+              return;
+            }
+
+            const barraBack = await waitForBarra(10000);
+            sendResponse({ ok: true, btnClass: btnInfo, barraReady: barraBack });
           })();
           break;
         }
@@ -389,6 +415,20 @@
   }
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Espera a que .barraTareas esté en el DOM Y tenga un label de semana válido ("S N").
+   * Retorna true si apareció dentro del timeout, false si se agotó el tiempo.
+   */
+  async function waitForBarra(timeoutMs) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const barra = document.querySelector('.barraTareas');
+      if (barra && /S\s+\d+/i.test(barra.textContent || '')) return true;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    return false;
+  }
 
   function findNavButton(direction) {
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));

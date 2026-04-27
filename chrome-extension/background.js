@@ -297,7 +297,8 @@ async function runExtraction() {
     for (let w = 0; w < weeksBack; w++) {
       if (!state.running) break;
       await waitIfPaused();
-      // El content script ya reintenta internamente 4×400ms antes de fallar
+      // NAV_PREV espera internamente a que .barraTareas reaparezca (hasta 10s)
+      // antes de devolver ok:true — el calendario ya está listo cuando retorna.
       const navResult = await execInTab(state.tabId, 'NAV_PREV', {});
       if (!navResult || !navResult.ok) {
         const diag = navResult
@@ -305,8 +306,8 @@ async function runExtraction() {
           : 'sin respuesta';
         addLog(`WARN: no se pudo navegar atrás (paso ${w + 1}/${weeksBack}) — ${diag}`);
       }
-      // 1200ms: tiempo suficiente para que Vue renderice la semana anterior
-      await sleep(1200);
+      // Pequeña pausa adicional de seguridad tras confirmar que el calendario está listo
+      await sleep(400);
     }
 
     await sleep(2000);

@@ -526,6 +526,11 @@ app.get('/api/analizar-empleado', async (req, res) => {
     const doc = await db.collection('calendario_datos').findOne({ empleado });
     if (!doc) return res.status(404).json({ ok: false, error: `No hay datos de ${empleado}` });
 
+    // Cargar tareas manuales para este empleado
+    const tareasRaw = await db.collection('tareas_manuales').find({ empleado }).toArray();
+    const tareasMap = {};
+    tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
+
     const semanas = doc.semanas || [];
 
     // ── Pre-computar datos enriquecidos ──────────────────────────────────
@@ -545,19 +550,17 @@ app.get('/api/analizar-empleado', async (req, res) => {
         const fichajeNull = fichaje_h === null || fichaje_h === 0;
         const sinDatos    = !isWeekend && !justificado && fichajeNull && (d.events || []).length === 0;
 
-        // ── Horas de tareas/actividades: badge negro (d.previsto) ────────
-        // El badge negro del calendario = suma de horas en tareas ese día.
-        // Es más fiable que intentar parsear duraciones del texto de eventos.
-        const tareas_h_badge = parseTpcHours(d.previsto);
-        // Fallback: suma de duraciones parseadas de los eventos individuales
+        // ── Horas de tareas: manual > badge negro > eventos ──────────────
+        const tareas_h_manual = (fecha && tareasMap[fecha] !== undefined) ? tareasMap[fecha] : null;
+        const tareas_h_badge  = parseTpcHours(d.previsto);
         const eventos = (d.events || []).map(ev => ({
           texto: ev.substring(0, 80),
           horas: parseEventHours(ev) || null
         }));
         const tareas_h_eventos = eventos.reduce((acc, ev) => acc + (ev.horas || 0), 0);
-        // Usar badge negro si existe; si no, intentar con eventos
-        const tareas_h_raw = tareas_h_badge !== null ? tareas_h_badge
-                           : tareas_h_eventos > 0    ? tareas_h_eventos
+        const tareas_h_raw = tareas_h_manual !== null ? tareas_h_manual
+                           : tareas_h_badge  !== null ? tareas_h_badge
+                           : tareas_h_eventos > 0     ? tareas_h_eventos
                            : null;
         const tareas_h = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
         // Diferencia solo en días laborables activos (excluye festivos/vacaciones)
@@ -733,7 +736,7 @@ function deriveDate(weekStart, weekday) {
 }
 
 // Helper: computa métricas para un documento de calendario
-function computeCalResumen(doc) {
+function computeCalResumen(doc, tareasMap = {}) {
   const semanas = doc.semanas || [];
   let totalFichaje_h = 0, totalTareas_h = 0;
   let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
@@ -754,10 +757,12 @@ function computeCalResumen(doc) {
       const fichajeNull = fichaje_h === null || fichaje_h === 0;
       const sinDatos    = !isWeekend && !justificado && fichajeNull && (d.events || []).length === 0;
 
+      const tareas_h_manual = (fecha && tareasMap[fecha] !== undefined) ? tareasMap[fecha] : null;
       const tareas_h_badge  = parseTpcHours(d.previsto);
       const tareas_h_evts   = (d.events || []).reduce((a, ev) => a + parseEventHours(ev), 0);
-      const tareas_h_raw    = tareas_h_badge !== null ? tareas_h_badge
-                            : tareas_h_evts > 0       ? tareas_h_evts : null;
+      const tareas_h_raw    = tareas_h_manual !== null ? tareas_h_manual
+                            : tareas_h_badge  !== null ? tareas_h_badge
+                            : tareas_h_evts   > 0      ? tareas_h_evts : null;
       const tareas_h        = tareas_h_raw !== null ? Math.round(tareas_h_raw * 100) / 100 : null;
       // Diferencia solo en días laborables activos (no festivos, no sinDatos)
       const diferencia_h    = (!justificado && !sinDatos && fichaje_h !== null && tareas_h !== null)
@@ -841,9 +846,15 @@ app.get('/api/resumen-calendario', async (req, res) => {
   try {
     if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
     const docs = await db.collection('calendario_datos').find({}).toArray();
+    // Cargar tareas manuales y agrupar por empleado
+    const allTareas = await db.collection('tareas_manuales').find({}).toArray();
+    const tareasMapByEmp = {};
+    allTareas.forEach(t => {
+      if (!tareasMapByEmp[t.empleado]) tareasMapByEmp[t.empleado] = {};
+      tareasMapByEmp[t.empleado][t.fecha] = t.horas;
+    });
     const empleados = docs.map(doc => {
-      const r = computeCalResumen(doc);
-      // Sólo datos resumen (sin semanasData para que la respuesta sea ligera)
+      const r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
       const { semanasData, ...summary } = r;
       return summary;
     });
@@ -860,8 +871,126 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
     const empCode = req.params.empleado.toUpperCase();
     const doc = await db.collection('calendario_datos').findOne({ empleado: empCode });
     if (!doc) return res.status(404).json({ ok: false, error: `No hay datos de ${empCode}` });
-    const result = computeCalResumen(doc);
+    const tareasRaw = await db.collection('tareas_manuales').find({ empleado: empCode }).toArray();
+    const tareasMap = {};
+    tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
+    const result = computeCalResumen(doc, tareasMap);
     res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── Tareas Manuales ──────────────────────────────────────────────────────
+// Formato Excel esperado: columna A = Empleado, B = Fecha, C = Horas
+// Fechas aceptadas: DD/MM/YYYY, YYYY-MM-DD o número serial de Excel
+
+// POST /api/tareas-manuales  (multipart, campo "file")
+app.post('/api/tareas-manuales', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ ok: false, error: 'No se recibió archivo' });
+
+    const wb    = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+    const records = [];
+    let skipped = 0;
+
+    for (const row of rows) {
+      if (!row || row.length < 3) continue;
+      const c0 = String(row[0] || '').trim();
+      const c1 = String(row[1] || '').trim();
+      const c2 = String(row[2] || '').trim();
+      if (!c0 || /^empleado|^emp|^c[oó]digo/i.test(c0)) continue; // cabecera
+
+      const empleado = c0.toUpperCase();
+
+      // Parse fecha → YYYY-MM-DD
+      let fecha = null;
+      if (typeof row[1] === 'number') {
+        const d = XLSX.SSF.parse_date_code(row[1]);
+        fecha = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      } else {
+        const m1 = c1.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m1) fecha = `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+        const m2 = c1.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+        if (!fecha && m2) fecha = `${m2[1]}-${m2[2].padStart(2,'0')}-${m2[3].padStart(2,'0')}`;
+      }
+      if (!fecha) { skipped++; continue; }
+
+      // Parse horas (decimal o "H:MM")
+      let horas = null;
+      if (typeof row[2] === 'number') {
+        horas = Math.round(row[2] * 100) / 100;
+      } else {
+        const mTime = c2.match(/^(\d+):(\d{2})$/);
+        if (mTime) horas = parseInt(mTime[1]) + parseInt(mTime[2]) / 60;
+        else       horas = parseFloat(c2.replace(',', '.'));
+      }
+      if (horas === null || isNaN(horas) || horas < 0) { skipped++; continue; }
+
+      records.push({ empleado, fecha, horas: Math.round(horas * 100) / 100 });
+    }
+
+    if (records.length === 0)
+      return res.status(400).json({ ok: false, error: 'No se encontraron registros válidos. Formato esperado: Empleado | Fecha | Horas' });
+
+    if (db) {
+      const ops = records.map(r => ({
+        updateOne: {
+          filter: { empleado: r.empleado, fecha: r.fecha },
+          update: { $set: { ...r, updatedAt: new Date() } },
+          upsert: true
+        }
+      }));
+      await db.collection('tareas_manuales').bulkWrite(ops);
+    }
+
+    // Resumen por empleado
+    const summary = {};
+    records.forEach(r => { summary[r.empleado] = (summary[r.empleado] || 0) + 1; });
+
+    res.json({ ok: true, total: records.length, skipped, summary });
+  } catch (e) {
+    console.error('/api/tareas-manuales POST error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GET /api/tareas-manuales  → resumen por empleado + últimos registros
+app.get('/api/tareas-manuales', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const docs = await db.collection('tareas_manuales')
+      .find({}).sort({ empleado: 1, fecha: 1 }).toArray();
+
+    const byEmp = {};
+    docs.forEach(d => {
+      if (!byEmp[d.empleado]) byEmp[d.empleado] = {
+        empleado: d.empleado, dias: 0, totalHoras: 0, fechaMin: d.fecha, fechaMax: d.fecha
+      };
+      const e = byEmp[d.empleado];
+      e.dias++;
+      e.totalHoras = Math.round((e.totalHoras + d.horas) * 100) / 100;
+      if (d.fecha < e.fechaMin) e.fechaMin = d.fecha;
+      if (d.fecha > e.fechaMax) e.fechaMax = d.fecha;
+    });
+
+    res.json({ ok: true, empleados: Object.values(byEmp), total: docs.length });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// DELETE /api/tareas-manuales/:empleado  (o "all" para borrar todo)
+app.delete('/api/tareas-manuales/:empleado', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const emp    = req.params.empleado.toUpperCase();
+    const filter = emp === 'ALL' ? {} : { empleado: emp };
+    const r = await db.collection('tareas_manuales').deleteMany(filter);
+    res.json({ ok: true, deleted: r.deletedCount });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

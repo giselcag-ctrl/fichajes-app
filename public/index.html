@@ -786,6 +786,23 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div id="page-calendario" class="page">
       <div class="animate-in" style="max-width:1200px;">
 
+        <!-- ── Barra de carga de tareas ── -->
+        <div id="cal-tareas-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:18px;">
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:180px;">
+            <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">Tareas manuales</span>
+            <span id="cal-tareas-bar-info" style="font-size:12px;color:var(--text2);">Cargando estado…</span>
+          </div>
+          <label style="cursor:pointer;display:inline-flex;">
+            <input type="file" id="cal-tareas-file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="calTareasUpload(this)">
+            <span class="btn btn-outline btn-sm" onclick="document.getElementById('cal-tareas-file').click()" style="gap:6px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Subir tareas
+            </span>
+          </label>
+          <span id="cal-tareas-bar-status" style="font-size:12px;display:none;"></span>
+          <a onclick="showPage('tareas')" href="#" style="font-size:11px;color:var(--text3);text-decoration:none;white-space:nowrap;">Gestionar →</a>
+        </div>
+
         <!-- ── CalModule: Resumen Calendario ── -->
         <div id="cal-module">
 
@@ -1274,7 +1291,7 @@ function showPage(name){
   ['resumen','emails','all-emails','pedidos','vacaciones','calendario','tareas','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name==='tareas')tareasLoadSummary();
   if(name==='historial')loadHistorial();
-  if(name==='calendario')CalModule.init();
+  if(name==='calendario'){CalModule.init();calTareasBarLoad();}
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){
@@ -3451,6 +3468,49 @@ function exportListaCSV() {
 window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, exportCSV, exportListaCSV };
 
 })(); // fin IIFE CalModule
+
+// ── Barra de tareas en página Calendario ─────────────────────────────────
+async function calTareasBarLoad() {
+  const info = document.getElementById('cal-tareas-bar-info');
+  if (!info) return;
+  try {
+    const r = await fetch('/api/tareas-manuales');
+    const d = await r.json();
+    if (!d.ok || !d.empleados || d.empleados.length === 0) {
+      info.innerHTML = '<span style="color:var(--amber);">⚠ Sin tareas cargadas — sube un Excel para ver diferencias</span>';
+    } else {
+      info.innerHTML = `<span style="color:var(--accent);">✓ ${d.empleados.length} empleados · ${d.total} días cargados</span>`;
+    }
+  } catch(e) {
+    info.textContent = 'No se pudo verificar tareas';
+  }
+}
+
+async function calTareasUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const st  = document.getElementById('cal-tareas-bar-status');
+  const info = document.getElementById('cal-tareas-bar-info');
+  st.style.display = 'inline';
+  st.style.color   = 'var(--text2)';
+  st.textContent   = '⏳ Subiendo…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('/api/tareas-manuales', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    st.style.color = 'var(--accent)';
+    st.textContent = `✓ ${d.total} registros cargados`;
+    input.value = '';
+    calTareasBarLoad();
+    // Recargar análisis con los nuevos datos
+    if (window.CalModule) CalModule.init();
+  } catch(e) {
+    st.style.color = 'var(--red)';
+    st.textContent = '✗ ' + e.message;
+  }
+}
 
 // ── Tareas Manuales ──────────────────────────────────────────────────────
 async function tareasUpload(input) {

@@ -834,6 +834,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
             <!-- KPIs -->
             <div class="cal-stats" id="cal-kpis"></div>
+            <div style="border-top:1px solid var(--cal-border);margin-bottom:28px;opacity:.5"></div>
 
             <!-- Vista Semanal -->
             <div id="cal-v-semanal">
@@ -1178,7 +1179,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-vbtn:hover{color:var(--cal-text);background:rgba(255,255,255,.05)}
 .cal-vbtn.active{background:var(--cal-green-d);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.35)}
 /* KPI cards */
-.cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:24px}
+.cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:36px}
 .cal-sc{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .15s,transform .15s}
 .cal-sc:hover{border-color:var(--cal-border2);transform:translateY(-1px)}
 .cal-sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--cal-border)}
@@ -1194,7 +1195,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-ring svg{transform:rotate(-90deg)}
 .cal-ring-lbl{position:absolute;font-size:13px;font-weight:800}
 /* Sections */
-.cal-section{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.cal-section{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:14px;overflow:hidden;margin-bottom:24px}
 .cal-sec-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--cal-border);background:rgba(255,255,255,.012)}
 .cal-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--cal-text2)}
 .cal-export-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--cal-border);color:var(--cal-text3);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s}

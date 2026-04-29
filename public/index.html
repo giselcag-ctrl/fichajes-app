@@ -600,6 +600,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <option value="error">Con errores</option>
                 <option value="ok">Completos</option>
                 <option value="sin-email">Sin email comunicaciones</option>
+                <option value="revisado">✓ Revisados</option>
+                <option value="sin-revisar">○ Sin revisar</option>
               </select>
             </div>
           </div>
@@ -620,6 +622,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <div style="overflow-x:auto;max-height:600px;overflow-y:auto;">
                 <table>
                   <thead><tr>
+                    <th style="width:36px;text-align:center" title="Revisado">✓</th>
                     <th>Nº SAP</th>
                     <th>Fecha Contrat.</th>
                     <th>Cliente</th>
@@ -2019,7 +2022,7 @@ function procesarPedidos(){
       const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
       const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo)):0;
       const emailCom=String(row['Email Comunicaciones']||row['Email Contacto']||'').trim();
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false};
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false,revisado:false};
       if(emailCom&&!pedidosMap[codigo].emailCom)pedidosMap[codigo].emailCom=emailCom;
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea,precioCalc});
       pedidosMap[codigo].totalContratado+=precioLinea;
@@ -2077,6 +2080,7 @@ function renderPedidosStats(){
   const conPrecioAlerta=PS.pedidos.filter(p=>p.precioAlerta).length;
   const conEmail=PS.pedidos.filter(p=>p.emailCom).length;
   const sinEmail=total-conEmail;
+  const revisados=PS.pedidos.filter(p=>p.revisado).length;
   const fmtEur=v=>v>=1000?(v/1000).toFixed(1)+'k€':v.toFixed(0)+'€';
   document.getElementById('ped-stat-grid').innerHTML=`
     <div class="stat-card animate-in"><div class="sc-label">Total pedidos</div><div class="sc-val">${total}</div><div class="sc-sub">${totalLineas} líneas en total</div></div>
@@ -2086,6 +2090,11 @@ function renderPedidosStats(){
       <div class="sc-label">Email comunicaciones</div>
       <div class="sc-val" style="font-size:22px;color:${sinEmail>0?'var(--yellow)':'var(--accent)'}">${sinEmail>0?sinEmail:conEmail}</div>
       <div class="sc-sub">${sinEmail>0?`⚠️ ${sinEmail} pedido${sinEmail>1?'s':''} sin email de comunicación`:`${conEmail} pedidos con email registrado`}</div>
+    </div>
+    <div class="stat-card animate-in" style="${revisados>0&&revisados<total?'border-color:rgba(99,179,237,0.3);background:rgba(99,179,237,0.04);':''}">
+      <div class="sc-label">Revisados</div>
+      <div class="sc-val" style="font-size:22px;color:${revisados===total&&total>0?'var(--accent)':'var(--text2)'}">${revisados} <span style="font-size:14px;color:var(--text3);font-weight:400">/ ${total}</span></div>
+      <div class="sc-sub">${revisados===total&&total>0?'✓ Todos revisados':revisados===0?'Ninguno revisado aún':`${total-revisados} pendiente${total-revisados>1?'s':''} de revisar`}</div>
     </div>
     <div class="stat-card animate-in" style="${conPrecioAlerta>0?'border-color:rgba(255,183,77,0.3);background:rgba(255,183,77,0.05);':''}">
       <div class="sc-label">Importe total</div>
@@ -2108,7 +2117,12 @@ function renderPedidosTable(){
     const diffPct=calc>0?Math.round((imp-calc)/calc*100):null;
     const diffStr=diffPct!==null&&diffPct<0?` <span style="font-size:10px;color:var(--red)">(${diffPct}%)</span>`:'';
     const calcStr=calc>0?`<div style="font-size:10px;color:var(--text3);margin-top:1px;">esp. ${fmtE(calc)}</div>`:'';
-    return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
+    return`<tr style="cursor:pointer;animation:fadeIn 0.2s ${i*0.02}s both;${p.revisado?'opacity:.55;':''}${selected?'background:var(--accent-dim2);':''}" onclick="seleccionarPedido('${p.codigo}')">
+      <td style="text-align:center;padding:0 8px;" onclick="event.stopPropagation();toggleRevisado('${p.codigo}')">
+        <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${p.revisado?'var(--accent)':'var(--border2)'};background:${p.revisado?'var(--accent)':'transparent'};display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;margin:auto;">
+          ${p.revisado?'<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        </div>
+      </td>
       <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">${p.numeroSAP||p.codigo}</span></td>
       <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${p.fecha||'—'}</span></td>
       <td><span style="font-size:12px;">${p.cliente}</span></td>
@@ -2127,6 +2141,10 @@ function renderPedidosTable(){
     </tr>`;
   }).join('');
 }
+function toggleRevisado(codigo){
+  const p=PS.pedidos.find(p=>p.codigo===codigo);
+  if(p){p.revisado=!p.revisado;renderPedidosStats();renderPedidosTable();}
+}
 function filtrarPedidos(){
   const q=(document.getElementById('ped-search').value||'').toLowerCase();
   const estado=document.getElementById('ped-filter-estado').value;
@@ -2134,7 +2152,7 @@ function filtrarPedidos(){
   const fecha=document.getElementById('ped-filter-fecha').value; // YYYY-MM-DD
   PS.filtrados=PS.pedidos.filter(p=>{
     const matchQ=!q||p.codigo.toLowerCase().includes(q)||p.cliente.toLowerCase().includes(q)||p.creador.toLowerCase().includes(q);
-    const matchE=!estado||(estado==='error'?p.erroresTotales>0:estado==='ok'?p.erroresTotales===0:estado==='sin-email'?!p.emailCom:true);
+    const matchE=!estado||(estado==='error'?p.erroresTotales>0:estado==='ok'?p.erroresTotales===0:estado==='sin-email'?!p.emailCom:estado==='revisado'?p.revisado:estado==='sin-revisar'?!p.revisado:true);
     const matchEmp=!empleado||p.creador.toLowerCase().includes(empleado);
     const matchF=!fecha||normFecha(p.fecha)===fecha;
     return matchQ&&matchE&&matchEmp&&matchF;

@@ -3510,6 +3510,7 @@ async function fichUpload(input) {
   const st = document.getElementById('fich-upload-status');
   st.style.color = 'var(--text2)';
   let totalRecs = 0, totalSkip = 0;
+  const errors = [];
   for (let i = 0; i < files.length; i++) {
     st.textContent = `⏳ Subiendo ${i+1}/${files.length}: ${files[i].name}…`;
     try {
@@ -3518,10 +3519,16 @@ async function fichUpload(input) {
       const d = await r.json();
       if (!d.ok) throw new Error(d.error);
       totalRecs += d.total; totalSkip += d.skipped || 0;
-    } catch(e) { st.style.color = 'var(--red)'; st.textContent = `✗ ${files[i].name}: ${e.message}`; return; }
+    } catch(e) { errors.push(`✗ ${files[i].name}: ${e.message}`); }
   }
-  st.style.color = 'var(--accent)';
-  st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros${totalSkip ? ` (${totalSkip} omit.)` : ''}`;
+  if (errors.length && totalRecs === 0) {
+    st.style.color = 'var(--red)'; st.textContent = errors[0];
+  } else if (errors.length) {
+    st.style.color = 'var(--amber)'; st.textContent = `⚠ ${files.length - errors.length}/${files.length} subidos · ${totalRecs} registros`;
+  } else {
+    st.style.color = 'var(--accent)';
+    st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros${totalSkip ? ` (${totalSkip} omit.)` : ''}`;
+  }
   input.value = '';
   tareasLoadSummary();
 }
@@ -3559,6 +3566,7 @@ async function calTareasUpload(input) {
   st.style.display = 'inline';
   st.style.color   = 'var(--text2)';
   let totalRecs = 0;
+  const errors = [];
   for (let i = 0; i < files.length; i++) {
     st.textContent = `⏳ ${i+1}/${files.length}: ${files[i].name}…`;
     try {
@@ -3567,10 +3575,16 @@ async function calTareasUpload(input) {
       const d = await r.json();
       if (!d.ok) throw new Error(d.error);
       totalRecs += d.total;
-    } catch(e) { st.style.color = 'var(--red)'; st.textContent = '✗ ' + e.message; return; }
+    } catch(e) { errors.push('✗ ' + e.message); }
   }
-  st.style.color = 'var(--accent)';
-  st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros`;
+  if (errors.length && totalRecs === 0) {
+    st.style.color = 'var(--red)'; st.textContent = errors[0];
+  } else if (errors.length) {
+    st.style.color = 'var(--amber)'; st.textContent = `⚠ ${files.length - errors.length}/${files.length} subidos · ${totalRecs} registros`;
+  } else {
+    st.style.color = 'var(--accent)';
+    st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros`;
+  }
   input.value = '';
   calTareasBarLoad();
   if (window.CalModule) CalModule.init();
@@ -3583,6 +3597,7 @@ async function tareasUpload(input) {
   const st = document.getElementById('tareas-upload-status');
   st.style.color = 'var(--text2)';
   let totalRecs = 0, totalSkip = 0;
+  const errors = [];
   for (let i = 0; i < files.length; i++) {
     st.textContent = `⏳ Subiendo ${i+1}/${files.length}: ${files[i].name}…`;
     try {
@@ -3591,10 +3606,16 @@ async function tareasUpload(input) {
       const d = await r.json();
       if (!d.ok) throw new Error(d.error);
       totalRecs += d.total; totalSkip += d.skipped || 0;
-    } catch(e) { st.style.color = 'var(--red)'; st.textContent = `✗ ${files[i].name}: ${e.message}`; return; }
+    } catch(e) { errors.push(`✗ ${files[i].name}: ${e.message}`); }
   }
-  st.style.color = 'var(--accent)';
-  st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros${totalSkip ? ` (${totalSkip} omit.)` : ''}`;
+  if (errors.length && totalRecs === 0) {
+    st.style.color = 'var(--red)'; st.textContent = errors[0];
+  } else if (errors.length) {
+    st.style.color = 'var(--amber)'; st.textContent = `⚠ ${files.length - errors.length}/${files.length} subidos · ${totalRecs} registros`;
+  } else {
+    st.style.color = 'var(--accent)';
+    st.textContent = `✓ ${files.length} archivo(s) · ${totalRecs} registros${totalSkip ? ` (${totalSkip} omit.)` : ''}`;
+  }
   input.value = '';
   tareasLoadSummary();
 }

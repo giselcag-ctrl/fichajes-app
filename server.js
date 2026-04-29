@@ -1070,16 +1070,15 @@ app.post('/api/fichajes-manuales', upload.single('file'), async (req, res) => {
     const { records, skipped } = parseExcelSimple(req.file.buffer);
     if (records.length === 0)
       return res.status(400).json({ ok: false, error: 'Sin registros válidos. Formato: Empleado | Fecha | Horas' });
-    if (db) {
-      const ops = records.map(r => ({
-        updateOne: {
-          filter: { empleado: r.empleado, fecha: r.fecha },
-          update: { $set: { ...r, updatedAt: new Date() } },
-          upsert: true
-        }
-      }));
-      await db.collection('fichajes_manuales').bulkWrite(ops);
-    }
+    if (!db) return res.status(503).json({ ok: false, error: 'Base de datos no disponible' });
+    const ops = records.map(r => ({
+      updateOne: {
+        filter: { empleado: r.empleado, fecha: r.fecha },
+        update: { $set: { ...r, updatedAt: new Date() } },
+        upsert: true
+      }
+    }));
+    await db.collection('fichajes_manuales').bulkWrite(ops);
     const summary = {};
     records.forEach(r => { summary[r.empleado] = (summary[r.empleado] || 0) + 1; });
     res.json({ ok: true, total: records.length, skipped, summary });
@@ -1170,16 +1169,15 @@ app.post('/api/tareas-manuales', upload.single('file'), async (req, res) => {
     if (records.length === 0)
       return res.status(400).json({ ok: false, error: 'No se encontraron registros válidos. Formato esperado: Empleado | Fecha | Horas' });
 
-    if (db) {
-      const ops = records.map(r => ({
-        updateOne: {
-          filter: { empleado: r.empleado, fecha: r.fecha },
-          update: { $set: { ...r, updatedAt: new Date() } },
-          upsert: true
-        }
-      }));
-      await db.collection('tareas_manuales').bulkWrite(ops);
-    }
+    if (!db) return res.status(503).json({ ok: false, error: 'Base de datos no disponible' });
+    const ops = records.map(r => ({
+      updateOne: {
+        filter: { empleado: r.empleado, fecha: r.fecha },
+        update: { $set: { ...r, updatedAt: new Date() } },
+        upsert: true
+      }
+    }));
+    await db.collection('tareas_manuales').bulkWrite(ops);
 
     // Resumen por empleado
     const summary = {};

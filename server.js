@@ -835,6 +835,17 @@ function computeManualResumen(empCode, fichajesMap, tareasMap) {
   };
 }
 
+// Helper: devuelve true si el doc SIMECAL tiene al menos 1 día con horas de fichaje reales
+function simecalTieneFichaje(doc) {
+  if (!doc || !doc.semanas || doc.semanas.length === 0) return false;
+  return doc.semanas.some(s =>
+    (s.days || []).some(d => {
+      const h = parseTpcHours(d.tpc);
+      return h !== null && h > 0;
+    })
+  );
+}
+
 // Helper: computa métricas para un documento de calendario
 function computeCalResumen(doc, tareasMap = {}) {
   const semanas = doc.semanas || [];
@@ -969,10 +980,9 @@ app.get('/api/resumen-calendario', async (req, res) => {
 
     // 1. Empleados con datos SIMECAL
     for (const doc of docs) {
-      const hasSemanas = doc.semanas && doc.semanas.length > 0;
       let r;
-      if (!hasSemanas && fichsMapByEmp[doc.empleado]) {
-        // Doc SIMECAL vacío pero tiene fichajes manuales → usar manuales
+      if (!simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
+        // SIMECAL sin horas de fichaje reales pero tiene fichajes manuales → usar manuales
         r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
       }
       if (!r) r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
@@ -1021,13 +1031,12 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
     const tareasMap = {};
     tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
 
-    const hasSemanas = doc && doc.semanas && doc.semanas.length > 0;
     let result;
-    if (hasSemanas) {
-      // Tiene datos SIMECAL con semanas → usarlos (+ tareas manuales overlay)
+    if (simecalTieneFichaje(doc)) {
+      // SIMECAL tiene horas reales → usarlo (+ tareas manuales como overlay)
       result = computeCalResumen(doc, tareasMap);
     } else if (fichsRaw.length > 0) {
-      // Sin semanas SIMECAL pero tiene fichajes manuales
+      // Sin fichaje SIMECAL pero tiene fichajes manuales
       const fichsMap = {};
       fichsRaw.forEach(f => { fichsMap[f.fecha] = f.horas; });
       result = computeManualResumen(empCode, fichsMap, tareasMap);
@@ -1037,7 +1046,7 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
       result = computeManualResumen(empCode, {}, tareasMap);
       if (!result) return res.status(404).json({ ok: false, error: `Sin datos para ${empCode}` });
     } else if (doc) {
-      // Doc SIMECAL sin semanas y sin manuales → mostrar vacío
+      // Doc SIMECAL existe pero sin datos útiles → mostrar vacío
       result = computeCalResumen(doc, tareasMap);
     } else {
       return res.status(404).json({ ok: false, error: `No hay datos de ${empCode}` });

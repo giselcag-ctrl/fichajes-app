@@ -965,19 +965,35 @@ app.get('/api/resumen-calendario', async (req, res) => {
     });
 
     const resultado = [];
+    const simecalEmps = new Set(docs.map(d => d.empleado));
 
     // 1. Empleados con datos SIMECAL
-    const simecalEmps = new Set(docs.map(d => d.empleado));
     for (const doc of docs) {
-      const r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
+      const hasSemanas = doc.semanas && doc.semanas.length > 0;
+      let r;
+      if (!hasSemanas && fichsMapByEmp[doc.empleado]) {
+        // Doc SIMECAL vacío pero tiene fichajes manuales → usar manuales
+        r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
+      }
+      if (!r) r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
       const { semanasData, ...summary } = r;
       resultado.push(summary);
     }
 
     // 2. Empleados sólo con fichajes manuales (no están en SIMECAL)
     for (const emp of Object.keys(fichsMapByEmp)) {
-      if (simecalEmps.has(emp)) continue; // ya cubierto arriba
+      if (simecalEmps.has(emp)) continue;
       const r = computeManualResumen(emp, fichsMapByEmp[emp], tareasMapByEmp[emp] || {});
+      if (!r) continue;
+      const { semanasData, ...summary } = r;
+      resultado.push(summary);
+    }
+
+    // 3. Empleados sólo con tareas manuales (sin SIMECAL ni fichajes)
+    for (const emp of Object.keys(tareasMapByEmp)) {
+      if (simecalEmps.has(emp)) continue;
+      if (fichsMapByEmp[emp]) continue; // ya cubierto arriba
+      const r = computeManualResumen(emp, {}, tareasMapByEmp[emp]);
       if (!r) continue;
       const { semanasData, ...summary } = r;
       resultado.push(summary);
@@ -1005,16 +1021,24 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
     const tareasMap = {};
     tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
 
+    const hasSemanas = doc && doc.semanas && doc.semanas.length > 0;
     let result;
-    if (doc) {
-      // Tiene datos SIMECAL → usarlos con tareas manuales si las hay
+    if (hasSemanas) {
+      // Tiene datos SIMECAL con semanas → usarlos (+ tareas manuales overlay)
       result = computeCalResumen(doc, tareasMap);
     } else if (fichsRaw.length > 0) {
-      // Sin SIMECAL pero tiene fichajes manuales
+      // Sin semanas SIMECAL pero tiene fichajes manuales
       const fichsMap = {};
       fichsRaw.forEach(f => { fichsMap[f.fecha] = f.horas; });
       result = computeManualResumen(empCode, fichsMap, tareasMap);
       if (!result) return res.status(404).json({ ok: false, error: `Sin datos para ${empCode}` });
+    } else if (Object.keys(tareasMap).length > 0) {
+      // Solo tiene tareas manuales (sin fichajes ni SIMECAL)
+      result = computeManualResumen(empCode, {}, tareasMap);
+      if (!result) return res.status(404).json({ ok: false, error: `Sin datos para ${empCode}` });
+    } else if (doc) {
+      // Doc SIMECAL sin semanas y sin manuales → mostrar vacío
+      result = computeCalResumen(doc, tareasMap);
     } else {
       return res.status(404).json({ ok: false, error: `No hay datos de ${empCode}` });
     }

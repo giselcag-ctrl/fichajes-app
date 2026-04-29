@@ -1238,18 +1238,25 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .inc-extra{font-size:13px;font-weight:700;color:var(--cal-yellow)}
 .inc-date{font-size:11px;color:var(--cal-text3);margin-top:3px;font-family:'DM Mono',monospace}
 /* Employee grid */
-.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;padding:20px}
-.emp-card{background:var(--cal-card2);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .18s;position:relative}
-.emp-card:hover{border-color:var(--cal-border2);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.emp-card-arrow{position:absolute;right:16px;top:18px;color:var(--cal-text3);font-size:14px;opacity:.4;transition:opacity .15s,transform .15s}
-.emp-card:hover .emp-card-arrow{opacity:1;transform:translateX(3px)}
-.emp-name{font-size:15px;font-weight:700;margin-bottom:12px;padding-right:24px;letter-spacing:-.01em}
-.emp-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--cal-text2);margin-bottom:3px}
-.emp-meta strong{color:var(--cal-text);font-weight:600}
-.emp-bar-row{margin-top:10px}
-.emp-bar-label{display:flex;justify-content:space-between;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--cal-text3);margin-bottom:5px}
-.emp-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.emp-pill{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:20px}
+.emp-card{background:var(--cal-card2);border:1px solid var(--cal-border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.emp-card:hover{border-color:var(--cal-border2);transform:translateY(-3px);box-shadow:0 14px 36px rgba(0,0,0,.4)}
+.emp-card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.emp-avatar{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.emp-avatar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.emp-name{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.emp-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.emp-status-ok{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.emp-status-bad{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.emp-status-warn{background:rgba(234,179,8,.12);color:#fbbf24;border:1px solid rgba(234,179,8,.25)}
+.emp-status-info{background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+.emp-stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(30,58,95,.3);font-size:13px}
+.emp-stat-row:last-of-type{border-bottom:none}
+.emp-stat-ic{width:15px;height:15px;flex-shrink:0;opacity:.45;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.emp-stat-lbl{flex:1;color:var(--cal-text2)}
+.emp-stat-val{font-weight:700;color:var(--cal-text)}
+.emp-cumpl{margin-top:14px;padding-top:14px;border-top:1px solid var(--cal-border)}
+.emp-cumpl-hdr{display:flex;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--cal-text3);margin-bottom:7px}
 /* Loader/error */
 .cal-loader{text-align:center;padding:60px;color:var(--cal-text3)}
 .cal-spinner{width:32px;height:32px;border:3px solid var(--cal-border);border-top-color:var(--cal-green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
@@ -3187,7 +3194,7 @@ function ringHtml(pct) {
 let _empleados   = [];
 let _detalle     = null;
 let _vistaActual = 'semanal';
-let _sortField   = 'cumplimientoPct';
+let _sortField   = 'empleado';
 let _sortAsc     = true;
 
 /* ── API ────────────────────────────────────────────────────────────────── */
@@ -3215,35 +3222,94 @@ async function cargarLista() {
   }
 }
 
+/* ── Paleta de avatares por empleado ─────────────────────────────────── */
+const _AVATAR_PALETTES = [
+  { bg:'rgba(34,197,94,.18)',  color:'#4ade80' },
+  { bg:'rgba(139,92,246,.18)', color:'#c084fc' },
+  { bg:'rgba(249,115,22,.18)', color:'#fb923c' },
+  { bg:'rgba(59,130,246,.18)', color:'#60a5fa' },
+  { bg:'rgba(20,184,166,.18)', color:'#2dd4bf' },
+  { bg:'rgba(236,72,153,.18)', color:'#f472b6' },
+  { bg:'rgba(234,179,8,.18)',  color:'#facc15' },
+  { bg:'rgba(99,102,241,.18)', color:'#818cf8' },
+];
+const _AVATAR_ICONS = [
+  // bar-chart
+  `<svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>`,
+  // people
+  `<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-1a6 6 0 0112 0v1"/><circle cx="18" cy="8" r="2.5"/><path d="M21 21v-1a4 4 0 00-3-3.85"/></svg>`,
+  // globe
+  `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg>`,
+  // code
+  `<svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  // shield
+  `<svg viewBox="0 0 24 24"><path d="M12 2l9 4v6c0 5-4 9-9 10C3 21 3 16 3 12V6l9-4z"/></svg>`,
+  // briefcase
+  `<svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="14" rx="2"/><path d="M16 8V6a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="13" x2="12" y2="13"/><path d="M2 13h20"/></svg>`,
+  // cpu
+  `<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M9 5V3M15 5V3M9 21v-2M15 21v-2M5 9H3M5 15H3M21 9h-2M21 15h-2"/></svg>`,
+  // zap
+  `<svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+];
+function _avatarFor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  const p = _AVATAR_PALETTES[h % _AVATAR_PALETTES.length];
+  const ic = _AVATAR_ICONS[h % _AVATAR_ICONS.length];
+  return { bg: p.bg, color: p.color, icon: ic };
+}
+
+/* ── Renderizar lista de empleados ───────────────────────────────────── */
 function renderLista() {
   const body = document.getElementById('cal-lista-body');
   if (!body) return;
   const sorted = [..._empleados].sort((a,b) => {
+    if (_sortField === 'empleado')
+      return _sortAsc ? a.empleado.localeCompare(b.empleado) : b.empleado.localeCompare(a.empleado);
     const va = a[_sortField] ?? 0, vb = b[_sortField] ?? 0;
     return _sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
+
+  // SVG iconos para filas
+  const IC_FICH = `<svg class="emp-stat-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>`;
+  const IC_TAR  = `<svg class="emp-stat-ic" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
+  const IC_DIFF = `<svg class="emp-stat-ic" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>`;
+  const IC_DIAS = `<svg class="emp-stat-ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
   let html = '<div class="emp-grid">';
   sorted.forEach(e => {
     const pct  = e.cumplimientoPct ?? 0;
     const bc   = pct >= 90 ? 'bg' : pct >= 70 ? 'by' : 'br';
     const col  = pct >= 90 ? '#4ade80' : pct >= 70 ? '#facc15' : '#f87171';
-    const bord = pct >= 90 ? 'rgba(34,197,94,.35)' : pct >= 70 ? 'rgba(234,179,8,.35)' : 'rgba(239,68,68,.35)';
     const diff = e.totalDiferencia_h;
-    const diffTxt = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
-    html += `<div class="emp-card" onclick="CalModule.verDetalle('${e.empleado}')" style="border-left:3px solid ${bord};">
-      <span class="emp-card-arrow">→</span>
-      <div class="emp-name">${e.empleado}</div>
-      <div class="emp-meta"><span>Fichaje</span><strong>${fmtH(e.totalFichaje_h)}</strong></div>
-      ${e.totalTareas_h ? `<div class="emp-meta"><span>Tareas</span><strong>${fmtH(e.totalTareas_h)}</strong></div>` : ''}
-      <div class="emp-meta"><span>Diferencia</span>${diffTxt}</div>
-      <div class="emp-meta"><span>Días OK / Lab.</span><strong style="color:var(--cal-text)">${e.diasCumplen} / ${e.diasLaborables}</strong></div>
-      <div class="emp-bar-row">
-        <div class="emp-bar-label"><span>Cumplimiento</span><span style="color:${col}">${pct}%</span></div>
-        <div class="bar-t" style="height:6px"><div class="bar-f ${bc}" style="width:${Math.min(pct,100)}%"></div></div>
+    const diffTxt = diff !== null
+      ? `<span class="emp-stat-val ${diffClass(diff)}">${fmtH(diff,true)}</span>`
+      : '<span style="color:var(--cal-text3)">—</span>';
+    const { bg, color, icon } = _avatarFor(e.empleado);
+
+    let statusHtml = '';
+    if (e.diasIncumple > 0)
+      statusHtml = `<span class="emp-status emp-status-bad"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${e.diasIncumple} incumplimiento${e.diasIncumple > 1 ? 's' : ''}</span>`;
+    else if (e.diasJustif > 0 && e.diasLaborables === 0)
+      statusHtml = `<span class="emp-status emp-status-info">Justificado</span>`;
+    else
+      statusHtml = `<span class="emp-status emp-status-ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Sin incumplimientos</span>`;
+
+    html += `<div class="emp-card" onclick="CalModule.verDetalle('${e.empleado}')">
+      <div class="emp-card-head">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="emp-avatar" style="background:${bg};color:${color}">${icon}</div>
+          <div class="emp-name">${e.empleado}</div>
+        </div>
+        ${statusHtml}
       </div>
-      <div class="emp-pills">
-        ${e.diasIncumple > 0 ? `<span class="emp-pill" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3);">${e.diasIncumple} incumpl.</span>` : '<span class="emp-pill" style="background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.25);">Sin incumpl.</span>'}
-        ${e.diasJustif > 0 ? `<span class="emp-pill" style="background:rgba(59,130,246,.1);color:#93c5fd;border:1px solid rgba(59,130,246,.25);">${e.diasJustif} justif.</span>` : ''}
+      <div class="emp-stat-row">${IC_FICH}<span class="emp-stat-lbl">Fichaje</span><span class="emp-stat-val">${fmtH(e.totalFichaje_h)}</span></div>
+      <div class="emp-stat-row">${IC_TAR}<span class="emp-stat-lbl">Tareas</span><span class="emp-stat-val">${e.totalTareas_h ? fmtH(e.totalTareas_h) : '<span style="color:var(--cal-text3)">—</span>'}</span></div>
+      <div class="emp-stat-row">${IC_DIFF}<span class="emp-stat-lbl">Diferencia</span>${diffTxt}</div>
+      <div class="emp-stat-row">${IC_DIAS}<span class="emp-stat-lbl">Días OK / Lab.</span><span class="emp-stat-val">${e.diasCumplen} / ${e.diasLaborables}</span></div>
+      <div class="emp-cumpl">
+        <div class="emp-cumpl-hdr"><span>Cumplimiento</span><span style="color:${col};font-size:13px;font-weight:800">${pct}%</span></div>
+        <div class="bar-t" style="height:6px"><div class="bar-f ${bc}" style="width:${Math.min(pct,100)}%"></div></div>
       </div>
     </div>`;
   });

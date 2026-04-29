@@ -1162,64 +1162,98 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <style>
 /* ── CalModule: Resumen Calendario ─────────────────────────────────────── */
-#cal-module{--cal-bg:#0d1117;--cal-surface:#131c27;--cal-card:#1a2535;--cal-card2:#1e2d40;--cal-border:#1e3a5f;--cal-border2:#2a4a6b;--cal-green:#22c55e;--cal-green-d:#16a34a;--cal-green-bg:rgba(34,197,94,0.12);--cal-yellow:#eab308;--cal-yellow-bg:rgba(234,179,8,0.12);--cal-red:#ef4444;--cal-red-bg:rgba(239,68,68,0.12);--cal-blue:#3b82f6;--cal-blue-bg:rgba(59,130,246,0.12);--cal-cyan:#06b6d4;--cal-text:#e2e8f0;--cal-text2:#94a3b8;--cal-text3:#64748b;font-family:'DM Sans',system-ui,sans-serif;color:var(--cal-text)}
+#cal-module{--cal-bg:#0d1117;--cal-surface:#131c27;--cal-card:#1a2535;--cal-card2:#1e2d40;--cal-border:#1e3a5f;--cal-border2:#2a4a6b;--cal-green:#22c55e;--cal-green-d:#16a34a;--cal-green-bg:rgba(34,197,94,0.10);--cal-yellow:#eab308;--cal-yellow-bg:rgba(234,179,8,0.10);--cal-red:#ef4444;--cal-red-bg:rgba(239,68,68,0.10);--cal-blue:#3b82f6;--cal-blue-bg:rgba(59,130,246,0.10);--cal-cyan:#06b6d4;--cal-purple:#a855f7;--cal-text:#e2e8f0;--cal-text2:#94a3b8;--cal-text3:#64748b;font-family:'DM Sans',system-ui,sans-serif;color:var(--cal-text)}
 #cal-module *{box-sizing:border-box;margin:0;padding:0}
-.cal-topbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.cal-back{display:flex;align-items:center;gap:6px;background:var(--cal-card);border:1px solid var(--cal-border);color:var(--cal-text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
-.cal-back:hover{background:var(--cal-card2);color:var(--cal-text)}
-.cal-emp-title{font-size:20px;font-weight:700}
-.cal-badge{padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
-.cal-badge-g{background:rgba(34,197,94,0.18);color:#4ade80;border:1px solid rgba(34,197,94,0.3)}
-.cal-badge-y{background:rgba(234,179,8,0.18);color:#facc15;border:1px solid rgba(234,179,8,0.3)}
-.cal-badge-r{background:rgba(239,68,68,0.18);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
-.cal-vbtns{margin-left:auto;display:flex;gap:6px}
-.cal-vbtn{background:var(--cal-card);border:1px solid var(--cal-border);color:var(--cal-text2);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
-.cal-vbtn:hover{background:var(--cal-card2)}
-.cal-vbtn.active{background:var(--cal-green-d);border-color:var(--cal-green);color:#fff}
-.cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
-.cal-sc{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;padding:16px 18px}
-.cal-sc-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--cal-text3);margin-bottom:8px}
-.cal-sc-val{font-size:22px;font-weight:700;line-height:1}
-.cal-sc-sub{font-size:11px;color:var(--cal-text3);margin-top:4px}
+/* TopBar */
+.cal-topbar{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.cal-back{display:flex;align-items:center;gap:6px;background:var(--cal-card);border:1px solid var(--cal-border);color:var(--cal-text2);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.cal-back:hover{background:var(--cal-card2);color:var(--cal-text);border-color:var(--cal-border2)}
+.cal-emp-title{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.cal-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.02em}
+.cal-badge-g{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.35)}
+.cal-badge-y{background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.35)}
+.cal-badge-r{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.35)}
+.cal-vbtns{margin-left:auto;display:flex;gap:3px;background:rgba(255,255,255,.04);border:1px solid var(--cal-border);border-radius:10px;padding:4px}
+.cal-vbtn{background:transparent;border:none;color:var(--cal-text2);padding:6px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.cal-vbtn:hover{color:var(--cal-text);background:rgba(255,255,255,.05)}
+.cal-vbtn.active{background:var(--cal-green-d);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.35)}
+/* KPI cards */
+.cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:24px}
+.cal-sc{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .15s,transform .15s}
+.cal-sc:hover{border-color:var(--cal-border2);transform:translateY(-1px)}
+.cal-sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--cal-border)}
+.cal-sc.ok::before{background:var(--cal-green)}.cal-sc.warn::before{background:var(--cal-yellow)}.cal-sc.bad::before{background:var(--cal-red)}.cal-sc.info::before{background:var(--cal-blue)}.cal-sc.dim::before{background:var(--cal-cyan)}
+.cal-sc-icon{position:absolute;top:14px;right:16px;font-size:22px;opacity:.25;pointer-events:none}
+.cal-sc-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--cal-text3);margin-bottom:10px}
+.cal-sc-val{font-size:24px;font-weight:800;line-height:1;letter-spacing:-.02em}
+.cal-sc-sub{font-size:11px;color:var(--cal-text3);margin-top:6px;line-height:1.4}
 .cal-sc-val.g{color:var(--cal-green)}.cal-sc-val.y{color:var(--cal-yellow)}.cal-sc-val.r{color:var(--cal-red)}.cal-sc-val.b{color:var(--cal-blue)}.cal-sc-val.c{color:var(--cal-cyan)}
+/* Ring */
 .cal-ring-wrap{display:inline-flex;align-items:center;gap:10px}
-.cal-ring{display:inline-flex;align-items:center;justify-content:center;position:relative;width:60px;height:60px}
+.cal-ring{display:inline-flex;align-items:center;justify-content:center;position:relative;width:58px;height:58px}
 .cal-ring svg{transform:rotate(-90deg)}
-.cal-ring-lbl{position:absolute;font-size:13px;font-weight:700;color:var(--cal-green)}
-.cal-section{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;overflow:hidden;margin-bottom:20px}
-.cal-sec-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--cal-border)}
-.cal-sec-title{font-size:14px;font-weight:600}
-.cal-export-btn{display:flex;align-items:center;gap:6px;background:var(--cal-card2);border:1px solid var(--cal-border2);color:var(--cal-text2);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500}
-.cal-export-btn:hover{color:var(--cal-text)}
+.cal-ring-lbl{position:absolute;font-size:13px;font-weight:800}
+/* Sections */
+.cal-section{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.cal-sec-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--cal-border);background:rgba(255,255,255,.012)}
+.cal-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--cal-text2)}
+.cal-export-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--cal-border);color:var(--cal-text3);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s}
+.cal-export-btn:hover{color:var(--cal-text);border-color:var(--cal-border2);background:var(--cal-card2)}
+/* Tables */
 .cal-table-wrap{overflow-x:auto}
 .cal-table{width:100%;border-collapse:collapse}
-.cal-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--cal-text3);padding:10px 16px;text-align:left;border-bottom:1px solid var(--cal-border);white-space:nowrap}
-.cal-table td{padding:11px 16px;font-size:13px;border-bottom:1px solid rgba(30,58,95,0.4);white-space:nowrap}
+.cal-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--cal-text3);padding:10px 18px;text-align:left;border-bottom:1px solid var(--cal-border);white-space:nowrap;background:rgba(255,255,255,.01)}
+.cal-table td{padding:12px 18px;font-size:13px;border-bottom:1px solid rgba(30,58,95,.3);white-space:nowrap;transition:background .1s}
 .cal-table tr:last-child td{border-bottom:none}
-.cal-table tr:hover td{background:rgba(255,255,255,0.02)}
+.cal-table tr:hover td{background:rgba(255,255,255,.025)}
+.cal-table tr.tr-ok:hover td{background:rgba(34,197,94,.04)}
+.cal-table tr.tr-bad td{border-left:3px solid rgba(239,68,68,.5)}
+.cal-table tr.tr-bad:hover td{background:rgba(239,68,68,.04)}
+.cal-table tr.tr-warn:hover td{background:rgba(234,179,8,.04)}
+.cal-table tr.tr-festivo td{opacity:.55}
 .td-m{color:var(--cal-text2)}.td-d{color:var(--cal-text3);font-size:12px}.td-r{text-align:right}.td-c{text-align:center}
-.dp{color:var(--cal-yellow);font-weight:600}.dn{color:var(--cal-red);font-weight:600}.dz{color:var(--cal-text2)}
-.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.tag-ok{background:var(--cal-green-bg);color:#4ade80;border:1px solid rgba(34,197,94,0.3)}
-.tag-ko{background:var(--cal-red-bg);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
-.tag-nd{background:rgba(100,116,139,.15);color:var(--cal-text3);border:1px solid rgba(100,116,139,.2)}
-.bar-w{display:flex;align-items:center;gap:8px}.bar-t{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;min-width:60px}.bar-f{height:100%;border-radius:2px;transition:width .4s ease}
-.bg{background:var(--cal-green-d)}.by{background:var(--cal-yellow)}.br{background:var(--cal-red)}
-.inc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:16px 18px;border-bottom:1px solid var(--cal-border)}
-.inc-mini{background:var(--cal-card2);border-radius:8px;padding:12px 14px}
-.inc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(30,58,95,0.4)}
-.inc-row:last-child{border-bottom:none}
-.inc-type{color:#f87171;font-size:13px;font-weight:500}.inc-detail{font-size:12px;color:var(--cal-text2);margin-top:3px}
-.inc-right{text-align:right;flex-shrink:0}.inc-extra{font-size:13px;font-weight:600;color:var(--cal-yellow)}.inc-date{font-size:12px;color:var(--cal-text3);margin-top:2px}
-.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px}
-.emp-card{background:var(--cal-card2);border:1px solid var(--cal-border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s}
-.emp-card:hover{border-color:var(--cal-border2);background:#243348;transform:translateY(-1px)}
-.emp-name{font-size:15px;font-weight:600;margin-bottom:8px}
-.emp-stats{display:flex;gap:8px;flex-wrap:wrap}
-.emp-pill{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500}
+.td-mono{font-family:'DM Mono',monospace;font-size:12px;color:var(--cal-text3)}
+.dp{color:var(--cal-yellow);font-weight:700}.dn{color:var(--cal-red);font-weight:700}.dz{color:var(--cal-text3)}
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.tag-ok{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.tag-ko{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.tag-nd{background:rgba(100,116,139,.1);color:var(--cal-text3);border:1px solid rgba(100,116,139,.18)}
+.tag-festivo{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
+.tag-justif{background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.tag-extra{background:rgba(234,179,8,.12);color:#fbbf24;border:1px solid rgba(234,179,8,.3)}
+/* Bar */
+.bar-w{display:flex;align-items:center;gap:8px}.bar-t{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;min-width:60px}.bar-f{height:100%;border-radius:3px;transition:width .5s ease}
+.bg{background:linear-gradient(90deg,#16a34a,#22c55e)}.by{background:linear-gradient(90deg,#b45309,#eab308)}.br{background:linear-gradient(90deg,#dc2626,#ef4444)}
+/* Incidencias */
+.inc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:18px 20px;border-bottom:1px solid var(--cal-border)}
+.inc-mini{background:var(--cal-card2);border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.04)}
+.inc-item{display:flex;align-items:flex-start;gap:14px;padding:13px 20px;border-bottom:1px solid rgba(30,58,95,.3);transition:background .1s}
+.inc-item:last-child{border-bottom:none}
+.inc-item:hover{background:rgba(255,255,255,.02)}
+.inc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.inc-type{font-size:13px;font-weight:600;margin-bottom:3px}
+.inc-detail{font-size:12px;color:var(--cal-text2);margin-top:2px}
+.inc-right{text-align:right;flex-shrink:0;margin-left:auto;padding-left:16px}
+.inc-extra{font-size:13px;font-weight:700;color:var(--cal-yellow)}
+.inc-date{font-size:11px;color:var(--cal-text3);margin-top:3px;font-family:'DM Mono',monospace}
+/* Employee grid */
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;padding:20px}
+.emp-card{background:var(--cal-card2);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .18s;position:relative}
+.emp-card:hover{border-color:var(--cal-border2);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.emp-card-arrow{position:absolute;right:16px;top:18px;color:var(--cal-text3);font-size:14px;opacity:.4;transition:opacity .15s,transform .15s}
+.emp-card:hover .emp-card-arrow{opacity:1;transform:translateX(3px)}
+.emp-name{font-size:15px;font-weight:700;margin-bottom:12px;padding-right:24px;letter-spacing:-.01em}
+.emp-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--cal-text2);margin-bottom:3px}
+.emp-meta strong{color:var(--cal-text);font-weight:600}
+.emp-bar-row{margin-top:10px}
+.emp-bar-label{display:flex;justify-content:space-between;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--cal-text3);margin-bottom:5px}
+.emp-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.emp-pill{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+/* Loader/error */
 .cal-loader{text-align:center;padding:60px;color:var(--cal-text3)}
 .cal-spinner{width:32px;height:32px;border:3px solid var(--cal-border);border-top-color:var(--cal-green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
-.cal-error{background:var(--cal-red-bg);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:16px 20px;color:#f87171;font-size:13px;margin:20px 0}
+.cal-error{background:var(--cal-red-bg);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:16px 20px;color:#f87171;font-size:13px;margin:20px 0}
 .cal-hidden{display:none !important}
 </style>
 <script>
@@ -3070,52 +3104,79 @@ async function analizarEmpleado(){
 (function() {
 'use strict';
 
+/* ── Festivos España (nacionales fijos + Pascua) ─────────────────────── */
+function _pascua(y) {
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,
+        f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+        h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+        l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(Date.UTC(y,month-1,day));
+}
+const _festCache = {};
+function _getFestivos(y) {
+  if (_festCache[y]) return _festCache[y];
+  const s = new Set();
+  const add = (m,d) => s.add(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  add(1,1); add(1,6); add(5,1); add(8,15);
+  add(10,12); add(11,1); add(12,6); add(12,8); add(12,25);
+  const pascua = _pascua(y);
+  const vs = new Date(pascua); vs.setUTCDate(pascua.getUTCDate()-2);
+  const js = new Date(pascua); js.setUTCDate(pascua.getUTCDate()-3);
+  s.add(vs.toISOString().slice(0,10));
+  s.add(js.toISOString().slice(0,10));
+  _festCache[y] = s;
+  return s;
+}
+function esFestivoCal(fecha) {
+  if (!fecha) return false;
+  return _getFestivos(parseInt(fecha.slice(0,4))).has(fecha);
+}
+const FESTIVOS_NOMBRE = {
+  '01-01':'Año Nuevo','01-06':'Reyes Magos','05-01':'Día del Trabajo',
+  '08-15':'Asunción','10-12':'Fiesta Nacional','11-01':'Todos los Santos',
+  '12-06':'Constitución','12-08':'Inmaculada','12-25':'Navidad'
+};
+function nombreFestivo(fecha) {
+  if (!fecha) return 'Festivo';
+  const ymd = fecha.slice(5);
+  return FESTIVOS_NOMBRE[ymd] || 'Festivo nacional';
+}
+
 /* ── Utilidades ─────────────────────────────────────────────────────────── */
+const MESES_ES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
 function fmtH(h, withSign) {
   if (h === null || h === undefined) return '—';
   const neg = h < 0;
   const abs = Math.abs(h);
   const hh  = Math.floor(abs);
   const mm  = Math.round((abs - hh) * 60);
-  const sign = withSign ? (neg ? '-' : '+') : (neg ? '-' : '');
+  const sign = withSign ? (neg ? '−' : '+') : (neg ? '−' : '');
   if (mm > 0) return `${sign}${hh}h ${mm}min`;
   return `${sign}${hh}h`;
 }
-
 function diffClass(v) {
   if (v === null || v === undefined) return 'dz';
-  if (v > 0.05)  return 'dp';
-  if (v < -0.05) return 'dn';
-  return 'dz';
+  if (v > 0.05) return 'dp'; if (v < -0.05) return 'dn'; return 'dz';
 }
-
 function barHtml(pct, color) {
   const cls = color === 'g' ? 'bg' : color === 'r' ? 'br' : 'by';
   const w   = Math.min(Math.max(pct, 0), 100);
-  return `<div class="bar-w"><div class="bar-t"><div class="bar-f ${cls}" style="width:${w}%"></div></div><span style="font-size:12px;color:var(--cal-text2);min-width:34px;">${Math.round(w)}%</span></div>`;
+  return `<div class="bar-w"><div class="bar-t"><div class="bar-f ${cls}" style="width:${w}%"></div></div><span style="font-size:11px;color:var(--cal-text2);min-width:30px;font-weight:600;">${Math.round(w)}%</span></div>`;
 }
-
-function tagHtml(cumple, justificado, sinDatos, esFinSemana) {
-  if (esFinSemana || justificado) return `<span class="tag tag-nd">${justificado ? 'Justif.' : 'Fin semana'}</span>`;
-  if (sinDatos) return `<span class="tag tag-nd">Sin datos</span>`;
-  if (cumple === true)  return `<span class="tag tag-ok">✓ OK</span>`;
-  if (cumple === false) return `<span class="tag tag-ko">INCUMPLE</span>`;
-  return `<span class="tag tag-nd">—</span>`;
-}
-
 function aertPct(fich, tar) {
   if (!fich || !tar || fich === 0) return null;
   return Math.round((tar / fich) * 100);
 }
-
 function ringHtml(pct) {
-  const r = 26; const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct / 100);
+  const r = 25; const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(pct,100) / 100);
   const color = pct >= 80 ? 'var(--cal-green-d)' : pct >= 50 ? 'var(--cal-yellow)' : 'var(--cal-red)';
   return `<div class="cal-ring">
-    <svg width="60" height="60" viewBox="0 0 60 60">
-      <circle cx="30" cy="30" r="${r}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
-      <circle cx="30" cy="30" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+    <svg width="58" height="58" viewBox="0 0 58 58">
+      <circle cx="29" cy="29" r="${r}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+      <circle cx="29" cy="29" r="${r}" fill="none" stroke="${color}" stroke-width="5"
         stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}" stroke-linecap="round"/>
     </svg>
     <span class="cal-ring-lbl" style="color:${color}">${pct}%</span>
@@ -3123,9 +3184,11 @@ function ringHtml(pct) {
 }
 
 /* ── Estado interno ─────────────────────────────────────────────────────── */
-let _empleados = [];
-let _detalle   = null;
+let _empleados   = [];
+let _detalle     = null;
 let _vistaActual = 'semanal';
+let _sortField   = 'cumplimientoPct';
+let _sortAsc     = true;
 
 /* ── API ────────────────────────────────────────────────────────────────── */
 async function apiGet(url) {
@@ -3134,55 +3197,71 @@ async function apiGet(url) {
   return r.json();
 }
 
-/* ── Renderizar lista de empleados ─────────────────────────────────────── */
+/* ── Lista de empleados ─────────────────────────────────────────────────── */
 async function cargarLista() {
   const body = document.getElementById('cal-lista-body');
   if (!body) return;
-  body.innerHTML = '<div class="cal-loader"><div class="cal-spinner"></div>Cargando…</div>';
+  body.innerHTML = '<div class="cal-loader"><div class="cal-spinner"></div>Cargando empleados…</div>';
   try {
     const data = await apiGet('/api/resumen-calendario');
     _empleados = data.empleados || [];
     if (_empleados.length === 0) {
-      body.innerHTML = '<div class="cal-loader">No hay datos de calendario. Extrae los datos primero con la extensión Chrome.</div>';
+      body.innerHTML = '<div class="cal-loader">No hay datos. Extrae los datos con la extensión Chrome o carga fichajes manualmente.</div>';
       return;
     }
-    let html = '<div class="emp-grid">';
-    _empleados.forEach(e => {
-      const pct = e.cumplimientoPct ?? 0;
-      const bc  = pct >= 90 ? 'g' : pct >= 70 ? 'y' : 'r';
-      const col = bc === 'g' ? '#4ade80' : bc === 'y' ? '#facc15' : '#f87171';
-      html += `<div class="emp-card" onclick="CalModule.verDetalle('${e.empleado}')">
-        <div class="emp-name">${e.empleado}</div>
-        <div class="emp-stats">
-          <span class="emp-pill" style="background:rgba(34,197,94,.12);color:${col};border:1px solid rgba(34,197,94,.2);">${pct}% cumplim.</span>
-          <span class="emp-pill" style="background:var(--cal-card);color:var(--cal-text2);border:1px solid var(--cal-border);">${fmtH(e.totalFichaje_h)} fich.</span>
-          ${e.totalTareas_h ? `<span class="emp-pill" style="background:var(--cal-card);color:var(--cal-text2);border:1px solid var(--cal-border);">${fmtH(e.totalTareas_h)} tar.</span>` : ''}
-          ${e.diasIncumple > 0 ? `<span class="emp-pill" style="background:var(--cal-red-bg);color:#f87171;border:1px solid rgba(239,68,68,.3);">${e.diasIncumple} incumpl.</span>` : ''}
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-    body.innerHTML = html;
+    renderLista();
   } catch(err) {
     body.innerHTML = `<div class="cal-error">Error cargando empleados: ${err.message}</div>`;
   }
 }
 
-/* ── Ver detalle de un empleado ────────────────────────────────────────── */
+function renderLista() {
+  const body = document.getElementById('cal-lista-body');
+  if (!body) return;
+  const sorted = [..._empleados].sort((a,b) => {
+    const va = a[_sortField] ?? 0, vb = b[_sortField] ?? 0;
+    return _sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+  let html = '<div class="emp-grid">';
+  sorted.forEach(e => {
+    const pct  = e.cumplimientoPct ?? 0;
+    const bc   = pct >= 90 ? 'bg' : pct >= 70 ? 'by' : 'br';
+    const col  = pct >= 90 ? '#4ade80' : pct >= 70 ? '#facc15' : '#f87171';
+    const bord = pct >= 90 ? 'rgba(34,197,94,.35)' : pct >= 70 ? 'rgba(234,179,8,.35)' : 'rgba(239,68,68,.35)';
+    const diff = e.totalDiferencia_h;
+    const diffTxt = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
+    html += `<div class="emp-card" onclick="CalModule.verDetalle('${e.empleado}')" style="border-left:3px solid ${bord};">
+      <span class="emp-card-arrow">→</span>
+      <div class="emp-name">${e.empleado}</div>
+      <div class="emp-meta"><span>Fichaje</span><strong>${fmtH(e.totalFichaje_h)}</strong></div>
+      ${e.totalTareas_h ? `<div class="emp-meta"><span>Tareas</span><strong>${fmtH(e.totalTareas_h)}</strong></div>` : ''}
+      <div class="emp-meta"><span>Diferencia</span>${diffTxt}</div>
+      <div class="emp-meta"><span>Días OK / Lab.</span><strong style="color:var(--cal-text)">${e.diasCumplen} / ${e.diasLaborables}</strong></div>
+      <div class="emp-bar-row">
+        <div class="emp-bar-label"><span>Cumplimiento</span><span style="color:${col}">${pct}%</span></div>
+        <div class="bar-t" style="height:6px"><div class="bar-f ${bc}" style="width:${Math.min(pct,100)}%"></div></div>
+      </div>
+      <div class="emp-pills">
+        ${e.diasIncumple > 0 ? `<span class="emp-pill" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3);">${e.diasIncumple} incumpl.</span>` : '<span class="emp-pill" style="background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.25);">Sin incumpl.</span>'}
+        ${e.diasJustif > 0 ? `<span class="emp-pill" style="background:rgba(59,130,246,.1);color:#93c5fd;border:1px solid rgba(59,130,246,.25);">${e.diasJustif} justif.</span>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+/* ── Ver detalle ─────────────────────────────────────────────────────────── */
 async function verDetalle(emp) {
   document.getElementById('cal-lista').classList.add('cal-hidden');
-  const det = document.getElementById('cal-detalle');
-  det.classList.remove('cal-hidden');
-
+  document.getElementById('cal-detalle').classList.remove('cal-hidden');
   document.getElementById('cal-kpis').innerHTML = '<div class="cal-loader"><div class="cal-spinner"></div>Cargando datos…</div>';
   ['cal-tbody-s','cal-tbody-m','cal-tbody-d','cal-inc-list','cal-inc-stats'].forEach(id => {
     const el = document.getElementById(id); if (el) el.innerHTML = '';
   });
-
   try {
     const data = await apiGet(`/api/resumen-calendario/${emp}`);
     _detalle = data;
-
     const pct = data.cumplimientoPct ?? 0;
     const bc  = pct >= 90 ? 'g' : pct >= 70 ? 'y' : 'r';
     document.getElementById('cal-det-titulo').textContent = `Empleado: ${data.empleado}`;
@@ -3190,21 +3269,17 @@ async function verDetalle(emp) {
     badge.textContent = `${pct}% cumplimiento`;
     badge.className = `cal-badge cal-badge-${bc}`;
     document.getElementById('cal-inc-titulo').textContent = `Incidencias — ${data.empleado}`;
-
     renderKPIs(data);
     renderSemanal(data);
     renderMensual(data);
     renderDiario(data);
     renderIncidencias(data);
-
-    // Reset vista a semanal
     document.querySelectorAll('.cal-vbtn').forEach((b,i) => b.classList.toggle('active', i===0));
     ['cal-v-semanal','cal-v-mensual','cal-v-diario'].forEach((id,i) => {
       const el = document.getElementById(id);
       if (el) el.classList.toggle('cal-hidden', i !== 0);
     });
     _vistaActual = 'semanal';
-
   } catch(err) {
     document.getElementById('cal-kpis').innerHTML = `<div class="cal-error">Error: ${err.message}</div>`;
   }
@@ -3212,34 +3287,62 @@ async function verDetalle(emp) {
 
 /* ── KPIs ──────────────────────────────────────────────────────────────── */
 function renderKPIs(data) {
-  const pct  = data.cumplimientoPct ?? 0;
   const aert = data.totalTareas_h && data.totalFichaje_h
     ? Math.round((data.totalTareas_h / data.totalFichaje_h) * 100) : null;
-
   const diffV  = data.totalDiferencia_h;
   const diffCl = diffV === null ? '' : diffV > 0 ? 'y' : diffV < 0 ? 'r' : '';
-  const diffS  = diffV === null ? '—' : (diffV > 0 ? '+' : '') + fmtH(diffV);
+  const diffS  = diffV === null ? '—' : fmtH(diffV, true);
+  const diffSc = diffV > 0 ? 'warn' : diffV < 0 ? 'bad' : 'ok';
+  const pct    = data.cumplimientoPct ?? 0;
 
   document.getElementById('cal-kpis').innerHTML = `
-    <div class="cal-sc"><div class="cal-sc-lbl">Horas fichadas</div>
-      <div class="cal-sc-val">${fmtH(data.totalFichaje_h)}</div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Horas tareas</div>
-      <div class="cal-sc-val">${data.totalTareas_h ? fmtH(data.totalTareas_h) : '<span style="font-size:14px;color:var(--cal-text3)">Sin datos</span>'}</div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Diferencia (fich–tar)</div>
+    <div class="cal-sc info">
+      <div class="cal-sc-icon">🕐</div>
+      <div class="cal-sc-lbl">Horas fichadas</div>
+      <div class="cal-sc-val b">${fmtH(data.totalFichaje_h)}</div>
+      <div class="cal-sc-sub">${data.totalSemanas} semanas · ${data.diasLaborables} días lab.</div>
+    </div>
+    <div class="cal-sc ${data.totalTareas_h ? 'dim' : ''}">
+      <div class="cal-sc-icon">✅</div>
+      <div class="cal-sc-lbl">Horas tareas</div>
+      <div class="cal-sc-val c">${data.totalTareas_h ? fmtH(data.totalTareas_h) : '<span style="font-size:14px;color:var(--cal-text3)">Sin datos</span>'}</div>
+      <div class="cal-sc-sub">${data.totalTareas_h ? 'registradas en sistema' : 'carga tareas manualmente'}</div>
+    </div>
+    <div class="cal-sc ${diffSc}">
+      <div class="cal-sc-icon">⚖️</div>
+      <div class="cal-sc-lbl">Diferencia fich–tar</div>
       <div class="cal-sc-val ${diffCl}">${diffS}</div>
-      <div class="cal-sc-sub">${diffV !== null ? (diffV > 0 ? 'más fichaje que tareas' : diffV < 0 ? 'más tareas que fichaje' : 'equilibrado') : 'sin datos tareas'}</div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Asertividad tareas</div>
+      <div class="cal-sc-sub">${diffV !== null ? (diffV > 0.05 ? 'más fichaje que tareas' : diffV < -0.05 ? 'más tareas que fichaje' : 'equilibrado') : 'sin datos de tareas'}</div>
+    </div>
+    <div class="cal-sc ${aert !== null ? (aert >= 80 ? 'ok' : aert >= 50 ? 'warn' : 'bad') : ''}">
+      <div class="cal-sc-lbl">Asertividad tareas</div>
       ${aert !== null
-        ? `<div class="cal-ring-wrap">${ringHtml(aert)}<div style="font-size:12px;color:var(--cal-text2);line-height:1.5;">tareas vs<br>fichaje</div></div>`
-        : '<div class="cal-sc-val" style="font-size:14px;color:var(--cal-text3)">Sin datos tareas</div>'}</div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Días OK (≥7.5h)</div>
-      <div class="cal-sc-val g">${data.diasCumplen} <span style="font-size:14px;color:var(--cal-text3)">/ ${data.diasLaborables}</span></div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Días incumple</div>
-      <div class="cal-sc-val ${data.diasIncumple > 0 ? 'r' : 'g'}">${data.diasIncumple}</div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Días justificados</div>
-      <div class="cal-sc-val b">${data.diasJustif}</div></div>
-    <div class="cal-sc"><div class="cal-sc-lbl">Semanas extraídas</div>
-      <div class="cal-sc-val c">${data.totalSemanas}</div></div>`;
+        ? `<div class="cal-ring-wrap">${ringHtml(aert)}<div style="font-size:11px;color:var(--cal-text2);line-height:1.6;">tareas vs<br>fichaje</div></div>`
+        : '<div class="cal-sc-val" style="font-size:14px;color:var(--cal-text3)">Sin datos</div>'}
+    </div>
+    <div class="cal-sc ok">
+      <div class="cal-sc-icon">📅</div>
+      <div class="cal-sc-lbl">Días OK (≥7.5h)</div>
+      <div class="cal-sc-val g">${data.diasCumplen} <span style="font-size:15px;color:var(--cal-text3);font-weight:400">/ ${data.diasLaborables}</span></div>
+      <div class="cal-sc-sub">${data.diasLaborables > 0 ? Math.round(data.diasCumplen/data.diasLaborables*100) : 0}% de cumplimiento</div>
+    </div>
+    <div class="cal-sc ${data.diasIncumple > 0 ? 'bad' : 'ok'}">
+      <div class="cal-sc-icon">⚠️</div>
+      <div class="cal-sc-lbl">Días incumple</div>
+      <div class="cal-sc-val ${data.diasIncumple > 0 ? 'r' : 'g'}">${data.diasIncumple}</div>
+      <div class="cal-sc-sub">${data.diasIncumple > 0 ? 'jornadas < 7.5h' : 'todos los días OK'}</div>
+    </div>
+    <div class="cal-sc info">
+      <div class="cal-sc-icon">🗂️</div>
+      <div class="cal-sc-lbl">Días justificados</div>
+      <div class="cal-sc-val b">${data.diasJustif}</div>
+      <div class="cal-sc-sub">vacaciones / permisos</div>
+    </div>
+    <div class="cal-sc ${pct >= 90 ? 'ok' : pct >= 70 ? 'warn' : 'bad'}">
+      <div class="cal-sc-icon">🎯</div>
+      <div class="cal-sc-lbl">Cumplimiento global</div>
+      <div style="margin-top:6px">${barHtml(pct, pct >= 90 ? 'g' : pct >= 70 ? 'y' : 'r')}</div>
+    </div>`;
 }
 
 /* ── Vista Semanal ─────────────────────────────────────────────────────── */
@@ -3250,22 +3353,23 @@ function renderSemanal(data) {
   (data.semanasData || []).forEach(s => {
     const diff  = s.semDiferencia_h;
     const aert  = aertPct(s.semFichajeActivo_h || s.semFichaje_h, s.semTareas_h);
-    const diffH = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff, true)}</span>` : '<span class="dz">—</span>';
+    const diffH = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
     const aertH = aert !== null ? barHtml(aert, aert >= 80 ? 'g' : aert >= 50 ? 'y' : 'r') : '<span class="dz">—</span>';
-    const estado = s.cumple === true ? '<span class="tag tag-ok">✓ OK</span>'
-                 : s.cumple === false ? '<span class="tag tag-ko">INCUMPLE</span>'
+    const estado = s.cumple === true  ? '<span class="tag tag-ok">✓ OK</span>'
+                 : s.cumple === false ? '<span class="tag tag-ko">✗ INCUMPLE</span>'
                  : '<span class="tag tag-nd">—</span>';
-    html += `<tr>
-      <td class="td-d">${s.semana || ''}</td>
-      <td class="td-m">${s.etiqueta || '—'}</td>
-      <td>${fmtH(s.semFichaje_h)}</td>
+    const trCls = s.cumple === true ? 'tr-ok' : s.cumple === false ? 'tr-bad' : '';
+    html += `<tr class="${trCls}">
+      <td class="td-mono">${s.semana || ''}</td>
+      <td class="td-m" style="font-weight:500">${s.etiqueta || '—'}</td>
+      <td style="font-weight:600">${fmtH(s.semFichaje_h)}</td>
       <td>${s.semTareas_h !== null ? fmtH(s.semTareas_h) : '<span class="dz">—</span>'}</td>
       <td>${diffH}</td>
-      <td style="min-width:120px">${aertH}</td>
+      <td style="min-width:130px">${aertH}</td>
       <td class="td-c">${estado}</td>
     </tr>`;
   });
-  tb.innerHTML = html || '<tr><td colspan="7" class="td-d" style="text-align:center;padding:20px;">Sin datos semanales</td></tr>';
+  tb.innerHTML = html || '<tr><td colspan="7" class="td-d" style="text-align:center;padding:24px;">Sin datos semanales</td></tr>';
 }
 
 /* ── Vista Mensual ─────────────────────────────────────────────────────── */
@@ -3273,10 +3377,9 @@ function renderMensual(data) {
   const tb = document.getElementById('cal-tbody-m');
   if (!tb) return;
   const meses = {};
-  const MESES_ES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   (data.semanasData || []).forEach(s => {
     if (!s.semana) return;
-    const m = s.semana.substring(0, 7);
+    const m = s.semana.substring(0,7);
     if (!meses[m]) meses[m] = { fich:0, tar:0, semsOk:0, semsTotal:0, diasLab:0, diasOk:0 };
     const mm = meses[m];
     mm.fich += s.semFichaje_h || 0;
@@ -3284,9 +3387,8 @@ function renderMensual(data) {
     mm.semsTotal++;
     if (s.cumple === true) mm.semsOk++;
     (s.dias || []).forEach(d => {
-      if (!d.esFinSemana && !d.justificado && !d.sinDatos && d.fichaje_h !== null) {
-        mm.diasLab++;
-        if (d.fichaje_h >= 7.5) mm.diasOk++;
+      if (!d.esFinSemana && !d.justificado && !d.sinDatos && !esFestivoCal(d.fecha) && d.fichaje_h !== null) {
+        mm.diasLab++; if (d.fichaje_h >= 7.5) mm.diasOk++;
       }
     });
   });
@@ -3297,19 +3399,19 @@ function renderMensual(data) {
     const diff  = v.tar > 0 ? Math.round((v.fich - v.tar) * 100) / 100 : null;
     const aert  = v.tar > 0 && v.fich > 0 ? Math.round((v.tar / v.fich) * 100) : null;
     const cumpl = v.diasLab > 0 ? Math.round((v.diasOk / v.diasLab) * 100) : 0;
-    const diffH = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff, true)}</span>` : '<span class="dz">—</span>';
+    const diffH = diff !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
     const aertH = aert !== null ? barHtml(aert, aert >= 80 ? 'g' : aert >= 50 ? 'y' : 'r') : '<span class="dz">—</span>';
     html += `<tr>
-      <td style="font-weight:600">${label}</td>
-      <td class="td-c">${v.semsTotal}</td>
-      <td>${fmtH(v.fich)}</td>
+      <td style="font-weight:700">${label}</td>
+      <td class="td-c" style="font-weight:600">${v.semsTotal}</td>
+      <td style="font-weight:600">${fmtH(v.fich)}</td>
       <td>${v.tar > 0 ? fmtH(v.tar) : '<span class="dz">—</span>'}</td>
       <td>${diffH}</td>
-      <td style="min-width:120px">${aertH}</td>
-      <td style="min-width:120px">${barHtml(cumpl, 'g')}</td>
+      <td style="min-width:130px">${aertH}</td>
+      <td style="min-width:130px">${barHtml(cumpl, 'g')}</td>
     </tr>`;
   });
-  tb.innerHTML = html || '<tr><td colspan="7" class="td-d" style="text-align:center;padding:20px;">Sin datos mensuales</td></tr>';
+  tb.innerHTML = html || '<tr><td colspan="7" class="td-d" style="text-align:center;padding:24px;">Sin datos mensuales</td></tr>';
 }
 
 /* ── Vista Diaria ──────────────────────────────────────────────────────── */
@@ -3320,38 +3422,56 @@ function renderDiario(data) {
   (data.semanasData || []).forEach(s => {
     (s.dias || []).forEach(d => {
       if (d.esFinSemana) return;
-      const fich  = d.fichaje_h;
-      const tar   = d.tareas_h;
-      const diff  = d.diferencia_h;
-      const extra = fich !== null && fich > 8 ? Math.round((fich - 8) * 100) / 100 : null;
+      const fich    = d.fichaje_h;
+      const tar     = d.tareas_h;
+      const diff    = d.diferencia_h;
+      const festivo = esFestivoCal(d.fecha);
+
+      if (festivo) {
+        html += `<tr class="tr-festivo">
+          <td class="td-mono">${d.fecha || '—'}</td>
+          <td class="td-m">${d.dia || '—'}</td>
+          <td colspan="5"><span class="tag tag-festivo">🇪🇸 ${nombreFestivo(d.fecha)}</span></td>
+          <td></td>
+        </tr>`;
+        return;
+      }
+
+      const extra    = fich !== null && fich > 8 ? Math.round((fich - 8) * 100) / 100 : null;
       const cumpleDia = d.justificado ? null : d.sinDatos ? null : (fich !== null ? fich >= 7.5 : null);
-
-      let incText = '';
-      if (d.justificado && d.justDesc) incText = d.justDesc;
-      else if (d.sinDatos) incText = 'Sin datos de fichaje';
-      else if (fich !== null && fich < 7.5 && !d.justificado) incText = 'Jornada corta';
-      else if (extra !== null) incText = 'Exceso de jornada';
-      else if (d.eventos && d.eventos.length > 0) incText = d.eventos.slice(0,2).map(e=>e.texto||e).join(' / ');
-
-      const extraHtml = extra !== null ? `<span class="dp">+${fmtH(extra)}</span>` : '<span class="dz">—</span>';
-      const diffHtml  = diff  !== null ? `<span class="${diffClass(diff)}">${fmtH(diff, true)}</span>` : '<span class="dz">—</span>';
+      const extraHtml = extra !== null ? `<span class="tag tag-extra">+${fmtH(extra)}</span>` : '<span class="dz">—</span>';
+      const diffHtml  = diff  !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
       const tarHtml   = tar   !== null ? fmtH(tar) : '<span class="dz">—</span>';
-      const fichHtml  = fich  !== null ? fmtH(fich) : '<span class="dz">—</span>';
-      const incCl     = d.justificado ? 'color:var(--cal-text3)' : d.sinDatos ? 'color:var(--cal-text3)' : extra !== null ? 'color:var(--cal-yellow)' : (fich !== null && fich < 7.5 && !d.justificado) ? 'color:var(--cal-red)' : 'color:var(--cal-text2)';
+      const fichHtml  = fich  !== null ? `<strong>${fmtH(fich)}</strong>` : '<span class="dz">—</span>';
 
-      html += `<tr>
-        <td class="td-d">${d.fecha || '—'}</td>
+      let tag = '';
+      if (d.justificado) tag = '<span class="tag tag-justif">Justif.</span>';
+      else if (d.sinDatos) tag = '<span class="tag tag-nd">Sin datos</span>';
+      else if (cumpleDia === true)  tag = '<span class="tag tag-ok">✓ OK</span>';
+      else if (cumpleDia === false) tag = '<span class="tag tag-ko">✗ Incumple</span>';
+      else tag = '<span class="tag tag-nd">—</span>';
+
+      let nota = '';
+      if (d.justificado && d.justDesc) nota = d.justDesc;
+      else if (d.sinDatos) nota = 'Sin datos de fichaje';
+      else if (fich !== null && fich < 7.5 && !d.justificado) nota = `${fmtH(7.5 - fich, false)} menos de jornada`;
+      else if (extra !== null) nota = `Exceso de jornada`;
+      else if (d.eventos && d.eventos.length > 0) nota = d.eventos.slice(0,2).map(e=>e.texto||e).join(' / ');
+
+      const trCls = d.justificado ? '' : cumpleDia === false ? 'tr-bad' : extra !== null ? 'tr-warn' : '';
+      html += `<tr class="${trCls}">
+        <td class="td-mono">${d.fecha || '—'}</td>
         <td class="td-m">${d.dia || '—'}</td>
-        <td style="font-weight:600">${fichHtml}</td>
+        <td>${fichHtml}</td>
         <td>${tarHtml}</td>
         <td>${diffHtml}</td>
         <td>${extraHtml}</td>
-        <td class="td-c">${tagHtml(cumpleDia, d.justificado, d.sinDatos, false)}</td>
-        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;${incCl}">${incText || '—'}</td>
+        <td class="td-c">${tag}</td>
+        <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--cal-text3)">${nota || '—'}</td>
       </tr>`;
     });
   });
-  tb.innerHTML = html || '<tr><td colspan="8" class="td-d" style="text-align:center;padding:20px;">Sin datos diarios</td></tr>';
+  tb.innerHTML = html || '<tr><td colspan="8" class="td-d" style="text-align:center;padding:24px;">Sin datos diarios</td></tr>';
 }
 
 /* ── Panel Incidencias ─────────────────────────────────────────────────── */
@@ -3362,7 +3482,7 @@ function renderIncidencias(data) {
 
   (data.semanasData || []).forEach(s => {
     (s.dias || []).forEach(d => {
-      if (d.esFinSemana) return;
+      if (d.esFinSemana || esFestivoCal(d.fecha)) return;
       const fich = d.fichaje_h;
       if (fich !== null && fich > 8) {
         const extra = Math.round((fich - 8) * 100) / 100;
@@ -3378,34 +3498,70 @@ function renderIncidencias(data) {
     });
   });
 
+  const nCorta  = diasInc.filter(d=>d.tipo==='Jornada corta').length;
+  const nSinTar = diasInc.filter(d=>d.tipo==='Sin tareas registradas').length;
   const totalInc = diasInc.length;
-  const totalExtDias = diasExtra.length;
-  const sinInc = (data.diasLaborables || 0) - totalInc;
+  const nExtDias = diasExtra.length;
+  const sinInc = Math.max(0, (data.diasLaborables || 0) - totalInc);
+  const pctOk  = data.diasLaborables ? Math.round(sinInc / data.diasLaborables * 100) : 0;
+
   const statsEl = document.getElementById('cal-inc-stats');
   if (statsEl) statsEl.innerHTML = `
-    <div class="inc-mini"><div class="cal-sc-lbl">Días laborables</div><div class="cal-sc-val" style="font-size:18px">${data.diasLaborables || 0}</div></div>
-    <div class="inc-mini"><div class="cal-sc-lbl">Sin incidencia</div><div class="cal-sc-val g" style="font-size:18px">${sinInc}</div>
-      <div class="cal-sc-sub">${data.diasLaborables ? Math.round(sinInc/data.diasLaborables*100) : 0}%</div></div>
-    <div class="inc-mini"><div class="cal-sc-lbl">Jornada corta</div><div class="cal-sc-val r" style="font-size:18px">${diasInc.filter(d=>d.tipo==='Jornada corta').length}</div></div>
-    <div class="inc-mini"><div class="cal-sc-lbl">Sin tareas</div><div class="cal-sc-val y" style="font-size:18px">${diasInc.filter(d=>d.tipo==='Sin tareas registradas').length}</div></div>
-    <div class="inc-mini"><div class="cal-sc-lbl">Días &gt;8h (extras)</div><div class="cal-sc-val y" style="font-size:18px">${totalExtDias}</div>
-      <div class="cal-sc-sub">${data.diasLaborables ? Math.round(totalExtDias/data.diasLaborables*100) : 0}% del total</div></div>
-    <div class="inc-mini"><div class="cal-sc-lbl">Total horas extras</div><div class="cal-sc-val y" style="font-size:18px">${fmtH(totalExtraH)}</div></div>`;
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Días laborables</div>
+      <div class="cal-sc-val" style="font-size:20px">${data.diasLaborables || 0}</div>
+      <div class="cal-sc-sub">excluye festivos y fines de semana</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Sin incidencia</div>
+      <div class="cal-sc-val g" style="font-size:20px">${sinInc}</div>
+      <div class="cal-sc-sub">${pctOk}% de los días</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Jornada corta</div>
+      <div class="cal-sc-val r" style="font-size:20px">${nCorta}</div>
+      <div class="cal-sc-sub">&lt; 7.5h fichadas</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Sin tareas</div>
+      <div class="cal-sc-val" style="font-size:20px;color:var(--cal-cyan)">${nSinTar}</div>
+      <div class="cal-sc-sub">días sin registro de tareas</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Días >8h (extras)</div>
+      <div class="cal-sc-val y" style="font-size:20px">${nExtDias}</div>
+      <div class="cal-sc-sub">${data.diasLaborables ? Math.round(nExtDias/data.diasLaborables*100) : 0}% del total</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Total horas extras</div>
+      <div class="cal-sc-val y" style="font-size:20px">${fmtH(totalExtraH)}</div>
+      <div class="cal-sc-sub">acumuladas en el período</div>
+    </div>`;
 
   const todos = [...diasInc, ...diasExtra].sort((a,b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
   let listHtml = '';
   if (todos.length === 0) {
-    listHtml = '<div class="inc-row"><div style="color:var(--cal-text3);font-size:13px;">Sin incidencias registradas ✓</div></div>';
+    listHtml = `<div class="inc-item"><div class="inc-dot" style="background:var(--cal-green)"></div>
+      <div><div class="inc-type" style="color:var(--cal-green)">Sin incidencias registradas</div>
+      <div class="inc-detail">Todos los días laborables cumplen con la jornada</div></div></div>`;
   } else {
     todos.forEach(d => {
-      const extraHtml = d.extra ? `<span class="inc-extra">+${fmtH(d.extra)} extras</span>` : '';
+      const isCorta   = d.tipo === 'Jornada corta';
+      const isExtra   = d.tipo === 'Exceso de jornada';
+      const isSinTar  = d.tipo === 'Sin tareas registradas';
+      const dotCls    = isCorta ? 'inc-dot-r' : isExtra ? 'inc-dot-y' : 'inc-dot';
+      const dotColor  = isSinTar ? 'background:var(--cal-cyan)' : '';
+      const typeCss   = isCorta ? 'color:#f87171' : isExtra ? 'color:var(--cal-yellow)' : 'color:var(--cal-cyan)';
       const fichInfo  = d.fich !== null ? `Fichaje: <strong>${fmtH(d.fich)}</strong>` : '';
       const tarInfo   = d.tareas !== null ? ` · Tareas: ${fmtH(d.tareas)}` : '';
-      const tc        = d.tipo === 'Jornada corta' ? 'color:#f87171' : d.tipo === 'Exceso de jornada' ? 'color:var(--cal-yellow)' : 'color:var(--cal-cyan)';
-      listHtml += `<div class="inc-row">
-        <div><div class="inc-type" style="${tc}">${d.tipo}</div>
-          <div class="inc-detail">${fichInfo}${tarInfo}</div></div>
-        <div class="inc-right">${extraHtml}<div class="inc-date">${d.fecha || '—'}</div></div>
+      const extraHtml = d.extra ? `<div class="inc-extra">+${fmtH(d.extra)} extras</div>` : '';
+      listHtml += `<div class="inc-item">
+        <div class="inc-dot ${dotCls}" style="${dotColor}"></div>
+        <div style="flex:1">
+          <div class="inc-type" style="${typeCss}">${d.tipo}</div>
+          <div class="inc-detail">${fichInfo}${tarInfo}</div>
+        </div>
+        <div class="inc-right">${extraHtml}<div class="inc-date">${d.dia ? d.dia + ' ' : ''}${d.fecha || '—'}</div></div>
       </div>`;
     });
   }

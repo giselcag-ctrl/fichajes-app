@@ -1210,6 +1210,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-table tr.tr-ok:hover td{background:rgba(34,197,94,.04)}
 .cal-table tr.tr-bad td{border-left:3px solid rgba(239,68,68,.5)}
 .cal-table tr.tr-bad:hover td{background:rgba(239,68,68,.04)}
+.cal-table tr.tr-warn td{border-left:3px solid rgba(234,179,8,.5)}
 .cal-table tr.tr-warn:hover td{background:rgba(234,179,8,.04)}
 .cal-table tr.tr-festivo td{opacity:.55}
 .td-m{color:var(--cal-text2)}.td-d{color:var(--cal-text3);font-size:12px}.td-r{text-align:right}.td-c{text-align:center}
@@ -1219,6 +1220,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
 .tag-ok{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
 .tag-ko{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.tag-warn{background:rgba(234,179,8,.12);color:#fbbf24;border:1px solid rgba(234,179,8,.3)}
 .tag-nd{background:rgba(100,116,139,.1);color:var(--cal-text3);border:1px solid rgba(100,116,139,.18)}
 .tag-festivo{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
 .tag-justif{background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
@@ -3397,7 +3399,7 @@ function renderKPIs(data) {
       <div class="cal-sc-icon">⚠️</div>
       <div class="cal-sc-lbl">Días incumple</div>
       <div class="cal-sc-val ${data.diasIncumple > 0 ? 'r' : 'g'}">${data.diasIncumple}</div>
-      <div class="cal-sc-sub">${data.diasIncumple > 0 ? 'jornadas < 7.5h' : 'todos los días OK'}</div>
+      <div class="cal-sc-sub">${data.diasIncumple > 0 ? 'fuera del rango 7.5h – 8.5h' : 'todos los días OK'}</div>
     </div>
     <div class="cal-sc info">
       <div class="cal-sc-icon">🗂️</div>
@@ -3504,28 +3506,35 @@ function renderDiario(data) {
         return;
       }
 
+      // Three-state: corta (<7.5h) = yellow, ok (7.5–8.5h) = green, exceso (>8.5h) = red
+      let estadoDia = null; // 'corta' | 'ok' | 'exceso' | null
+      if (!d.justificado && !d.sinDatos && fich !== null) {
+        if      (fich < 7.5)  estadoDia = 'corta';
+        else if (fich <= 8.5) estadoDia = 'ok';
+        else                  estadoDia = 'exceso';
+      }
       const extra    = fich !== null && fich > 8 ? Math.round((fich - 8) * 100) / 100 : null;
-      const cumpleDia = d.justificado ? null : d.sinDatos ? null : (fich !== null ? fich >= 7.5 : null);
       const extraHtml = extra !== null ? `<span class="tag tag-extra">+${fmtH(extra)}</span>` : '<span class="dz">—</span>';
       const diffHtml  = diff  !== null ? `<span class="${diffClass(diff)}">${fmtH(diff,true)}</span>` : '<span class="dz">—</span>';
       const tarHtml   = tar   !== null ? fmtH(tar) : '<span class="dz">—</span>';
       const fichHtml  = fich  !== null ? `<strong>${fmtH(fich)}</strong>` : '<span class="dz">—</span>';
 
       let tag = '';
-      if (d.justificado) tag = '<span class="tag tag-justif">Justif.</span>';
-      else if (d.sinDatos) tag = '<span class="tag tag-nd">Sin datos</span>';
-      else if (cumpleDia === true)  tag = '<span class="tag tag-ok">✓ OK</span>';
-      else if (cumpleDia === false) tag = '<span class="tag tag-ko">✗ Incumple</span>';
-      else tag = '<span class="tag tag-nd">—</span>';
+      if (d.justificado)           tag = '<span class="tag tag-justif">Justif.</span>';
+      else if (d.sinDatos)         tag = '<span class="tag tag-nd">Sin datos</span>';
+      else if (estadoDia === 'ok')     tag = '<span class="tag tag-ok">✓ OK</span>';
+      else if (estadoDia === 'corta')  tag = '<span class="tag tag-warn">⚠ Jornada corta</span>';
+      else if (estadoDia === 'exceso') tag = '<span class="tag tag-ko">✗ Exceso</span>';
+      else                         tag = '<span class="tag tag-nd">—</span>';
 
       let nota = '';
-      if (d.justificado && d.justDesc) nota = d.justDesc;
-      else if (d.sinDatos) nota = 'Sin datos de fichaje';
-      else if (fich !== null && fich < 7.5 && !d.justificado) nota = `${fmtH(7.5 - fich, false)} menos de jornada`;
-      else if (extra !== null) nota = `Exceso de jornada`;
+      if (d.justificado && d.justDesc)   nota = d.justDesc;
+      else if (d.sinDatos)               nota = 'Sin datos de fichaje';
+      else if (estadoDia === 'corta')    nota = `Faltan ${fmtH(7.5 - fich)} para completar jornada`;
+      else if (estadoDia === 'exceso')   nota = `Exceso de jornada (+${fmtH(fich - 8)})`;
       else if (d.eventos && d.eventos.length > 0) nota = d.eventos.slice(0,2).map(e=>e.texto||e).join(' / ');
 
-      const trCls = d.justificado ? '' : cumpleDia === false ? 'tr-bad' : extra !== null ? 'tr-warn' : '';
+      const trCls = estadoDia === 'corta' ? 'tr-warn' : estadoDia === 'exceso' ? 'tr-bad' : '';
       html += `<tr class="${trCls}">
         <td class="td-mono">${d.fecha || '—'}</td>
         <td class="td-m">${d.dia || '—'}</td>
@@ -3543,32 +3552,33 @@ function renderDiario(data) {
 
 /* ── Panel Incidencias ─────────────────────────────────────────────────── */
 function renderIncidencias(data) {
-  const diasInc   = [];
-  const diasExtra = [];
-  let   totalExtraH = 0;
+  // Unified incidencias list — three types with clear severity
+  // Exceso (>8.5h) = RED incidencia, Corta (<7.5h) = YELLOW incidencia, Sin tareas = CYAN info
+  const diasInc = [];
+  let totalExtraH = 0;
 
   (data.semanasData || []).forEach(s => {
     (s.dias || []).forEach(d => {
       if (d.esFinSemana || esFestivoCal(d.fecha)) return;
       const fich = d.fichaje_h;
-      if (fich !== null && fich > 8) {
-        const extra = Math.round((fich - 8) * 100) / 100;
-        totalExtraH += extra;
-        diasExtra.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, extra, tipo: 'Exceso de jornada' });
-      }
-      if (!d.justificado && !d.sinDatos && fich !== null && fich < 7.5) {
-        diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, tipo: 'Jornada corta' });
-      }
-      if (!d.justificado && !d.sinDatos && fich !== null && fich >= 7.5 && d.tareas_h === null) {
-        diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: null, tipo: 'Sin tareas registradas' });
+      if (!d.justificado && !d.sinDatos && fich !== null) {
+        if (fich > 8.5) {
+          const extra = Math.round((fich - 8) * 100) / 100;
+          totalExtraH += extra;
+          diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, extra, tipo: 'Exceso de jornada' });
+        } else if (fich < 7.5) {
+          diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, tipo: 'Jornada corta' });
+        } else if (d.tareas_h === null) {
+          diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: null, tipo: 'Sin tareas registradas' });
+        }
       }
     });
   });
 
-  const nCorta  = diasInc.filter(d=>d.tipo==='Jornada corta').length;
-  const nSinTar = diasInc.filter(d=>d.tipo==='Sin tareas registradas').length;
-  const totalInc = diasInc.length;
-  const nExtDias = diasExtra.length;
+  const nExceso = diasInc.filter(d => d.tipo === 'Exceso de jornada').length;
+  const nCorta  = diasInc.filter(d => d.tipo === 'Jornada corta').length;
+  const nSinTar = diasInc.filter(d => d.tipo === 'Sin tareas registradas').length;
+  const totalInc = nExceso + nCorta; // solo las de jornada cuentan para cumplimiento
   const sinInc = Math.max(0, (data.diasLaborables || 0) - totalInc);
   const pctOk  = data.diasLaborables ? Math.round(sinInc / data.diasLaborables * 100) : 0;
 
@@ -3580,14 +3590,19 @@ function renderIncidencias(data) {
       <div class="cal-sc-sub">excluye festivos y fines de semana</div>
     </div>
     <div class="inc-mini">
-      <div class="cal-sc-lbl">Sin incidencia</div>
+      <div class="cal-sc-lbl">Jornada OK</div>
       <div class="cal-sc-val g" style="font-size:20px">${sinInc}</div>
-      <div class="cal-sc-sub">${pctOk}% de los días</div>
+      <div class="cal-sc-sub">${pctOk}% · entre 7.5h y 8.5h</div>
+    </div>
+    <div class="inc-mini">
+      <div class="cal-sc-lbl">Exceso de jornada</div>
+      <div class="cal-sc-val r" style="font-size:20px">${nExceso}</div>
+      <div class="cal-sc-sub">&gt; 8.5h fichadas · incidencia roja</div>
     </div>
     <div class="inc-mini">
       <div class="cal-sc-lbl">Jornada corta</div>
-      <div class="cal-sc-val r" style="font-size:20px">${nCorta}</div>
-      <div class="cal-sc-sub">&lt; 7.5h fichadas</div>
+      <div class="cal-sc-val y" style="font-size:20px">${nCorta}</div>
+      <div class="cal-sc-sub">&lt; 7.5h fichadas · incidencia amarilla</div>
     </div>
     <div class="inc-mini">
       <div class="cal-sc-lbl">Sin tareas</div>
@@ -3595,35 +3610,29 @@ function renderIncidencias(data) {
       <div class="cal-sc-sub">días sin registro de tareas</div>
     </div>
     <div class="inc-mini">
-      <div class="cal-sc-lbl">Días >8h (extras)</div>
-      <div class="cal-sc-val y" style="font-size:20px">${nExtDias}</div>
-      <div class="cal-sc-sub">${data.diasLaborables ? Math.round(nExtDias/data.diasLaborables*100) : 0}% del total</div>
-    </div>
-    <div class="inc-mini">
-      <div class="cal-sc-lbl">Total horas extras</div>
-      <div class="cal-sc-val y" style="font-size:20px">${fmtH(totalExtraH)}</div>
-      <div class="cal-sc-sub">acumuladas en el período</div>
+      <div class="cal-sc-lbl">Horas extra acum.</div>
+      <div class="cal-sc-val r" style="font-size:20px">${fmtH(totalExtraH)}</div>
+      <div class="cal-sc-sub">total exceso sobre 8h</div>
     </div>`;
 
-  const todos = [...diasInc, ...diasExtra].sort((a,b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
+  const todos = [...diasInc].sort((a,b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
   let listHtml = '';
   if (todos.length === 0) {
     listHtml = `<div class="inc-item"><div class="inc-dot" style="background:var(--cal-green)"></div>
       <div><div class="inc-type" style="color:var(--cal-green)">Sin incidencias registradas</div>
-      <div class="inc-detail">Todos los días laborables cumplen con la jornada</div></div></div>`;
+      <div class="inc-detail">Todos los días laborables cumplen con la jornada (7.5h – 8.5h)</div></div></div>`;
   } else {
     todos.forEach(d => {
+      const isExceso  = d.tipo === 'Exceso de jornada';
       const isCorta   = d.tipo === 'Jornada corta';
-      const isExtra   = d.tipo === 'Exceso de jornada';
       const isSinTar  = d.tipo === 'Sin tareas registradas';
-      const dotCls    = isCorta ? 'inc-dot-r' : isExtra ? 'inc-dot-y' : 'inc-dot';
-      const dotColor  = isSinTar ? 'background:var(--cal-cyan)' : '';
-      const typeCss   = isCorta ? 'color:#f87171' : isExtra ? 'color:var(--cal-yellow)' : 'color:var(--cal-cyan)';
+      const dotStyle  = isExceso ? 'background:#f87171' : isCorta ? 'background:#fbbf24' : 'background:var(--cal-cyan)';
+      const typeCss   = isExceso ? 'color:#f87171' : isCorta ? 'color:#fbbf24' : 'color:var(--cal-cyan)';
       const fichInfo  = d.fich !== null ? `Fichaje: <strong>${fmtH(d.fich)}</strong>` : '';
       const tarInfo   = d.tareas !== null ? ` · Tareas: ${fmtH(d.tareas)}` : '';
       const extraHtml = d.extra ? `<div class="inc-extra">+${fmtH(d.extra)} extras</div>` : '';
       listHtml += `<div class="inc-item">
-        <div class="inc-dot ${dotCls}" style="${dotColor}"></div>
+        <div class="inc-dot" style="${dotStyle}"></div>
         <div style="flex:1">
           <div class="inc-type" style="${typeCss}">${d.tipo}</div>
           <div class="inc-detail">${fichInfo}${tarInfo}</div>

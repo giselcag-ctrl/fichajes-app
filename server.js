@@ -786,7 +786,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap) {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5) diasCumplen++; else diasIncumple++;
+          if (fichaje_h >= 7.5 && fichaje_h <= 8.5) diasCumplen++; else diasIncumple++;
           totalFichaje_h += fichaje_h;
           if (tareas_h !== null) totalTareas_h += tareas_h;
         }
@@ -801,7 +801,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap) {
     const semTar     = activos.filter(d => d.tareas_h !== null).reduce((s, d) => s + d.tareas_h, 0);
     const conDiff    = dias.filter(d => d.diferencia_h !== null);
     const semDiff    = conDiff.reduce((s, d) => s + d.diferencia_h, 0);
-    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 7.5);
+    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5);
 
     return {
       semana:              weekStart,
@@ -887,8 +887,8 @@ function computeCalResumen(doc, tareasMap = {}) {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5) diasCumplen++;
-          else                  diasIncumple++;
+          if (fichaje_h >= 7.5 && fichaje_h <= 8.5) diasCumplen++;
+          else                                        diasIncumple++;
         }
       }
 
@@ -911,7 +911,7 @@ function computeCalResumen(doc, tareasMap = {}) {
     const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
                            .reduce((s, d) => s + d.tareas_h, 0);
     const semLab     = diasActivos.filter(d => d.fichaje_h !== null);
-    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
+    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5);
     // Días justificados en la semana
     const semJustif  = dias.filter(d => !d.esFinSemana && d.justificado).length;
     // Diferencia semanal = SUMA de (fichaje_dia − tareas_dia) solo días con ambos valores

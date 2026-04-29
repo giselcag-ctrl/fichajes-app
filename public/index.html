@@ -595,10 +595,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <option value="">Todos los empleados</option>
               </select>
               <input type="date" id="ped-filter-fecha" onchange="filtrarPedidos()" style="height:32px;width:150px;font-size:12px;background-image:none;" title="Filtrar por fecha de pedido">
-              <select id="ped-filter-estado" onchange="filtrarPedidos()" style="height:32px;width:150px;font-size:12px;">
+              <select id="ped-filter-estado" onchange="filtrarPedidos()" style="height:32px;width:170px;font-size:12px;">
                 <option value="">Todos los estados</option>
                 <option value="error">Con errores</option>
                 <option value="ok">Completos</option>
+                <option value="sin-email">Sin email comunicaciones</option>
               </select>
             </div>
           </div>
@@ -625,6 +626,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                     <th>Servicio</th>
                     <th>Creador</th>
                     <th>Importe</th>
+                    <th title="Email Comunicaciones">📧 Email com.</th>
                     <th>Incidencias</th>
                     <th>Estado</th>
                   </tr></thead>
@@ -2016,7 +2018,9 @@ function procesarPedidos(){
       const tpce=parseFloat(String(row['TPCE']||'0').replace(',','.'))||0;
       const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
       const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo)):0;
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false};
+      const emailCom=String(row['Email Comunicaciones']||row['Email Contacto']||'').trim();
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false};
+      if(emailCom&&!pedidosMap[codigo].emailCom)pedidosMap[codigo].emailCom=emailCom;
       pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea,precioCalc});
       pedidosMap[codigo].totalContratado+=precioLinea;
       pedidosMap[codigo].totalCalculado+=precioCalc;
@@ -2071,11 +2075,18 @@ function renderPedidosStats(){
   const total=PS.pedidos.length,conError=PS.pedidos.filter(p=>p.erroresTotales>0).length,ok=total-conError,totalLineas=PS.pedidos.reduce((s,p)=>s+p.lineas.length,0);
   const totalEuros=PS.pedidos.reduce((s,p)=>s+(p.totalContratado||0),0);
   const conPrecioAlerta=PS.pedidos.filter(p=>p.precioAlerta).length;
+  const conEmail=PS.pedidos.filter(p=>p.emailCom).length;
+  const sinEmail=total-conEmail;
   const fmtEur=v=>v>=1000?(v/1000).toFixed(1)+'k€':v.toFixed(0)+'€';
   document.getElementById('ped-stat-grid').innerHTML=`
     <div class="stat-card animate-in"><div class="sc-label">Total pedidos</div><div class="sc-val">${total}</div><div class="sc-sub">${totalLineas} líneas en total</div></div>
     <div class="stat-card animate-in" style="border-color:rgba(255,92,92,0.2);background:var(--red-dim)"><div class="sc-label">Con incidencias</div><div class="sc-val" style="color:var(--red)">${conError}</div><div class="sc-sub">${total>0?Math.round(conError/total*100):0}% requieren corrección</div></div>
     <div class="stat-card accent animate-in"><div class="sc-label">Completos</div><div class="sc-val">${ok}</div><div class="sc-sub">${total>0?Math.round(ok/total*100):0}% sin errores</div></div>
+    <div class="stat-card animate-in" style="${sinEmail>0?'border-color:rgba(255,183,77,0.3);background:rgba(255,183,77,0.05);':''}">
+      <div class="sc-label">Email comunicaciones</div>
+      <div class="sc-val" style="font-size:22px;color:${sinEmail>0?'var(--yellow)':'var(--accent)'}">${sinEmail>0?sinEmail:conEmail}</div>
+      <div class="sc-sub">${sinEmail>0?`⚠️ ${sinEmail} pedido${sinEmail>1?'s':''} sin email de comunicación`:`${conEmail} pedidos con email registrado`}</div>
+    </div>
     <div class="stat-card animate-in" style="${conPrecioAlerta>0?'border-color:rgba(255,183,77,0.3);background:rgba(255,183,77,0.05);':''}">
       <div class="sc-label">Importe total</div>
       <div class="sc-val" style="font-size:22px">${fmtEur(totalEuros)}</div>
@@ -2107,6 +2118,10 @@ function renderPedidosTable(){
         <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${impColor}">${imp>0?fmtE(imp):'—'}</span>${diffStr}${p.precioAlerta?'<span title="Revisar precio" style="margin-left:3px;font-size:11px;">⚠️</span>':''}
         ${calcStr}
       </td>
+      <td style="text-align:center">${p.emailCom
+        ?`<span title="${p.emailCom}" style="color:var(--accent);font-size:14px;cursor:default">✅</span>`
+        :`<span title="Sin email de comunicaciones" style="color:var(--red);font-size:14px;cursor:default">✗</span>`
+      }</td>
       <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
       <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;
@@ -2119,7 +2134,7 @@ function filtrarPedidos(){
   const fecha=document.getElementById('ped-filter-fecha').value; // YYYY-MM-DD
   PS.filtrados=PS.pedidos.filter(p=>{
     const matchQ=!q||p.codigo.toLowerCase().includes(q)||p.cliente.toLowerCase().includes(q)||p.creador.toLowerCase().includes(q);
-    const matchE=!estado||(estado==='error'?p.erroresTotales>0:p.erroresTotales===0);
+    const matchE=!estado||(estado==='error'?p.erroresTotales>0:estado==='ok'?p.erroresTotales===0:estado==='sin-email'?!p.emailCom:true);
     const matchEmp=!empleado||p.creador.toLowerCase().includes(empleado);
     const matchF=!fecha||normFecha(p.fecha)===fecha;
     return matchQ&&matchE&&matchEmp&&matchF;

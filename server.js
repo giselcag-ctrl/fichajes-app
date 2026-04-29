@@ -1058,6 +1058,79 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
   }
 });
 
+// GET /api/diagnostico  → revisión del estado de datos por empleado
+app.get('/api/diagnostico', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+
+    const [calDocs, allTareas, allFichs] = await Promise.all([
+      db.collection('calendario_datos').find({}, { projection: { empleado:1, semanas:1 } }).toArray(),
+      db.collection('tareas_manuales').distinct('empleado'),
+      db.collection('fichajes_manuales').distinct('empleado')
+    ]);
+
+    const tareasSet = new Set(allTareas);
+    const fichsSet  = new Set(allFichs);
+    const simecalSet = new Set(calDocs.map(d => d.empleado));
+
+    const reporte = [];
+
+    // Empleados con doc SIMECAL
+    for (const doc of calDocs) {
+      const tieneFich = simecalTieneFichaje(doc);
+      const tieneMFich = fichsSet.has(doc.empleado);
+      const tieneTareas = tareasSet.has(doc.empleado);
+      let fuente;
+      if (tieneFich) fuente = 'SIMECAL';
+      else if (tieneMFich) fuente = 'manual-fichajes';
+      else if (tieneTareas) fuente = 'solo-tareas';
+      else fuente = 'sin-datos';
+
+      reporte.push({
+        empleado: doc.empleado,
+        simecal_semanas: (doc.semanas || []).length,
+        simecal_tiene_fichaje: tieneFich,
+        tiene_fichajes_manuales: tieneMFich,
+        tiene_tareas_manuales: tieneTareas,
+        fuente_activa: fuente,
+        estado: tieneFich ? '✅ SIMECAL OK'
+          : tieneMFich   ? '✅ Manual fichajes OK'
+          : tieneTareas  ? '⚠️  Solo tareas (sin fichajes)'
+          : '❌ Sin datos útiles'
+      });
+    }
+
+    // Empleados solo manuales (sin doc SIMECAL)
+    const soloManual = [...new Set([...allTareas, ...allFichs])].filter(e => !simecalSet.has(e));
+    for (const emp of soloManual) {
+      reporte.push({
+        empleado: emp,
+        simecal_semanas: 0,
+        simecal_tiene_fichaje: false,
+        tiene_fichajes_manuales: fichsSet.has(emp),
+        tiene_tareas_manuales: tareasSet.has(emp),
+        fuente_activa: fichsSet.has(emp) ? 'manual-fichajes' : 'solo-tareas',
+        estado: fichsSet.has(emp) ? '✅ Manual fichajes OK' : '⚠️  Solo tareas (sin fichajes)'
+      });
+    }
+
+    reporte.sort((a, b) => a.empleado.localeCompare(b.empleado));
+
+    const resumen = {
+      total: reporte.length,
+      simecal_ok: reporte.filter(e => e.fuente_activa === 'SIMECAL').length,
+      manual_fichajes: reporte.filter(e => e.fuente_activa === 'manual-fichajes').length,
+      solo_tareas: reporte.filter(e => e.fuente_activa === 'solo-tareas').length,
+      sin_datos: reporte.filter(e => e.fuente_activa === 'sin-datos').length,
+      problemas: reporte.filter(e => e.fuente_activa === 'sin-datos' || e.fuente_activa === 'solo-tareas').map(e => e.empleado)
+    };
+
+    res.json({ ok: true, resumen, empleados: reporte });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ─── Fichajes Manuales ────────────────────────────────────────────────────
 // Formato Excel: columna A = Empleado, B = Fecha, C = Horas  (igual que tareas)
 

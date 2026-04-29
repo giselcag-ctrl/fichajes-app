@@ -271,7 +271,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     </a>
     <a class="nav-item" onclick="showPage('tareas')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h6M4 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12.5" cy="11.5" r="2.8" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.5 11.5l.7.7 1.3-1.3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Tareas manuales
+      Carga manual
     </a>
     <a class="nav-item" onclick="showPage('analisis-ia')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="currentColor" opacity="0.25"/></svg>
@@ -912,50 +912,84 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- ── Tareas Manuales ── -->
+    <!-- ── Carga Manual (Fichajes + Tareas) ── -->
     <div id="page-tareas" class="page">
-      <div class="animate-in" style="max-width:820px;">
+      <div class="animate-in" style="max-width:860px;">
         <div style="margin-bottom:24px;">
-          <h2 style="font-size:20px;font-weight:400;margin-bottom:4px;">Tareas <span style="color:var(--accent)">Manuales</span></h2>
-          <p style="font-size:13px;color:var(--text2);">Sube un Excel con las horas de tareas por empleado y día. Tendrán prioridad sobre los datos del calendario SIMECAL.</p>
+          <h2 style="font-size:20px;font-weight:400;margin-bottom:4px;">Carga <span style="color:var(--accent)">Manual</span></h2>
+          <p style="font-size:13px;color:var(--text2);">Sube los Excel de fichajes y tareas. El sistema calculará diferencias e incidencias por empleado y día.</p>
         </div>
 
-        <!-- Upload card -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;">
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:16px;">Subir archivo</div>
+        <!-- Formato -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:20px;font-size:12px;color:var(--text2);">
+          <span style="color:var(--accent);font-weight:600;">Formato de ambos archivos (mismo para fichajes y tareas):</span>&nbsp;
+          col A = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Empleado</code> &nbsp;
+          col B = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Fecha</code> (DD/MM/AAAA) &nbsp;
+          col C = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Horas</code> (7.5 ó 7:30)
+        </div>
 
-          <!-- Formato esperado -->
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);">
-            <span style="color:var(--accent);font-weight:600;">Formato Excel/CSV:</span>
-            columna A = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Empleado</code> &nbsp;
-            columna B = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Fecha</code> (DD/MM/AAAA ó AAAA-MM-DD) &nbsp;
-            columna C = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Horas</code> (decimal ej: 7.5 ó H:MM)
-          </div>
+        <!-- Dos upload cards en grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
 
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <label style="cursor:pointer;">
-              <input type="file" id="tareas-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="tareasUpload(this)">
-              <span class="btn btn-accent" onclick="document.getElementById('tareas-file-input').click()">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                Subir Excel / CSV
+          <!-- Fichajes -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <span style="font-size:18px;">🕐</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;">Fichajes</div>
+                <div style="font-size:11px;color:var(--text3);">Horas trabajadas por empleado/día</div>
+              </div>
+            </div>
+            <label style="cursor:pointer;display:block;">
+              <input type="file" id="fich-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="fichUpload(this)">
+              <span class="btn btn-outline btn-sm" onclick="document.getElementById('fich-file-input').click()" style="width:100%;justify-content:center;">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Subir Excel fichajes
               </span>
             </label>
-            <span id="tareas-upload-status" style="font-size:13px;color:var(--text2);"></span>
+            <div id="fich-upload-status" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
           </div>
+
+          <!-- Tareas -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <span style="font-size:18px;">✅</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;">Tareas</div>
+                <div style="font-size:11px;color:var(--text3);">Horas de tareas registradas por empleado/día</div>
+              </div>
+            </div>
+            <label style="cursor:pointer;display:block;">
+              <input type="file" id="tareas-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="tareasUpload(this)">
+              <span class="btn btn-outline btn-sm" onclick="document.getElementById('tareas-file-input').click()" style="width:100%;justify-content:center;">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Subir Excel tareas
+              </span>
+            </label>
+            <div id="tareas-upload-status" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
+          </div>
+
         </div>
 
         <!-- Datos cargados -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);">
-            <h3 style="font-size:13px;font-weight:500;color:var(--text2);">Tareas cargadas por empleado</h3>
-            <button class="btn btn-ghost btn-sm" onclick="tareasLoadSummary()" style="font-size:12px;">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 1.5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Actualizar
-            </button>
+            <h3 style="font-size:13px;font-weight:500;color:var(--text2);">Datos cargados por empleado</h3>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="tareasLoadSummary()" style="font-size:12px;">↺ Actualizar</button>
+              <button class="btn btn-ghost btn-sm" onclick="manualDeleteAll()" style="font-size:12px;color:var(--red);border-color:rgba(255,92,92,.2);">Borrar todo</button>
+            </div>
           </div>
           <div id="tareas-summary-body" style="padding:20px;font-size:13px;color:var(--text2);text-align:center;">
             Cargando…
           </div>
+        </div>
+
+        <div style="text-align:center;">
+          <button class="btn btn-accent" onclick="showPage('calendario')" style="gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 7h13" stroke="currentColor" stroke-width="1.3"/></svg>
+            Ver análisis en Resumen Calendario →
+          </button>
         </div>
 
       </div>
@@ -3469,6 +3503,34 @@ window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, expor
 
 })(); // fin IIFE CalModule
 
+// ── Fichajes Manuales ────────────────────────────────────────────────────
+async function fichUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const st = document.getElementById('fich-upload-status');
+  st.style.color = 'var(--text2)'; st.textContent = '⏳ Subiendo…';
+  try {
+    const fd = new FormData(); fd.append('file', file);
+    const r = await fetch('/api/fichajes-manuales', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    const res = Object.entries(d.summary).map(([e,n]) => `${e}: ${n}`).join(' · ');
+    st.style.color = 'var(--accent)';
+    st.textContent = `✓ ${d.total} registros${d.skipped ? ` (${d.skipped} omit.)` : ''} — ${res}`;
+    input.value = '';
+    tareasLoadSummary();
+  } catch(e) { st.style.color = 'var(--red)'; st.textContent = '✗ ' + e.message; }
+}
+
+async function manualDeleteAll() {
+  if (!confirm('¿Borrar TODOS los fichajes y tareas manuales?')) return;
+  await Promise.all([
+    fetch('/api/fichajes-manuales/ALL', { method: 'DELETE' }),
+    fetch('/api/tareas-manuales/ALL',   { method: 'DELETE' })
+  ]);
+  tareasLoadSummary();
+}
+
 // ── Barra de tareas en página Calendario ─────────────────────────────────
 async function calTareasBarLoad() {
   const info = document.getElementById('cal-tareas-bar-info');
@@ -3540,40 +3602,43 @@ async function tareasLoadSummary() {
   const body = document.getElementById('tareas-summary-body');
   if (!body) return;
   try {
-    const r = await fetch('/api/tareas-manuales');
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
-    if (!d.empleados || d.empleados.length === 0) {
-      body.innerHTML = '<div style="color:var(--text3);padding:8px 0;">No hay tareas manuales cargadas todavía.</div>';
+    const [rf, rt] = await Promise.all([
+      fetch('/api/fichajes-manuales').then(r => r.json()),
+      fetch('/api/tareas-manuales').then(r => r.json())
+    ]);
+    const fichMap = {}, tarMap = {};
+    (rf.empleados || []).forEach(e => { fichMap[e.empleado] = e; });
+    (rt.empleados || []).forEach(e => { tarMap[e.empleado]  = e; });
+    const allEmps = [...new Set([...Object.keys(fichMap), ...Object.keys(tarMap)])].sort();
+
+    if (allEmps.length === 0) {
+      body.innerHTML = '<div style="color:var(--text3);padding:8px 0;">No hay datos manuales cargados todavía.</div>';
       return;
     }
-    let html = '<table style="width:100%;border-collapse:collapse;">';
-    html += '<thead><tr>'
-      + ['Empleado','Días cargados','Total horas','Desde','Hasta',''].map(h =>
-          `<th style="text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:8px 14px;border-bottom:1px solid var(--border);">${h}</th>`
-        ).join('')
-      + '</tr></thead><tbody>';
-    d.empleados.forEach(e => {
+
+    const TH = h => `<th style="text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:8px 14px;border-bottom:1px solid var(--border);">${h}</th>`;
+    const TD = (v, extra='') => `<td style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;${extra}">${v}</td>`;
+    let html = `<table style="width:100%;border-collapse:collapse;"><thead><tr>
+      ${TH('Empleado')}${TH('Fichajes')}${TH('Tareas')}${TH('Período')}${TH('')}
+    </tr></thead><tbody>`;
+
+    allEmps.forEach(emp => {
+      const f = fichMap[emp], t = tarMap[emp];
+      const fTxt = f ? `${f.dias} días · ${f.totalHoras}h` : '<span style="color:var(--text3)">—</span>';
+      const tTxt = t ? `${t.dias} días · ${t.totalHoras}h` : '<span style="color:var(--text3)">—</span>';
+      const fechaMin = [f?.fechaMin, t?.fechaMin].filter(Boolean).sort()[0] || '—';
+      const fechaMax = [f?.fechaMax, t?.fechaMax].filter(Boolean).sort().reverse()[0] || '—';
       html += `<tr>
-        <td style="padding:11px 14px;font-weight:500;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${e.empleado}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid var(--border);">${e.dias}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;">${e.totalHoras}h</td>
-        <td style="padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px;">${e.fechaMin}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px;">${e.fechaMax}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid var(--border);">
-          <button class="btn btn-ghost btn-sm" onclick="tareasDeleteEmp('${e.empleado}')"
-            style="font-size:11px;color:var(--red);border-color:rgba(255,92,92,0.2);">Eliminar</button>
+        ${TD(emp, "font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);")}
+        ${TD(fTxt)}${TD(tTxt)}
+        ${TD(`${fechaMin} → ${fechaMax}`, 'font-size:12px;color:var(--text2);')}
+        <td style="padding:10px 14px;border-bottom:1px solid var(--border);">
+          ${f ? `<button class="btn btn-ghost btn-sm" onclick="fichDeleteEmp('${emp}')" style="font-size:11px;color:var(--red);border-color:rgba(255,92,92,.2);margin-right:4px;">Fich.</button>` : ''}
+          ${t ? `<button class="btn btn-ghost btn-sm" onclick="tareasDeleteEmp('${emp}')" style="font-size:11px;color:var(--red);border-color:rgba(255,92,92,.2);">Tar.</button>` : ''}
         </td>
       </tr>`;
     });
     html += '</tbody></table>';
-    if (d.total > 0) {
-      html += `<div style="padding:12px 14px 0;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;color:var(--text3);">${d.total} registros totales en ${d.empleados.length} empleados</span>
-        <button class="btn btn-ghost btn-sm" onclick="tareasDeleteEmp('all')"
-          style="font-size:11px;color:var(--red);border-color:rgba(255,92,92,0.2);">Eliminar todos</button>
-      </div>`;
-    }
     body.innerHTML = html;
   } catch(e) {
     body.innerHTML = `<div style="color:var(--red);font-size:13px;">Error: ${e.message}</div>`;
@@ -3588,9 +3653,18 @@ async function tareasDeleteEmp(emp) {
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
     tareasLoadSummary();
-  } catch(e) {
-    alert('Error al eliminar: ' + e.message);
-  }
+  } catch(e) { alert('Error al eliminar: ' + e.message); }
+}
+
+async function fichDeleteEmp(emp) {
+  const label = emp === 'ALL' ? 'TODOS los fichajes manuales' : `los fichajes de ${emp}`;
+  if (!confirm(`¿Eliminar ${label}?`)) return;
+  try {
+    const r = await fetch(`/api/fichajes-manuales/${emp}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    tareasLoadSummary();
+  } catch(e) { alert('Error al eliminar: ' + e.message); }
 }
 
 </script>

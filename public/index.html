@@ -2122,7 +2122,7 @@ function renderPedidosTable(){
         ?`<span title="${p.emailCom}" style="color:var(--accent);font-size:14px;cursor:default">✅</span>`
         :`<span title="Sin email de comunicaciones" style="color:var(--red);font-size:14px;cursor:default">✗</span>`
       }</td>
-      <td>${p.lineas.map(l=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;">▸ ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
+      <td>${p.lineas.map((l,i)=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;"><span style="opacity:.6">Línea ${i}·</span> ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
       <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;
   }).join('');
@@ -2182,7 +2182,7 @@ function seleccionarPedido(codigo){
   PS.selectedPedido=PS.pedidos.find(p=>p.codigo===codigo);
   if(!PS.selectedPedido)return;
   const p=PS.selectedPedido;renderPedidosTable();
-  const erroresStr=p.lineas.flatMap(l=>l.errores.map(e=>`  • Línea (${l.tipo}): ${e}`)).join('\n');
+  const erroresStr=p.lineas.flatMap((l,i)=>l.errores.map(e=>`  • Línea ${i} (${l.tipo}): ${e}`)).join('\n');
   const refPedido=p.numeroSAP||p.codigo;
   const cuerpo=erroresStr?`Estimado/a,\n\nTras la revisión del pedido ${refPedido} correspondiente al cliente ${p.cliente}, hemos detectado los siguientes datos incompletos que es necesario corregir en el sistema:\n\n${erroresStr}\n\nAgradecemos su atención y quedamos a disposición para cualquier consulta.`:`Estimado/a,\n\nEl pedido ${refPedido} correspondiente al cliente ${p.cliente} ha sido revisado y se encuentra completo. No se requiere ninguna acción adicional.`;
   setEmailField('ped-email-to','ped-email-to-warning',p.creador,p.emailCreador);
@@ -2204,7 +2204,7 @@ function _doEnviarCorreoPedido(to,subject,body){
     .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado':'Error de conexión');})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> Enviar';});
 }
-function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map(l=>`"${p.codigo}","${p.cliente}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
+function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map((l,i)=>`"${p.codigo}","${p.cliente}","Línea ${i}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Línea,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
 function resetPedidos(){PS.cabeceras=null;PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Pedidos';document.getElementById('ped-sub-cab').textContent='Listado resumen de pedidos · .xlsx';document.getElementById('ped-icon-lin').textContent='📄';document.getElementById('ped-label-lin').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-lin').textContent='Detalle por línea con JSON · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';document.getElementById('ped-file-lineas').value='';}
 function vacInicioDefault(){
   const y=new Date().getFullYear();

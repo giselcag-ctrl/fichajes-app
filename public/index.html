@@ -2066,6 +2066,8 @@ function procesarPedidos(){
       }
     });
     PS.pedidos=Object.values(pedidosMap).sort((a,b)=>(parseInt(b.numeroSAP)||0)-(parseInt(a.numeroSAP)||0));
+    const _rev=_loadRevisados();
+    PS.pedidos.forEach(p=>{if(_rev.has(p.codigo))p.revisado=true;});
     PS.filtrados=[...PS.pedidos];
     hideLoading();
     document.getElementById('pedidos-upload-zone').style.display='none';
@@ -2141,9 +2143,11 @@ function renderPedidosTable(){
     </tr>`;
   }).join('');
 }
+function _loadRevisados(){try{return new Set(JSON.parse(localStorage.getItem('ped_revisados')||'[]'));}catch(e){return new Set();}}
+function _saveRevisados(){try{localStorage.setItem('ped_revisados',JSON.stringify(PS.pedidos.filter(p=>p.revisado).map(p=>p.codigo)));}catch(e){}}
 function toggleRevisado(codigo){
   const p=PS.pedidos.find(p=>p.codigo===codigo);
-  if(p){p.revisado=!p.revisado;renderPedidosStats();renderPedidosTable();}
+  if(p){p.revisado=!p.revisado;_saveRevisados();renderPedidosStats();renderPedidosTable();}
 }
 function filtrarPedidos(){
   const q=(document.getElementById('ped-search').value||'').toLowerCase();

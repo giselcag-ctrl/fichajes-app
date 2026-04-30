@@ -57,9 +57,9 @@ function makeTransporter() {
     host: smtpConfig.host,
     port: smtpConfig.port,
     secure: smtpConfig.port === 465,
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 10000,
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 7000,
     tls: { rejectUnauthorized: false },
     auth: { user: smtpConfig.user, pass: smtpConfig.pass }
   });

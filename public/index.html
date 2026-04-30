@@ -2222,8 +2222,8 @@ function _doEnviarCorreoPedido(to,subject,body){
   const btn=document.getElementById('btn-ped-send');btn.disabled=true;btn.textContent='Enviando…';
   const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),20000);
   fetch('/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,subject,body}),signal:ctrl.signal})
-    .then(r=>r.json()).then(d=>{clearTimeout(tid);showToast(d.ok?'✓ Correo enviado a '+to:'Error: '+d.error);})
-    .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'Tiempo agotado':'Error de conexión');})
+    .then(r=>r.json()).then(d=>{clearTimeout(tid);showToast(d.ok?'✓ Correo enviado a '+to:'✗ '+d.error,d.ok?'ok':'err');})
+    .catch(e=>{clearTimeout(tid);showToast(e.name==='AbortError'?'✗ Sin respuesta del servidor SMTP (verifica credenciales en Render)':'✗ Error de conexión','err');})
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> Enviar';});
 }
 function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map((l,i)=>`"${p.codigo}","${p.cliente}","Línea ${i}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Línea,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}

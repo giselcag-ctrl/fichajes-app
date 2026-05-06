@@ -1158,13 +1158,34 @@ function parseExcelSimple(buffer) {
     }
     if (!fecha) { skipped++; continue; }
     let horas = null;
-    if (typeof row[2] === 'number') { horas = Math.round(row[2] * 100) / 100; }
-    else {
-      const mt = c2.match(/^(\d+):(\d{2})$/);
-      if (mt) horas = parseInt(mt[1]) + parseInt(mt[2]) / 60;
-      else    horas = parseFloat(c2.replace(',', '.'));
+    const c3 = row[3] !== undefined ? String(row[3] || '').trim() : null; // columna D opcional: hora salida
+    if (typeof row[2] === 'number') {
+      // Fracción de día de Excel (ej. 0.3479 = 8h 21min como time cell)
+      const v = row[2];
+      if (v > 0 && v < 1) horas = Math.round(v * 24 * 100) / 100; // time cell → horas
+      else                 horas = Math.round(v * 100) / 100;       // valor numérico directo
+    } else {
+      const mt = c2.match(/^(\d+):(\d{2})(?::\d{2})?$/);
+      if (mt) {
+        const h = parseInt(mt[1]), m = parseInt(mt[2]);
+        // Si parece hora de salida (>= 13h) e hay hora de entrada en col D → calcular duración
+        if (h >= 13 && c3) {
+          const mt2 = c3.match(/^(\d+):(\d{2})(?::\d{2})?$/);
+          if (mt2) {
+            const hE = parseInt(mt2[1]), mE = parseInt(mt2[2]);
+            horas = Math.round(((h + m / 60) - (hE + mE / 60)) * 100) / 100;
+          }
+        } else if (h >= 13) {
+          // Hora de salida sin hora de entrada: no podemos calcular → saltar
+          skipped++; continue;
+        } else {
+          horas = h + m / 60; // duración normal: "8:21" → 8.35h
+        }
+      } else {
+        horas = parseFloat(c2.replace(',', '.'));
+      }
     }
-    if (horas === null || isNaN(horas) || horas < 0) { skipped++; continue; }
+    if (horas === null || isNaN(horas) || horas <= 0 || horas > 24) { skipped++; continue; }
     records.push({ empleado, fecha, horas: Math.round(horas * 100) / 100 });
   }
   return { records, skipped };

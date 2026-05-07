@@ -3736,66 +3736,112 @@ function renderCorreo(data) {
 
   // Pre-fill Para from directorio
   const emailEmp = (typeof getEmail === 'function') ? getEmail(emp) : (window.S && window.S.empleados ? (window.S.empleados[emp] || '') : '');
-  const toEl = document.getElementById('cal-correo-to');
+  const toEl  = document.getElementById('cal-correo-to');
   const warnEl = document.getElementById('cal-correo-to-warn');
   if (toEl) toEl.value = emailEmp;
   if (warnEl) { warnEl.style.display = emailEmp ? 'none' : 'inline'; }
 
-  // Subject
   const subjEl = document.getElementById('cal-correo-subject');
-  if (subjEl) subjEl.value = `Revisión de fichajes — ${emp}`;
+  if (subjEl) subjEl.value = `Revisión de Fichajes — ${emp}`;
 
-  // Título
   const titEl = document.getElementById('cal-correo-titulo');
   if (titEl) titEl.textContent = `Correo de Incidencias — ${emp}`;
 
-  // Build incidencias list
-  const incList = [];
-  (data.semanasData || []).forEach(s => {
-    (s.dias || []).forEach(d => {
-      if (d.esFinSemana || esFestivoCal(d.fecha)) return;
-      if (d.justificado || d.sinDatos) return;
-      const fich = d.fichaje_h;
-      if (fich === null || fich === undefined) return;
-      if (fich < 7.5) {
-        incList.push({ fecha: d.fecha, dia: d.dia, fich, tipo: 'corta' });
-      } else if (fich > 8.5) {
-        incList.push({ fecha: d.fecha, dia: d.dia, fich, tipo: 'exceso' });
-      }
-    });
-  });
-  incList.sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
-
-  // Format fecha dd/mm/yyyy
+  // Helpers
   function fmtFecha(f) {
     if (!f) return '—';
     const [y, m, d2] = f.split('-');
     return `${d2}/${m}/${y}`;
   }
+  function fmtDiff(diff, tareas) {
+    if (diff === null || diff === undefined) {
+      return tareas === null || tareas === undefined
+        ? 'No calculable – faltan tareas'
+        : fmtH(diff, true);
+    }
+    return fmtH(diff, true);
+  }
 
-  // Build body text
-  let body = `Estimado/a ${emp},\n\n`;
-  if (incList.length === 0) {
-    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, no se han detectado incidencias de jornada. Todos los días cumplen con el horario establecido.\n`;
-  } else {
-    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, se han detectado las siguientes incidencias que deben ser revisadas:\n\n`;
-    incList.forEach(d => {
-      const fechaStr = fmtFecha(d.fecha);
-      const diaStr = d.dia ? `${d.dia} ` : '';
-      if (d.tipo === 'corta') {
-        body += `  • ${diaStr}${fechaStr}: Jornada corta — ${fmtH(d.fich)} fichadas (mínimo 7h 30min)\n`;
-      } else if (d.tipo === 'exceso') {
-        const extra = Math.round((d.fich - 8) * 60);
-        body += `  • ${diaStr}${fechaStr}: Exceso de jornada — ${fmtH(d.fich)} fichadas (+${extra} min sobre 8h)\n`;
+  const SEP = '─'.repeat(56);
+
+  // Agrupar incidencias por semana
+  const semanasConInc = [];
+  (data.semanasData || []).forEach(s => {
+    const diasInc = [];
+    (s.dias || []).forEach(d => {
+      if (d.esFinSemana || esFestivoCal(d.fecha)) return;
+      if (d.justificado || d.sinDatos) return;
+      const fich = d.fichaje_h;
+      if (fich === null || fich === undefined) return;
+      if (fich < 7.5 || fich > 8.5) {
+        diasInc.push({
+          fecha: d.fecha, dia: d.dia,
+          fich, tareas: d.tareas_h, diff: d.diferencia_h,
+          tipo: fich < 7.5 ? 'Jornada corta' : 'Exceso de jornada'
+        });
       }
     });
+    if (diasInc.length > 0) {
+      semanasConInc.push({
+        etiqueta: s.etiqueta || s.semana || '',
+        semFichaje_h: s.semFichaje_h,
+        semTareas_h:  s.semTareas_h,
+        semDiff_h:    s.semDiferencia_h,
+        dias: diasInc
+      });
+    }
+  });
+
+  // Construir cuerpo
+  let body = `Estimado/a ${emp},\n\n`;
+
+  if (semanasConInc.length === 0) {
+    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, no se han detectado incidencias. Todos los días laborables cumplen con la jornada establecida (7h 30min – 8h 30min).\n`;
+  } else {
+    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, hemos detectado los siguientes registros que requieren tu atención:\n`;
+
+    semanasConInc.forEach(s => {
+      // Cabecera de semana
+      body += `\n📋 Resumen de la semana (${s.etiqueta}):\n`;
+      body += `  • Horas fichadas totales : ${fmtH(s.semFichaje_h)}\n`;
+      if (s.semTareas_h !== null && s.semTareas_h !== undefined) {
+        body += `  • Horas en tareas        : ${fmtH(s.semTareas_h)}\n`;
+        const diff = s.semDiff_h;
+        if (diff !== null && diff !== undefined) {
+          const label = diff > 0 ? `${fmtH(diff, true)} sin respaldo en tareas` : fmtH(diff, true);
+          body += `  • Diferencia             : ${label}\n`;
+        }
+      } else {
+        body += `  • Horas en tareas        : Sin datos de tareas\n`;
+        body += `  • Diferencia             : No calculable – faltan tareas\n`;
+      }
+      body += '\n';
+
+      // Bloque por día
+      s.dias.forEach(d => {
+        const tareasStr = (d.tareas !== null && d.tareas !== undefined)
+          ? fmtH(d.tareas)
+          : 'Sin tareas registradas';
+        const diffStr = (d.diff !== null && d.diff !== undefined)
+          ? fmtH(d.diff, true)
+          : 'No calculable – faltan tareas';
+
+        body += `${SEP}\n`;
+        body += `  − Fecha: ${fmtFecha(d.fecha)}  |  Incidencia: ${d.tipo}\n`;
+        body += `    • Horas fichadas  : ${fmtH(d.fich)}\n`;
+        body += `    • Horas en tareas : ${tareasStr}\n`;
+        body += `    • Diferencia      : ${diffStr}\n`;
+      });
+      body += `${SEP}\n`;
+    });
+
+    body += `\nDurante la revisión de tu registro de actividad, hemos detectado una inconcordancia entre las horas fichadas y las horas reflejadas en tareas.\n`;
     body += `\nPor favor, revisa estos registros y coméntame si hay alguna justificación pendiente.\n`;
   }
 
   const bodyEl = document.getElementById('cal-correo-body');
   if (bodyEl) bodyEl.value = body;
 
-  // Reset status
   const statusEl = document.getElementById('cal-correo-status');
   if (statusEl) statusEl.textContent = '';
 }

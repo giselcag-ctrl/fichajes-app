@@ -763,6 +763,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
 
   let totalFichaje_h = 0, totalTareas_h = 0;
   let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
+  let diasExceso = 0, horasExceso = 0, horasDeficit = 0;
   const DAY_NAMES = ['lun','mar','mie','jue','vie','sáb','dom'];
 
   const semanasData = Object.keys(weeksMap).sort().map(weekStart => {
@@ -789,7 +790,13 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5 && fichaje_h <= 8.5) diasCumplen++; else diasIncumple++;
+          if (fichaje_h >= 7.5) {
+            diasCumplen++;
+            if (fichaje_h > 8.5) { diasExceso++; horasExceso += fichaje_h - 8; }
+          } else {
+            diasIncumple++;
+            horasDeficit += 8 - fichaje_h;
+          }
           totalFichaje_h += fichaje_h;
           if (tareas_h !== null) totalTareas_h += tareas_h;
         }
@@ -803,7 +810,8 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
     const semTar     = activos.filter(d => d.tareas_h !== null).reduce((s, d) => s + d.tareas_h, 0);
     const conDiff    = dias.filter(d => d.diferencia_h !== null);
     const semDiff    = conDiff.reduce((s, d) => s + d.diferencia_h, 0);
-    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5);
+    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 7.5);
+    const semExceso  = Math.max(0, Math.round((semFich - 40) * 100) / 100);
 
     return {
       semana:              weekStart,
@@ -812,6 +820,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
       semFichajeActivo_h:  Math.round(semFich * 100) / 100,
       semTareas_h:         activos.some(d => d.tareas_h !== null) ? Math.round(semTar * 100) / 100 : null,
       semDiferencia_h:     conDiff.length > 0 ? Math.round(semDiff * 100) / 100 : null,
+      semExceso_h:         semExceso,
       cumple,
       semJustif:           dias.filter(d => !d.esFinSemana && d.justificado).length,
       dias
@@ -820,6 +829,8 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
 
   totalFichaje_h = Math.round(totalFichaje_h * 100) / 100;
   totalTareas_h  = Math.round(totalTareas_h  * 100) / 100;
+  horasExceso    = Math.round(horasExceso    * 100) / 100;
+  horasDeficit   = Math.round(horasDeficit   * 100) / 100;
   const allConDiff      = semanasData.flatMap(s => s.dias).filter(d => d.diferencia_h !== null);
   const totalDiferencia_h = allConDiff.length > 0
     ? Math.round(allConDiff.reduce((s, d) => s + d.diferencia_h, 0) * 100) / 100 : null;
@@ -833,6 +844,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
     totalSemanas: semanasData.length,
     totalFichaje_h, totalTareas_h, totalDiferencia_h,
     diasLaborables, diasCumplen, diasIncumple, diasJustif, diasSinDatos,
+    diasExceso, horasExceso, horasDeficit,
     cumplimientoPct, semanasData
   };
 }
@@ -902,6 +914,7 @@ function computeCalResumen(doc, tareasMap = {}) {
   const semanas = doc.semanas || [];
   let totalFichaje_h = 0, totalTareas_h = 0;
   let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
+  let diasExceso = 0, horasExceso = 0, horasDeficit = 0;
 
   const semanasData = semanas.map(s => {
     const dias = (s.days || []).map((d, idx) => {
@@ -938,8 +951,13 @@ function computeCalResumen(doc, tareasMap = {}) {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5 && fichaje_h <= 8.5) diasCumplen++;
-          else                                        diasIncumple++;
+          if (fichaje_h >= 7.5) {
+            diasCumplen++;
+            if (fichaje_h > 8.5) { diasExceso++; horasExceso += fichaje_h - 8; }
+          } else {
+            diasIncumple++;
+            horasDeficit += 8 - fichaje_h;
+          }
         }
       }
 
@@ -962,7 +980,8 @@ function computeCalResumen(doc, tareasMap = {}) {
     const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
                            .reduce((s, d) => s + d.tareas_h, 0);
     const semLab     = diasActivos.filter(d => d.fichaje_h !== null);
-    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5);
+    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
+    const semExceso  = Math.max(0, Math.round((semFichajeActivo - 40) * 100) / 100);
     // Días justificados en la semana
     const semJustif  = dias.filter(d => !d.esFinSemana && d.justificado).length;
     // Diferencia semanal = SUMA de (fichaje_dia − tareas_dia) solo días con ambos valores
@@ -977,6 +996,7 @@ function computeCalResumen(doc, tareasMap = {}) {
       semFichajeActivo_h: Math.round(semFichajeActivo * 100) / 100,    // solo días activos
       semTareas_h:        semTareas > 0 ? Math.round(semTareas * 100) / 100 : null,
       semDiferencia_h:    diasConDiff.length > 0 ? Math.round(semDiferencia * 100) / 100 : null,
+      semExceso_h:        semExceso,
       cumple: semCumple,
       semJustif,
       dias
@@ -985,6 +1005,8 @@ function computeCalResumen(doc, tareasMap = {}) {
 
   totalFichaje_h = Math.round(totalFichaje_h * 100) / 100;
   totalTareas_h  = Math.round(totalTareas_h  * 100) / 100;
+  horasExceso    = Math.round(horasExceso    * 100) / 100;
+  horasDeficit   = Math.round(horasDeficit   * 100) / 100;
   // Diferencia total = SUMA de diferencia_h por día (fichaje_dia − tareas_dia por cada día válido)
   const _allDiasConDiff = semanasData.flatMap(s => s.dias).filter(d => d.diferencia_h !== null);
   const totalDiferencia_h = _allDiasConDiff.length > 0
@@ -998,8 +1020,46 @@ function computeCalResumen(doc, tareasMap = {}) {
     totalSemanas: semanas.length,
     totalFichaje_h, totalTareas_h, totalDiferencia_h,
     diasLaborables, diasCumplen, diasIncumple, diasJustif, diasSinDatos,
+    diasExceso, horasExceso, horasDeficit,
     cumplimientoPct,
     semanasData
+  };
+}
+
+// Helper: filtra semanasData por año y recalcula métricas
+function filterResultByAnio(result, anio) {
+  if (!anio || !result || !result.semanasData) return result;
+  const semanas = result.semanasData.filter(s =>
+    (s.dias || []).some(d => d.fecha && d.fecha.startsWith(anio))
+  );
+  if (semanas.length === 0) return null;
+  let totalFichaje_h = 0, totalTareas_h = 0;
+  let diasLaborables = 0, diasCumplen = 0, diasJustif = 0, diasSinDatos = 0, diasIncumple = 0;
+  let diasExceso = 0, horasExceso = 0, horasDeficit = 0;
+  semanas.forEach(s => {
+    (s.dias || []).forEach(d => {
+      if (!d.fecha || !d.fecha.startsWith(anio)) return;
+      if (d.esFinSemana) return;
+      if (d.justificado)  { diasJustif++;  return; }
+      if (d.sinDatos)     { diasSinDatos++; return; }
+      if (d.fichaje_h !== null && d.fichaje_h !== undefined) {
+        diasLaborables++;
+        totalFichaje_h += d.fichaje_h;
+        if (d.fichaje_h >= 7.5) {
+          diasCumplen++;
+          if (d.fichaje_h > 8.5) { diasExceso++; horasExceso += d.fichaje_h - 8; }
+        } else { diasIncumple++; horasDeficit += 8 - d.fichaje_h; }
+        if (d.tareas_h !== null && d.tareas_h !== undefined) totalTareas_h += d.tareas_h;
+      }
+    });
+  });
+  const round = v => Math.round(v * 100) / 100;
+  return {
+    ...result, semanasData: semanas, totalSemanas: semanas.length,
+    totalFichaje_h: round(totalFichaje_h), totalTareas_h: round(totalTareas_h),
+    diasLaborables, diasCumplen, diasIncumple, diasJustif, diasSinDatos,
+    diasExceso, horasExceso: round(horasExceso), horasDeficit: round(horasDeficit),
+    cumplimientoPct: diasLaborables > 0 ? Math.round((diasCumplen / diasLaborables) * 100) : 0
   };
 }
 
@@ -1031,46 +1091,52 @@ app.get('/api/resumen-calendario', async (req, res) => {
       fichsMapByEmp[f.empleado][f.fecha] = f.horas;
     });
 
+    const anioFiltro = (req.query.anio || '').trim() || null;
     const resultado = [];
+    const aniosSet  = new Set();
     const simecalEmps = new Set(docs.map(d => d.empleado));
+
+    const pushResult = (r) => {
+      if (!r) return;
+      // Collect available years
+      (r.semanasData || []).forEach(s =>
+        (s.dias || []).forEach(d => { if (d.fecha) aniosSet.add(d.fecha.slice(0, 4)); })
+      );
+      const filtered = anioFiltro ? filterResultByAnio(r, anioFiltro) : r;
+      if (!filtered) return;
+      const { semanasData, ...summary } = filtered;
+      resultado.push(summary);
+    };
 
     // 1. Empleados con datos SIMECAL
     for (const doc of docs) {
       const justM = justTareasMapByEmp[doc.empleado] || {};
       let r;
       if (!simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
-        // SIMECAL sin horas de fichaje reales pero tiene fichajes manuales → usar manuales
         r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {}, justM);
       } else if (simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
-        // SIMECAL tiene datos Y también hay fichajes manuales → combinar ambos periodos
         r = computeCombinedResumen(doc, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {}, justM);
       }
       if (!r) r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
-      const { semanasData, ...summary } = r;
-      resultado.push(summary);
+      pushResult(r);
     }
 
     // 2. Empleados sólo con fichajes manuales (no están en SIMECAL)
     for (const emp of Object.keys(fichsMapByEmp)) {
       if (simecalEmps.has(emp)) continue;
-      const r = computeManualResumen(emp, fichsMapByEmp[emp], tareasMapByEmp[emp] || {}, justTareasMapByEmp[emp] || {});
-      if (!r) continue;
-      const { semanasData, ...summary } = r;
-      resultado.push(summary);
+      pushResult(computeManualResumen(emp, fichsMapByEmp[emp], tareasMapByEmp[emp] || {}, justTareasMapByEmp[emp] || {}));
     }
 
     // 3. Empleados sólo con tareas manuales (sin SIMECAL ni fichajes)
     for (const emp of Object.keys(tareasMapByEmp)) {
       if (simecalEmps.has(emp)) continue;
-      if (fichsMapByEmp[emp]) continue; // ya cubierto arriba
-      const r = computeManualResumen(emp, {}, tareasMapByEmp[emp], justTareasMapByEmp[emp] || {});
-      if (!r) continue;
-      const { semanasData, ...summary } = r;
-      resultado.push(summary);
+      if (fichsMapByEmp[emp]) continue;
+      pushResult(computeManualResumen(emp, {}, tareasMapByEmp[emp], justTareasMapByEmp[emp] || {}));
     }
 
     resultado.sort((a, b) => a.empleado.localeCompare(b.empleado));
-    res.json({ ok: true, empleados: resultado });
+    const aniosDisponibles = [...aniosSet].sort();
+    res.json({ ok: true, empleados: resultado, aniosDisponibles });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

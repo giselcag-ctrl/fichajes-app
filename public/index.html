@@ -834,6 +834,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <button class="cal-vbtn active" onclick="CalModule.setVista('semanal',this)">Semanal</button>
                 <button class="cal-vbtn"        onclick="CalModule.setVista('mensual',this)">Mensual</button>
                 <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
+                <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
               </div>
             </div>
 
@@ -910,6 +911,44 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               </div>
               <div class="inc-stats" id="cal-inc-stats"></div>
               <div id="cal-inc-list"></div>
+            </div>
+
+            <!-- Panel Correo -->
+            <div class="cal-section cal-hidden" id="cal-v-correo">
+              <div class="cal-sec-header">
+                <span class="cal-sec-title" id="cal-correo-titulo">Correo de Incidencias</span>
+              </div>
+              <div style="display:grid;gap:10px;margin-bottom:16px;">
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Para:</label>
+                  <input id="cal-correo-to" type="email" placeholder="email@empleado.com"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                  <span id="cal-correo-to-warn" style="font-size:11px;color:#fbbf24;display:none;">⚠ No en directorio</span>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">CC:</label>
+                  <input id="cal-correo-cc" type="text" placeholder="otro@email.com, otro2@email.com (opcional)"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Asunto:</label>
+                  <input id="cal-correo-subject" type="text"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                </div>
+              </div>
+              <textarea id="cal-correo-body"
+                style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+              <div style="display:flex;gap:10px;margin-top:14px;align-items:center;">
+                <button id="cal-correo-btn" onclick="CalModule.enviarCorreo()"
+                  style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;">
+                  📤 Enviar correo
+                </button>
+                <button onclick="CalModule.copiarCorreo()"
+                  style="background:var(--cal-bg2);color:var(--cal-text);border:1px solid var(--cal-border);border-radius:8px;padding:10px 18px;font-size:13px;cursor:pointer;">
+                  📋 Copiar
+                </button>
+                <span id="cal-correo-status" style="font-size:12px;color:var(--cal-text2);margin-left:4px;"></span>
+              </div>
             </div>
 
           </div><!-- /cal-detalle -->
@@ -1183,6 +1222,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-vbtn{background:transparent;border:none;color:var(--cal-text2);padding:6px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
 .cal-vbtn:hover{color:var(--cal-text);background:rgba(255,255,255,.05)}
 .cal-vbtn.active{background:var(--cal-green-d);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.35)}
+.cal-vbtn-correo.active{background:var(--accent);box-shadow:0 2px 8px rgba(99,102,241,.35)}
 /* KPI cards */
 .cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:36px}
 .cal-sc{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .15s,transform .15s}
@@ -3380,8 +3420,9 @@ async function verDetalle(emp) {
     renderMensual(data);
     renderDiario(data);
     renderIncidencias(data);
+    renderCorreo(data);
     document.querySelectorAll('.cal-vbtn').forEach((b,i) => b.classList.toggle('active', i===0));
-    ['cal-v-semanal','cal-v-mensual','cal-v-diario'].forEach((id,i) => {
+    ['cal-v-semanal','cal-v-mensual','cal-v-diario','cal-v-correo'].forEach((id,i) => {
       const el = document.getElementById(id);
       if (el) el.classList.toggle('cal-hidden', i !== 0);
     });
@@ -3682,9 +3723,124 @@ function renderIncidencias(data) {
   if (listEl) listEl.innerHTML = listHtml;
 }
 
+/* ── Panel Correo de Incidencias ───────────────────────────────────────── */
+function renderCorreo(data) {
+  if (!data) return;
+  const emp = data.empleado || '';
+
+  // Pre-fill Para from directorio
+  const emailEmp = (typeof getEmail === 'function') ? getEmail(emp) : (window.S && window.S.empleados ? (window.S.empleados[emp] || '') : '');
+  const toEl = document.getElementById('cal-correo-to');
+  const warnEl = document.getElementById('cal-correo-to-warn');
+  if (toEl) toEl.value = emailEmp;
+  if (warnEl) { warnEl.style.display = emailEmp ? 'none' : 'inline'; }
+
+  // Subject
+  const subjEl = document.getElementById('cal-correo-subject');
+  if (subjEl) subjEl.value = `Revisión de fichajes — ${emp}`;
+
+  // Título
+  const titEl = document.getElementById('cal-correo-titulo');
+  if (titEl) titEl.textContent = `Correo de Incidencias — ${emp}`;
+
+  // Build incidencias list
+  const incList = [];
+  (data.semanasData || []).forEach(s => {
+    (s.dias || []).forEach(d => {
+      if (d.esFinSemana || esFestivoCal(d.fecha)) return;
+      if (d.justificado || d.sinDatos) return;
+      const fich = d.fichaje_h;
+      if (fich === null || fich === undefined) return;
+      if (fich < 7.5) {
+        incList.push({ fecha: d.fecha, dia: d.dia, fich, tipo: 'corta' });
+      } else if (fich > 8.5) {
+        incList.push({ fecha: d.fecha, dia: d.dia, fich, tipo: 'exceso' });
+      }
+    });
+  });
+  incList.sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
+
+  // Format fecha dd/mm/yyyy
+  function fmtFecha(f) {
+    if (!f) return '—';
+    const [y, m, d2] = f.split('-');
+    return `${d2}/${m}/${y}`;
+  }
+
+  // Build body text
+  let body = `Estimado/a ${emp},\n\n`;
+  if (incList.length === 0) {
+    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, no se han detectado incidencias de jornada. Todos los días cumplen con el horario establecido.\n`;
+  } else {
+    body += `Tras la revisión del calendario de actividades y registros de jornada correspondientes al periodo analizado, se han detectado las siguientes incidencias que deben ser revisadas:\n\n`;
+    incList.forEach(d => {
+      const fechaStr = fmtFecha(d.fecha);
+      const diaStr = d.dia ? `${d.dia} ` : '';
+      if (d.tipo === 'corta') {
+        body += `  • ${diaStr}${fechaStr}: Jornada corta — ${fmtH(d.fich)} fichadas (mínimo 7h 30min)\n`;
+      } else if (d.tipo === 'exceso') {
+        const extra = Math.round((d.fich - 8) * 60);
+        body += `  • ${diaStr}${fechaStr}: Exceso de jornada — ${fmtH(d.fich)} fichadas (+${extra} min sobre 8h)\n`;
+      }
+    });
+    body += `\nPor favor, revisa estos registros y coméntame si hay alguna justificación pendiente.\n`;
+  }
+
+  const bodyEl = document.getElementById('cal-correo-body');
+  if (bodyEl) bodyEl.value = body;
+
+  // Reset status
+  const statusEl = document.getElementById('cal-correo-status');
+  if (statusEl) statusEl.textContent = '';
+}
+
+async function enviarCorreo() {
+  const to      = (document.getElementById('cal-correo-to')?.value || '').trim();
+  const cc      = (document.getElementById('cal-correo-cc')?.value || '').trim();
+  const subject = (document.getElementById('cal-correo-subject')?.value || '').trim();
+  const body    = (document.getElementById('cal-correo-body')?.value || '').trim();
+  const statusEl = document.getElementById('cal-correo-status');
+  const btn      = document.getElementById('cal-correo-btn');
+
+  if (!to) { if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = '⚠ Debes indicar el email del destinatario.'; } return; }
+  if (!subject) { if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = '⚠ Falta el asunto.'; } return; }
+  if (!body) { if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = '⚠ El cuerpo del correo está vacío.'; } return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
+  if (statusEl) { statusEl.style.color = 'var(--cal-text2)'; statusEl.textContent = 'Enviando…'; }
+
+  try {
+    const toFinal = cc ? `${to},${cc}` : to;
+    const r = await fetch('/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: toFinal, subject, body })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      if (statusEl) { statusEl.style.color = '#4ade80'; statusEl.textContent = '✅ Correo enviado correctamente.'; }
+    } else {
+      if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = `❌ Error: ${d.error}`; }
+    }
+  } catch(err) {
+    if (statusEl) { statusEl.style.color = '#f87171'; statusEl.textContent = `❌ Error de red: ${err.message}`; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Enviar correo'; }
+  }
+}
+
+function copiarCorreo() {
+  const body = document.getElementById('cal-correo-body')?.value || '';
+  if (!body) return;
+  navigator.clipboard.writeText(body).then(() => {
+    const statusEl = document.getElementById('cal-correo-status');
+    if (statusEl) { statusEl.style.color = '#4ade80'; statusEl.textContent = '✅ Copiado al portapapeles.'; setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 2500); }
+  });
+}
+
 /* ── Cambiar vista ─────────────────────────────────────────────────────── */
 function setVista(v, btn) {
-  ['semanal','mensual','diario'].forEach(id => {
+  ['semanal','mensual','diario','correo'].forEach(id => {
     const el = document.getElementById(`cal-v-${id}`);
     if (el) el.classList.toggle('cal-hidden', id !== v);
   });
@@ -3768,7 +3924,7 @@ function exportListaCSV() {
 }
 
 /* ── API pública ───────────────────────────────────────────────────────── */
-window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, exportCSV, exportListaCSV };
+window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
 
 })(); // fin IIFE CalModule
 

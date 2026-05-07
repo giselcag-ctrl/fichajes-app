@@ -983,7 +983,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           <span style="color:var(--accent);font-weight:600;">Formato de ambos archivos (mismo para fichajes y tareas):</span>&nbsp;
           col A = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Empleado</code> &nbsp;
           col B = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Fecha</code> (DD/MM/AAAA) &nbsp;
-          col C = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Horas</code> (7.5 ó 7:30)
+          col C = <code style="background:rgba(76,175,80,.1);padding:1px 5px;border-radius:4px;color:var(--accent)">Horas</code> (8 ó 8:00)
         </div>
 
         <!-- Dos upload cards en grid -->
@@ -2994,7 +2994,7 @@ function diaEstadoCell(d){
   }
   if(d.sinDatos) return '<span style="display:inline-block;background:rgba(160,174,192,0.1);border:1px solid rgba(160,174,192,0.2);color:var(--text3);border-radius:4px;padding:1px 7px;font-size:10px;" title="Sin TPC ni eventos registrados">SIN DATOS</span>';
   if(d.fichaje_h===null) return '<span style="color:var(--text3);">—</span>';
-  return d.fichaje_h>=7.5
+  return d.fichaje_h>=8
     ? '<span style="display:inline-block;background:rgba(46,125,50,0.15);border:1px solid rgba(46,125,50,0.3);color:#81c784;border-radius:4px;padding:1px 7px;font-size:10px;">✓ OK</span>'
     : '<span style="display:inline-block;background:rgba(185,28,28,0.15);border:1px solid rgba(185,28,28,0.3);color:#f87171;border-radius:4px;padding:1px 7px;font-size:10px;">INCUMPLE</span>';
 }
@@ -3065,7 +3065,7 @@ function renderMensual(){
       if(d.justificado||d.sinDatos){ m.justif++; return; }
       if(d.fichaje_h!==null) m.fich+=d.fichaje_h;
       if(d.tareas_h!==null)  m.tar +=d.tareas_h;
-      if(d.fichaje_h>=7.5)   m.cumple++;
+      if(d.fichaje_h>=8)   m.cumple++;
     });
   });
   Object.keys(meses).sort().forEach(mes=>{
@@ -3493,15 +3493,15 @@ function renderKPIs(data) {
     </div>
     <div class="cal-sc ok">
       <div class="cal-sc-icon">📅</div>
-      <div class="cal-sc-lbl">Días OK (≥7h 30min)</div>
+      <div class="cal-sc-lbl">Días OK (≥8h)</div>
       <div class="cal-sc-val g">${data.diasCumplen} <span style="font-size:15px;color:var(--cal-text3);font-weight:400">/ ${data.diasLaborables}</span></div>
       <div class="cal-sc-sub">${data.diasLaborables > 0 ? Math.round(data.diasCumplen/data.diasLaborables*100) : 0}% de cumplimiento</div>
     </div>
     <div class="cal-sc ${diasCo > 0 ? 'bad' : 'ok'}">
       <div class="cal-sc-icon">⚠️</div>
-      <div class="cal-sc-lbl">Jornada corta (&lt;7h 30min)</div>
+      <div class="cal-sc-lbl">Jornada corta (&lt;8h)</div>
       <div class="cal-sc-val ${diasCo > 0 ? 'r' : 'g'}">${diasCo}</div>
-      <div class="cal-sc-sub">${diasCo > 0 ? 'días con menos de 7h 30min' : 'sin jornadas cortas'}</div>
+      <div class="cal-sc-sub">${diasCo > 0 ? 'días con menos de 8h' : 'sin jornadas cortas'}</div>
     </div>
     <div class="cal-sc info">
       <div class="cal-sc-icon">🗂️</div>
@@ -3607,12 +3607,12 @@ function renderDiario(data) {
         return;
       }
 
-      // Three-state: corta (<7.5h) = yellow, ok (7.5–8.5h) = green, exceso (>8.5h) = red
+      // Two-state: corta (<8h) = yellow/red, ok/exceso (>=8h, >8h) = green/red
       let estadoDia = null; // 'corta' | 'ok' | 'exceso' | null
       if (!d.justificado && !d.sinDatos && fich !== null) {
-        if      (fich < 7.5)  estadoDia = 'corta';
-        else if (fich <= 8.5) estadoDia = 'ok';
-        else                  estadoDia = 'exceso';
+        if   (fich < 8)  estadoDia = 'corta';
+        else if (fich === 8) estadoDia = 'ok';
+        else             estadoDia = 'exceso';
       }
       const extra    = fich !== null && fich > 8 ? Math.round((fich - 8) * 100) / 100 : null;
       const extraHtml = extra !== null ? `<span class="tag tag-extra">+${fmtH(extra)}</span>` : '<span class="dz">—</span>';
@@ -3631,7 +3631,7 @@ function renderDiario(data) {
       let nota = '';
       if (d.justificado && d.justDesc)   nota = d.justDesc;
       else if (d.sinDatos)               nota = 'Sin datos de fichaje';
-      else if (estadoDia === 'corta')    nota = `Faltan ${fmtH(7.5 - fich)} para completar jornada`;
+      else if (estadoDia === 'corta')    nota = `Faltan ${fmtH(8 - fich)} para completar jornada`;
       else if (estadoDia === 'exceso')   nota = `Exceso de jornada (+${fmtH(fich - 8)})`;
       else if (d.eventos && d.eventos.length > 0) nota = d.eventos.slice(0,2).map(e=>e.texto||e).join(' / ');
 
@@ -3654,7 +3654,7 @@ function renderDiario(data) {
 /* ── Panel Incidencias ─────────────────────────────────────────────────── */
 function renderIncidencias(data) {
   // Unified incidencias list — three types with clear severity
-  // Exceso (>8.5h) = RED incidencia, Corta (<7.5h) = YELLOW incidencia, Sin tareas = CYAN info
+  // Exceso (>8h) = RED incidencia, Corta (<8h) = YELLOW incidencia, Sin tareas = CYAN info
   const diasInc = [];
   let totalExtraH = 0;
 
@@ -3663,11 +3663,11 @@ function renderIncidencias(data) {
       if (d.esFinSemana || esFestivoCal(d.fecha)) return;
       const fich = d.fichaje_h;
       if (!d.justificado && !d.sinDatos && fich !== null) {
-        if (fich > 8.5) {
+        if (fich > 8) {
           const extra = Math.round((fich - 8) * 100) / 100;
           totalExtraH += extra;
           diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, extra, tipo: 'Exceso de jornada' });
-        } else if (fich < 7.5) {
+        } else if (fich < 8) {
           diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: d.tareas_h, tipo: 'Jornada corta' });
         } else if (d.tareas_h === null) {
           diasInc.push({ fecha: d.fecha, dia: d.dia, fich, tareas: null, tipo: 'Sin tareas registradas' });
@@ -3693,17 +3693,17 @@ function renderIncidencias(data) {
     <div class="inc-mini">
       <div class="cal-sc-lbl">Jornada OK</div>
       <div class="cal-sc-val g" style="font-size:20px">${sinInc}</div>
-      <div class="cal-sc-sub">${pctOk}% · entre 7.5h y 8.5h</div>
+      <div class="cal-sc-sub">${pctOk}% · con 8h exactas o más</div>
     </div>
     <div class="inc-mini">
       <div class="cal-sc-lbl">Exceso de jornada</div>
       <div class="cal-sc-val r" style="font-size:20px">${nExceso}</div>
-      <div class="cal-sc-sub">&gt; 8.5h fichadas · incidencia roja</div>
+      <div class="cal-sc-sub">&gt; 8h fichadas · exceso de jornada</div>
     </div>
     <div class="inc-mini">
       <div class="cal-sc-lbl">Jornada corta</div>
       <div class="cal-sc-val y" style="font-size:20px">${nCorta}</div>
-      <div class="cal-sc-sub">&lt; 7.5h fichadas · incidencia amarilla</div>
+      <div class="cal-sc-sub">&lt; 8h fichadas · jornada corta</div>
     </div>
     <div class="inc-mini">
       <div class="cal-sc-lbl">Sin tareas</div>
@@ -3721,7 +3721,7 @@ function renderIncidencias(data) {
   if (todos.length === 0) {
     listHtml = `<div class="inc-item"><div class="inc-dot" style="background:var(--cal-green)"></div>
       <div><div class="inc-type" style="color:var(--cal-green)">Sin incidencias registradas</div>
-      <div class="inc-detail">Todos los días laborables cumplen con la jornada (7.5h – 8.5h)</div></div></div>`;
+      <div class="inc-detail">Todos los días laborables cumplen con la jornada (≥8h)</div></div></div>`;
   } else {
     todos.forEach(d => {
       const isExceso  = d.tipo === 'Exceso de jornada';
@@ -3790,10 +3790,10 @@ function renderCorreo(data) {
       if (d.justificado || d.sinDatos) return;
       const fich = d.fichaje_h;
       if (fich === null || fich === undefined) return;
-      if (fich > 8.5) {
+      if (fich > 8) {
         diasExceso.push({ fecha: d.fecha, dia: d.dia, fich,
           exceso: Math.round((fich - 8) * 100) / 100 });
-      } else if (fich < 7.5) {
+      } else if (fich < 8) {
         diasCortos.push({ fecha: d.fecha, dia: d.dia, fich,
           deficit: Math.round((8 - fich) * 100) / 100 });
       }
@@ -3814,7 +3814,7 @@ function renderCorreo(data) {
   let body = `Estimado/a ${emp},\n\n`;
 
   if (semanasConInc.length === 0) {
-    body += `Tras la revisión del calendario de actividades y registros de jornada del periodo analizado, no se han detectado incidencias. Todos los días laborables cumplen con la jornada mínima establecida (7h 30min).\n`;
+    body += `Tras la revisión del calendario de actividades y registros de jornada del periodo analizado, no se han detectado incidencias. Todos los días laborables cumplen con la jornada mínima establecida (8h).\n`;
   } else {
     body += `Tras la revisión del registro de jornada, hemos detectado los siguientes días que requieren atención:\n`;
 
@@ -3839,7 +3839,7 @@ function renderCorreo(data) {
       body += '\n';
 
       if (s.diasExceso.length > 0) {
-        body += `  ⏫ Días con exceso de jornada (>8h 30min):\n`;
+        body += `  ⏫ Días con exceso de jornada (>8h):\n`;
         s.diasExceso.forEach(d => {
           body += `${SEP}\n`;
           body += `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  +${fmtH(d.exceso)} sobre jornada\n`;
@@ -3848,7 +3848,7 @@ function renderCorreo(data) {
       }
 
       if (s.diasCortos.length > 0) {
-        body += `  ⏬ Días con jornada corta (<7h 30min):\n`;
+        body += `  ⏬ Días con jornada corta (<8h):\n`;
         s.diasCortos.forEach(d => {
           body += `${SEP}\n`;
           body += `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  −${fmtH(d.deficit)} bajo jornada\n`;
@@ -3933,7 +3933,7 @@ function _detalleParaAnio() {
     if (d.esFinSemana || d.justificado || d.sinDatos) { if (d.justificado) diasJust++; return; }
     if (d.fichaje_h !== null) {
       totF += d.fichaje_h; diasLab++;
-      if (d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5) diasOK++; else diasInc++;
+      if (d.fichaje_h >= 8) diasOK++; else diasInc++;
     }
     if (d.tareas_h !== null) totT += d.tareas_h;
   }));
@@ -4032,8 +4032,8 @@ function exportCSV(tipo) {
       (s.dias || []).forEach(d => {
         if (d.esFinSemana) return;
         const extra = d.fichaje_h > 8 ? (d.fichaje_h - 8).toFixed(2) : '';
-        const estado = d.justificado ? 'Justificado' : d.sinDatos ? 'Sin datos' : d.fichaje_h >= 7.5 ? 'OK' : 'INCUMPLE';
-        const inc    = d.justificado ? (d.justDesc || 'Justificado') : d.fichaje_h < 7.5 && !d.sinDatos ? 'Jornada corta' : extra ? 'Exceso jornada' : '';
+        const estado = d.justificado ? 'Justificado' : d.sinDatos ? 'Sin datos' : d.fichaje_h >= 8 ? 'OK' : 'INCUMPLE';
+        const inc    = d.justificado ? (d.justDesc || 'Justificado') : d.fichaje_h < 8 && !d.sinDatos ? 'Jornada corta' : extra ? 'Exceso jornada' : '';
         rows.push([d.fecha, d.dia, d.fichaje_h ?? '', d.tareas_h ?? '', d.diferencia_h ?? '', extra, estado, inc]);
       });
     });
@@ -4045,7 +4045,7 @@ function exportCSV(tipo) {
         if (d.esFinSemana || d.justificado) return;
         const extra = d.fichaje_h !== null && d.fichaje_h > 8 ? (d.fichaje_h - 8).toFixed(2) : '';
         let tipo2 = '';
-        if (d.fichaje_h < 7.5 && !d.sinDatos) tipo2 = 'Jornada corta';
+        if (d.fichaje_h < 8 && !d.sinDatos) tipo2 = 'Jornada corta';
         else if (extra) tipo2 = 'Exceso jornada';
         else if (!d.tareas_h) tipo2 = 'Sin tareas';
         if (tipo2) rows.push([d.fecha, d.dia, tipo2, d.fichaje_h ?? '', d.tareas_h ?? '', extra]);

@@ -463,7 +463,7 @@ function computeLocalAnalysis(empleado, semanas, totalFichaje_h, totalTareas_h, 
     ? Math.round((diasCumplen / diasLaborables) * 100) : 100;
 
   const resumenGeneral =
-    `${empleado} — Cumplimiento ${cumplimientoGlobal}%: ${diasCumplen} de ${diasLaborables} días laborables con ≥7.5h fichadas. ` +
+    `${empleado} — Cumplimiento ${cumplimientoGlobal}%: ${diasCumplen} de ${diasLaborables} días laborables con ≥8h fichadas. ` +
     `${diasJustif} días justificados (festivos/vacaciones/enfermedad).` +
     (diasSinDatos > 0 ? ` ${diasSinDatos} días sin datos de fichaje.` : '') +
     (totalDiferencia_h !== null ? ` Diferencia total fichaje−tareas: ${fmtHServer(totalDiferencia_h)}.` : '');
@@ -472,7 +472,7 @@ function computeLocalAnalysis(empleado, semanas, totalFichaje_h, totalTareas_h, 
     ? `Buen cumplimiento horario. Continuar seguimiento habitual.`
     : cumplimientoGlobal >= 70
     ? `Se detectan incidencias en algunos días. Revisar los días marcados y solicitar justificación si corresponde.`
-    : `Patrón de incumplimiento significativo (${100 - cumplimientoGlobal}% de días con menos de 7.5h). Se recomienda revisión con el empleado.`;
+    : `Patrón de incumplimiento significativo (${100 - cumplimientoGlobal}% de días con menos de 8h). Se recomienda revisión con el empleado.`;
 
   return {
     empleado,
@@ -618,7 +618,7 @@ REGLAS OBLIGATORIAS:
 2. Un día con justificado=true está TOTALMENTE JUSTIFICADO. Esto incluye cualquier variante de: FESTIVO, FESTIVO NACIONAL, FESTIVO LOCAL, FESTIVO REGIONAL, VACACIONES, VACACIONES PREVISTAS, PREVISIÓN DE VACACIONES, ENFERMO, ENFERMEDAD, BAJA, BAJA MÉDICA, IT, ACCIDENTE LABORAL, LICENCIA, PERMISO. Estos días NO son error ni alerta.
 3. esFinSemana=true → ignorar completamente.
 4. sinDatos=true → el día tiene 0h de fichaje y ningún evento registrado. Esto ocurre en festivos y vacaciones cuya información no fue capturada en la extracción. NO los cuentes como incumplimiento ni como alerta. Pueden aparecer como "días sin datos" en la nota de la semana pero nunca como error del empleado.
-5. Un día INCUMPLE solo si: justificado=false AND sinDatos=false AND esFinSemana=false AND fichaje_h < 7.5 AND fichaje_h !== null.
+5. Un día INCUMPLE solo si: justificado=false AND sinDatos=false AND esFinSemana=false AND fichaje_h < 8 AND fichaje_h !== null.
 6. DIFERENCIA HORARIA: fichaje_h = horas del badge verde (tiempo total fichado). tareas_h = horas del badge negro (suma de horas en actividades/tareas del día). diferencia_h = fichaje_h − tareas_h. Si diferencia_h > 1h: hay tiempo fichado no cubierto por tareas registradas (posible desplazamiento, admin, tiempo no registrado). Si diferencia_h < -0.5h: hay tareas con más horas que el fichaje (tareas fuera del horario fichado).
 
 RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
@@ -639,7 +639,7 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
       "semTareas_h": número o null,
       "semDiferencia_h": número o null,
       "cumple": true/false,
-      "diasProblema": ["solo días NO justificados con < 7.5h: ej: lun 2026-01-12: 6h"],
+      "diasProblema": ["solo días NO justificados con < 8h: ej: lun 2026-01-12: 6h"],
       "nota": "breve nota opcional"
     }
   ],
@@ -790,9 +790,9 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5) {
+          if (fichaje_h >= 8) {
             diasCumplen++;
-            if (fichaje_h > 8.5) { diasExceso++; horasExceso += fichaje_h - 8; }
+            if (fichaje_h > 8) { diasExceso++; horasExceso += fichaje_h - 8; }
           } else {
             diasIncumple++;
             horasDeficit += 8 - fichaje_h;
@@ -810,7 +810,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
     const semTar     = activos.filter(d => d.tareas_h !== null).reduce((s, d) => s + d.tareas_h, 0);
     const conDiff    = dias.filter(d => d.diferencia_h !== null);
     const semDiff    = conDiff.reduce((s, d) => s + d.diferencia_h, 0);
-    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 7.5);
+    const cumple     = activos.length === 0 ? null : activos.every(d => d.fichaje_h >= 8);
     const semExceso  = Math.max(0, Math.round((semFich - 40) * 100) / 100);
 
     return {
@@ -951,9 +951,9 @@ function computeCalResumen(doc, tareasMap = {}) {
         else if (sinDatos)       diasSinDatos++;
         else if (fichaje_h !== null) {
           diasLaborables++;
-          if (fichaje_h >= 7.5) {
+          if (fichaje_h >= 8) {
             diasCumplen++;
-            if (fichaje_h > 8.5) { diasExceso++; horasExceso += fichaje_h - 8; }
+            if (fichaje_h > 8) { diasExceso++; horasExceso += fichaje_h - 8; }
           } else {
             diasIncumple++;
             horasDeficit += 8 - fichaje_h;
@@ -980,7 +980,7 @@ function computeCalResumen(doc, tareasMap = {}) {
     const semTareas  = diasActivos.filter(d => d.tareas_h !== null)
                            .reduce((s, d) => s + d.tareas_h, 0);
     const semLab     = diasActivos.filter(d => d.fichaje_h !== null);
-    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 7.5);
+    const semCumple  = semLab.length === 0 ? null : semLab.every(d => d.fichaje_h >= 8);
     const semExceso  = Math.max(0, Math.round((semFichajeActivo - 40) * 100) / 100);
     // Días justificados en la semana
     const semJustif  = dias.filter(d => !d.esFinSemana && d.justificado).length;
@@ -1045,9 +1045,9 @@ function filterResultByAnio(result, anio) {
       if (d.fichaje_h !== null && d.fichaje_h !== undefined) {
         diasLaborables++;
         totalFichaje_h += d.fichaje_h;
-        if (d.fichaje_h >= 7.5) {
+        if (d.fichaje_h >= 8) {
           diasCumplen++;
-          if (d.fichaje_h > 8.5) { diasExceso++; horasExceso += d.fichaje_h - 8; }
+          if (d.fichaje_h > 8) { diasExceso++; horasExceso += d.fichaje_h - 8; }
         } else { diasIncumple++; horasDeficit += 8 - d.fichaje_h; }
         if (d.tareas_h !== null && d.tareas_h !== undefined) totalTareas_h += d.tareas_h;
       }

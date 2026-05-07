@@ -507,7 +507,7 @@ function parseEventHours(str) {
 }
 
 /** Palabras clave que justifican ausencia/menos horas */
-const JUSTIFIED_RE = /festivo|vacaci[oó]n(es)?|previsi[oó]n|enferm(o|a|edad)?|\bbaja\b|accidente|licencia|permiso|\bIT\b/i;
+const JUSTIFIED_RE = /festivo|vacaci[oó]n(es)?|previsi[oó]n|enferm(o|a|edad)?|\bbaja\b|accidente|licencia|permiso|\bIT\b|m[eé]dico|asuntos\s*propios/i;
 function isJustifiedDay(events) {
   return (events || []).some(e => JUSTIFIED_RE.test(e));
 }

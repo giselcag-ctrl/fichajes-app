@@ -746,7 +746,7 @@ function getMondayISO(dateStr) {
 
 // Calcula el mismo resumen que computeCalResumen pero a partir de dos mapas
 // { "YYYY-MM-DD": horas } en lugar de datos extraídos de SIMECAL
-function computeManualResumen(empCode, fichajesMap, tareasMap) {
+function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {}) {
   const allDates = [...new Set([
     ...Object.keys(fichajesMap),
     ...Object.keys(tareasMap)
@@ -773,9 +773,12 @@ function computeManualResumen(empCode, fichajesMap, tareasMap) {
       const fecha      = d.toISOString().slice(0, 10);
       const dia        = DAY_NAMES[offset];
       const esFinSemana = offset >= 5;
-      const justificado = !esFinSemana && isFestivoNacional(fecha);
+      const justFestivo = !esFinSemana && isFestivoNacional(fecha);
+      const justTarea   = !esFinSemana && !!justTareasMap[fecha];
+      const justificado = justFestivo || justTarea;
+      const justDesc    = justificado ? (justTareasMap[fecha] || 'Festivo nacional') : null;
       const fichaje_h  = fichajesMap[fecha] !== undefined ? fichajesMap[fecha] : null;
-      const tareas_h   = tareasMap[fecha]   !== undefined ? tareasMap[fecha]   : null;
+      const tareas_h   = (!justTarea && tareasMap[fecha] !== undefined) ? tareasMap[fecha] : null;
       const sinDatos   = !esFinSemana && !justificado && fichaje_h === null;
       const diferencia_h = (!esFinSemana && !justificado && !sinDatos
         && fichaje_h !== null && tareas_h !== null)
@@ -792,8 +795,7 @@ function computeManualResumen(empCode, fichajesMap, tareasMap) {
         }
       }
       dias.push({ fecha, dia, esFinSemana, justificado,
-        justDesc: justificado ? 'Festivo nacional' : null,
-        sinDatos, fichaje_h, tareas_h, diferencia_h, eventos: [] });
+        justDesc, sinDatos, fichaje_h, tareas_h, diferencia_h, eventos: [] });
     }
 
     const activos    = dias.filter(d => !d.esFinSemana && !d.justificado && !d.sinDatos && d.fichaje_h !== null);
@@ -848,7 +850,7 @@ function simecalTieneFichaje(doc) {
 
 // Helper: combina datos SIMECAL con fichajes manuales de fechas no cubiertas por SIMECAL
 // Usado cuando un empleado tiene ambas fuentes con periodos distintos (ej. 2025 manual + 2026 SIMECAL)
-function computeCombinedResumen(doc, fichsMap, tareasMap) {
+function computeCombinedResumen(doc, fichsMap, tareasMap, justTareasMap = {}) {
   const calResult = computeCalResumen(doc, tareasMap);
 
   // Fechas ya cubiertas por SIMECAL
@@ -865,7 +867,7 @@ function computeCombinedResumen(doc, fichsMap, tareasMap) {
 
   if (Object.keys(extraFichs).length === 0) return calResult;
 
-  const manResult = computeManualResumen(doc.empleado, extraFichs, tareasMap);
+  const manResult = computeManualResumen(doc.empleado, extraFichs, tareasMap, justTareasMap);
   if (!manResult) return calResult;
 
   const totFich = Math.round(((calResult.totalFichaje_h || 0) + (manResult.totalFichaje_h || 0)) * 100) / 100;
@@ -1014,10 +1016,15 @@ app.get('/api/resumen-calendario', async (req, res) => {
     ]);
 
     // Construir mapas por empleado
-    const tareasMapByEmp = {}, fichsMapByEmp = {};
+    const tareasMapByEmp = {}, fichsMapByEmp = {}, justTareasMapByEmp = {};
     allTareas.forEach(t => {
       if (!tareasMapByEmp[t.empleado]) tareasMapByEmp[t.empleado] = {};
       tareasMapByEmp[t.empleado][t.fecha] = t.horas;
+      // Días justificados por tipo de tarea (vacaciones, baja, etc.)
+      if (t.tipo && JUSTIFIED_RE.test(t.tipo)) {
+        if (!justTareasMapByEmp[t.empleado]) justTareasMapByEmp[t.empleado] = {};
+        justTareasMapByEmp[t.empleado][t.fecha] = t.tipo;
+      }
     });
     allFichs.forEach(f => {
       if (!fichsMapByEmp[f.empleado]) fichsMapByEmp[f.empleado] = {};
@@ -1029,13 +1036,14 @@ app.get('/api/resumen-calendario', async (req, res) => {
 
     // 1. Empleados con datos SIMECAL
     for (const doc of docs) {
+      const justM = justTareasMapByEmp[doc.empleado] || {};
       let r;
       if (!simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
         // SIMECAL sin horas de fichaje reales pero tiene fichajes manuales → usar manuales
-        r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
+        r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {}, justM);
       } else if (simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
         // SIMECAL tiene datos Y también hay fichajes manuales → combinar ambos periodos
-        r = computeCombinedResumen(doc, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
+        r = computeCombinedResumen(doc, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {}, justM);
       }
       if (!r) r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
       const { semanasData, ...summary } = r;
@@ -1045,7 +1053,7 @@ app.get('/api/resumen-calendario', async (req, res) => {
     // 2. Empleados sólo con fichajes manuales (no están en SIMECAL)
     for (const emp of Object.keys(fichsMapByEmp)) {
       if (simecalEmps.has(emp)) continue;
-      const r = computeManualResumen(emp, fichsMapByEmp[emp], tareasMapByEmp[emp] || {});
+      const r = computeManualResumen(emp, fichsMapByEmp[emp], tareasMapByEmp[emp] || {}, justTareasMapByEmp[emp] || {});
       if (!r) continue;
       const { semanasData, ...summary } = r;
       resultado.push(summary);
@@ -1055,7 +1063,7 @@ app.get('/api/resumen-calendario', async (req, res) => {
     for (const emp of Object.keys(tareasMapByEmp)) {
       if (simecalEmps.has(emp)) continue;
       if (fichsMapByEmp[emp]) continue; // ya cubierto arriba
-      const r = computeManualResumen(emp, {}, tareasMapByEmp[emp]);
+      const r = computeManualResumen(emp, {}, tareasMapByEmp[emp], justTareasMapByEmp[emp] || {});
       if (!r) continue;
       const { semanasData, ...summary } = r;
       resultado.push(summary);
@@ -1081,14 +1089,18 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
     ]);
 
     const tareasMap = {};
-    tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
+    const justTareasMap = {};
+    tareasRaw.forEach(t => {
+      tareasMap[t.fecha] = t.horas;
+      if (t.tipo && JUSTIFIED_RE.test(t.tipo)) justTareasMap[t.fecha] = t.tipo;
+    });
 
     let result;
     if (simecalTieneFichaje(doc) && fichsRaw.length > 0) {
       // SIMECAL tiene horas reales Y hay fichajes manuales → combinar ambos periodos
       const fichsMap = {};
       fichsRaw.forEach(f => { fichsMap[f.fecha] = f.horas; });
-      result = computeCombinedResumen(doc, fichsMap, tareasMap);
+      result = computeCombinedResumen(doc, fichsMap, tareasMap, justTareasMap);
     } else if (simecalTieneFichaje(doc)) {
       // SIMECAL tiene horas reales → usarlo (+ tareas manuales como overlay)
       result = computeCalResumen(doc, tareasMap);
@@ -1096,11 +1108,11 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
       // Sin fichaje SIMECAL pero tiene fichajes manuales
       const fichsMap = {};
       fichsRaw.forEach(f => { fichsMap[f.fecha] = f.horas; });
-      result = computeManualResumen(empCode, fichsMap, tareasMap);
+      result = computeManualResumen(empCode, fichsMap, tareasMap, justTareasMap);
       if (!result) return res.status(404).json({ ok: false, error: `Sin datos para ${empCode}` });
     } else if (Object.keys(tareasMap).length > 0) {
       // Solo tiene tareas manuales (sin fichajes ni SIMECAL)
-      result = computeManualResumen(empCode, {}, tareasMap);
+      result = computeManualResumen(empCode, {}, tareasMap, justTareasMap);
       if (!result) return res.status(404).json({ ok: false, error: `Sin datos para ${empCode}` });
     } else if (doc) {
       // Doc SIMECAL existe pero sin datos útiles → mostrar vacío
@@ -1336,18 +1348,30 @@ app.post('/api/tareas-manuales', upload.single('file'), async (req, res) => {
       }
       if (!fecha) { skipped++; continue; }
 
-      // Parse horas (decimal o "H:MM")
+      // Parse horas (decimal o "H:MM") + tipo opcional en col D
+      // Si col C contiene texto como "Vacaciones" en vez de número, guardarlo como tipo
+      const c3 = String(row[3] || '').trim();
       let horas = null;
-      if (typeof row[2] === 'number') {
-        horas = Math.round(row[2] * 100) / 100;
+      let tipo = null;
+
+      if (typeof row[2] !== 'number' && JUSTIFIED_RE.test(c2) && isNaN(parseFloat(c2.replace(',', '.')))) {
+        // Columna C contiene texto justificado (ej. "Vacaciones") en vez de horas
+        horas = 0;
+        tipo = c2;
       } else {
-        const mTime = c2.match(/^(\d+):(\d{2})$/);
-        if (mTime) horas = parseInt(mTime[1]) + parseInt(mTime[2]) / 60;
-        else       horas = parseFloat(c2.replace(',', '.'));
+        if (typeof row[2] === 'number') {
+          horas = Math.round(row[2] * 100) / 100;
+        } else {
+          const mTime = c2.match(/^(\d+):(\d{2})$/);
+          if (mTime) horas = parseInt(mTime[1]) + parseInt(mTime[2]) / 60;
+          else       horas = parseFloat(c2.replace(',', '.'));
+        }
+        // Columna D opcional como tipo (ej. "Vacaciones", "Baja médica")
+        if (c3 && JUSTIFIED_RE.test(c3)) tipo = c3;
       }
       if (horas === null || isNaN(horas) || horas < 0) { skipped++; continue; }
 
-      records.push({ empleado, fecha, horas: Math.round(horas * 100) / 100 });
+      records.push({ empleado, fecha, horas: Math.round(horas * 100) / 100, ...(tipo ? { tipo } : {}) });
     }
 
     if (records.length === 0)

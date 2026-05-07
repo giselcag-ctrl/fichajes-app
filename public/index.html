@@ -830,11 +830,16 @@ tr:hover td{background:rgba(255,255,255,0.02)}
               <button class="cal-back" onclick="CalModule.volverLista()">← Todos los empleados</button>
               <span class="cal-emp-title" id="cal-det-titulo">—</span>
               <span class="cal-badge cal-badge-g" id="cal-det-badge">—</span>
-              <div class="cal-vbtns">
-                <button class="cal-vbtn active" onclick="CalModule.setVista('semanal',this)">Semanal</button>
-                <button class="cal-vbtn"        onclick="CalModule.setVista('mensual',this)">Mensual</button>
-                <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
-                <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
+              <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+                <select id="cal-year-select" onchange="CalModule.setAnio(this.value)"
+                  style="background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--cal-text);cursor:pointer;outline:none;">
+                </select>
+                <div class="cal-vbtns" style="margin-left:0">
+                  <button class="cal-vbtn active" onclick="CalModule.setVista('semanal',this)">Semanal</button>
+                  <button class="cal-vbtn"        onclick="CalModule.setVista('mensual',this)">Mensual</button>
+                  <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
+                  <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
+                </div>
               </div>
             </div>
 
@@ -3280,6 +3285,7 @@ function ringHtml(pct) {
 let _empleados   = [];
 let _detalle     = null;
 let _vistaActual = 'semanal';
+let _anioActual  = null;   // null = todos los años
 let _sortField   = 'empleado';
 let _sortAsc     = true;
 
@@ -3414,19 +3420,22 @@ async function verDetalle(emp) {
   try {
     const data = await apiGet(`/api/resumen-calendario/${emp}`);
     _detalle = data;
-    const pct = data.cumplimientoPct ?? 0;
+    _anioActual = null; // reset year filter before populating
+    _poblarSelectAnio(data);
+    const d = _detalleParaAnio();
+    const pct = d.cumplimientoPct ?? 0;
     const bc  = pct >= 90 ? 'g' : pct >= 70 ? 'y' : 'r';
-    document.getElementById('cal-det-titulo').textContent = `Empleado: ${data.empleado}`;
+    document.getElementById('cal-det-titulo').textContent = `Empleado: ${d.empleado}`;
     const badge = document.getElementById('cal-det-badge');
     badge.textContent = `${pct}% cumplimiento`;
     badge.className = `cal-badge cal-badge-${bc}`;
-    document.getElementById('cal-inc-titulo').textContent = `Incidencias — ${data.empleado}`;
-    renderKPIs(data);
-    renderSemanal(data);
-    renderMensual(data);
-    renderDiario(data);
-    renderIncidencias(data);
-    renderCorreo(data);
+    document.getElementById('cal-inc-titulo').textContent = `Incidencias — ${d.empleado}`;
+    renderKPIs(d);
+    renderSemanal(d);
+    renderMensual(d);
+    renderDiario(d);
+    renderIncidencias(d);
+    renderCorreo(d);
     document.querySelectorAll('.cal-vbtn').forEach((b,i) => b.classList.toggle('active', i===0));
     ['cal-v-semanal','cal-v-mensual','cal-v-diario','cal-v-correo'].forEach((id,i) => {
       const el = document.getElementById(id);
@@ -3890,6 +3899,67 @@ function copiarCorreo() {
   });
 }
 
+/* ── Filtrar por año ───────────────────────────────────────────────────── */
+function _detalleParaAnio() {
+  if (!_detalle) return null;
+  if (!_anioActual) return _detalle; // todos los años
+  const semanasF = (_detalle.semanasData || []).filter(s => {
+    // Incluir semana si algún día cae en el año seleccionado
+    return (s.dias || []).some(d => d.fecha && d.fecha.startsWith(_anioActual));
+  });
+  // Recalcular totales filtrados
+  let totF = 0, totT = 0, diasLab = 0, diasOK = 0, diasInc = 0, diasJust = 0;
+  semanasF.forEach(s => (s.dias || []).forEach(d => {
+    if (d.esFinSemana || d.justificado || d.sinDatos) { if (d.justificado) diasJust++; return; }
+    if (d.fichaje_h !== null) {
+      totF += d.fichaje_h; diasLab++;
+      if (d.fichaje_h >= 7.5 && d.fichaje_h <= 8.5) diasOK++; else diasInc++;
+    }
+    if (d.tareas_h !== null) totT += d.tareas_h;
+  }));
+  return {
+    ..._detalle,
+    semanasData: semanasF,
+    totalSemanas: semanasF.length,
+    totalFichaje_h: Math.round(totF*100)/100,
+    totalTareas_h:  totT > 0 ? Math.round(totT*100)/100 : null,
+    totalDiferencia_h: totT > 0 ? Math.round((totF-totT)*100)/100 : null,
+    diasLaborables: diasLab, diasCumplen: diasOK, diasIncumple: diasInc, diasJustif: diasJust,
+    cumplimientoPct: diasLab > 0 ? Math.round(diasOK/diasLab*100) : 0
+  };
+}
+
+function setAnio(val) {
+  _anioActual = val || null;
+  const d = _detalleParaAnio();
+  if (!d) return;
+  renderKPIs(d);
+  renderSemanal(d);
+  renderMensual(d);
+  renderDiario(d);
+  renderIncidencias(d);
+  renderCorreo(d);
+}
+
+function _poblarSelectAnio(data) {
+  const sel = document.getElementById('cal-year-select');
+  if (!sel) return;
+  const anios = new Set();
+  (data.semanasData || []).forEach(s =>
+    (s.dias || []).forEach(d => { if (d.fecha) anios.add(d.fecha.slice(0,4)); })
+  );
+  const sorted = [...anios].sort();
+  sel.innerHTML = (sorted.length > 1 ? '<option value="">Todos los años</option>' : '') +
+    sorted.map(a => `<option value="${a}">${a}</option>`).join('');
+  // Seleccionar el último año por defecto si hay más de uno
+  if (sorted.length > 0) {
+    sel.value = sorted[sorted.length - 1];
+    _anioActual = sorted[sorted.length - 1];
+  } else {
+    _anioActual = null;
+  }
+}
+
 /* ── Cambiar vista ─────────────────────────────────────────────────────── */
 function setVista(v, btn) {
   ['semanal','mensual','diario','correo'].forEach(id => {
@@ -3976,7 +4046,7 @@ function exportListaCSV() {
 }
 
 /* ── API pública ───────────────────────────────────────────────────────── */
-window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
+window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, setAnio, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
 
 })(); // fin IIFE CalModule
 

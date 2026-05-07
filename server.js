@@ -846,6 +846,55 @@ function simecalTieneFichaje(doc) {
   );
 }
 
+// Helper: combina datos SIMECAL con fichajes manuales de fechas no cubiertas por SIMECAL
+// Usado cuando un empleado tiene ambas fuentes con periodos distintos (ej. 2025 manual + 2026 SIMECAL)
+function computeCombinedResumen(doc, fichsMap, tareasMap) {
+  const calResult = computeCalResumen(doc, tareasMap);
+
+  // Fechas ya cubiertas por SIMECAL
+  const calDates = new Set();
+  (calResult.semanasData || []).forEach(s =>
+    (s.dias || []).forEach(d => { if (d.fecha) calDates.add(d.fecha); })
+  );
+
+  // Fichajes manuales en fechas NO cubiertas por SIMECAL
+  const extraFichs = {};
+  Object.entries(fichsMap).forEach(([fecha, horas]) => {
+    if (!calDates.has(fecha)) extraFichs[fecha] = horas;
+  });
+
+  if (Object.keys(extraFichs).length === 0) return calResult;
+
+  const manResult = computeManualResumen(doc.empleado, extraFichs, tareasMap);
+  if (!manResult) return calResult;
+
+  const totFich = Math.round(((calResult.totalFichaje_h || 0) + (manResult.totalFichaje_h || 0)) * 100) / 100;
+  const totTar  = (calResult.totalTareas_h != null || manResult.totalTareas_h != null)
+    ? Math.round(((calResult.totalTareas_h || 0) + (manResult.totalTareas_h || 0)) * 100) / 100
+    : null;
+  const totDiff = (totFich && totTar != null) ? Math.round((totFich - totTar) * 100) / 100 : null;
+  const diasLab = calResult.diasLaborables + manResult.diasLaborables;
+  const diasOK  = calResult.diasCumplen    + manResult.diasCumplen;
+
+  return {
+    empleado:        calResult.empleado,
+    extractedAt:     calResult.extractedAt,
+    fuente:          'combined',
+    totalSemanas:    calResult.totalSemanas + manResult.totalSemanas,
+    totalFichaje_h:  totFich,
+    totalTareas_h:   totTar,
+    totalDiferencia_h: totDiff,
+    diasLaborables:  diasLab,
+    diasCumplen:     diasOK,
+    diasIncumple:    calResult.diasIncumple + manResult.diasIncumple,
+    diasJustif:      calResult.diasJustif   + manResult.diasJustif,
+    diasSinDatos:    calResult.diasSinDatos + manResult.diasSinDatos,
+    cumplimientoPct: diasLab > 0 ? Math.round((diasOK / diasLab) * 100) : 0,
+    // semanas manuales (más antiguas) primero, luego SIMECAL
+    semanasData:     [...(manResult.semanasData || []), ...(calResult.semanasData || [])]
+  };
+}
+
 // Helper: computa métricas para un documento de calendario
 function computeCalResumen(doc, tareasMap = {}) {
   const semanas = doc.semanas || [];
@@ -984,6 +1033,9 @@ app.get('/api/resumen-calendario', async (req, res) => {
       if (!simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
         // SIMECAL sin horas de fichaje reales pero tiene fichajes manuales → usar manuales
         r = computeManualResumen(doc.empleado, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
+      } else if (simecalTieneFichaje(doc) && fichsMapByEmp[doc.empleado]) {
+        // SIMECAL tiene datos Y también hay fichajes manuales → combinar ambos periodos
+        r = computeCombinedResumen(doc, fichsMapByEmp[doc.empleado], tareasMapByEmp[doc.empleado] || {});
       }
       if (!r) r = computeCalResumen(doc, tareasMapByEmp[doc.empleado] || {});
       const { semanasData, ...summary } = r;
@@ -1032,7 +1084,12 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
     tareasRaw.forEach(t => { tareasMap[t.fecha] = t.horas; });
 
     let result;
-    if (simecalTieneFichaje(doc)) {
+    if (simecalTieneFichaje(doc) && fichsRaw.length > 0) {
+      // SIMECAL tiene horas reales Y hay fichajes manuales → combinar ambos periodos
+      const fichsMap = {};
+      fichsRaw.forEach(f => { fichsMap[f.fecha] = f.horas; });
+      result = computeCombinedResumen(doc, fichsMap, tareasMap);
+    } else if (simecalTieneFichaje(doc)) {
       // SIMECAL tiene horas reales → usarlo (+ tareas manuales como overlay)
       result = computeCalResumen(doc, tareasMap);
     } else if (fichsRaw.length > 0) {
@@ -1349,6 +1406,20 @@ app.delete('/api/tareas-manuales/:empleado', async (req, res) => {
     const emp    = req.params.empleado.toUpperCase();
     const filter = emp === 'ALL' ? {} : { empleado: emp };
     const r = await db.collection('tareas_manuales').deleteMany(filter);
+    res.json({ ok: true, deleted: r.deletedCount });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── Borrar datos SIMECAL de un empleado ──────────────────────────────────
+// DELETE /api/calendario-datos/:empleado  (o "all" para borrar todo)
+app.delete('/api/calendario-datos/:empleado', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const emp    = req.params.empleado.toUpperCase();
+    const filter = emp === 'ALL' ? {} : { empleado: emp };
+    const r = await db.collection('calendario_datos').deleteMany(filter);
     res.json({ ok: true, deleted: r.deletedCount });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

@@ -922,21 +922,23 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 <div style="display:flex;gap:10px;align-items:center;">
                   <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Para:</label>
                   <input id="cal-correo-to" type="email" placeholder="email@empleado.com"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
                   <span id="cal-correo-to-warn" style="font-size:11px;color:#fbbf24;display:none;">⚠ No en directorio</span>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
                   <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">CC:</label>
                   <input id="cal-correo-cc" type="text" placeholder="otro@email.com, otro2@email.com (opcional)"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
                   <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Asunto:</label>
                   <input id="cal-correo-subject" type="text"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;" />
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
                 </div>
               </div>
+              <div style="font-size:11px;color:var(--cal-text2);margin-bottom:6px;letter-spacing:.3px;">✎ Puedes editar el texto antes de enviar</div>
               <textarea id="cal-correo-body"
+                placeholder="Selecciona un empleado para generar el borrador…"
                 style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
               <div style="display:flex;gap:10px;margin-top:14px;align-items:center;">
                 <button id="cal-correo-btn" onclick="CalModule.enviarCorreo()"
@@ -1223,6 +1225,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .cal-vbtn:hover{color:var(--cal-text);background:rgba(255,255,255,.05)}
 .cal-vbtn.active{background:var(--cal-green-d);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.35)}
 .cal-vbtn-correo.active{background:var(--accent);box-shadow:0 2px 8px rgba(99,102,241,.35)}
+/* Correo panel – campos editables */
+#cal-correo-to:focus,#cal-correo-cc:focus,#cal-correo-subject:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(99,102,241,.18);transition:border-color .15s,box-shadow .15s}
+#cal-correo-body{transition:border-color .15s,box-shadow .15s}
+#cal-correo-body:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(99,102,241,.18)}
 /* KPI cards */
 .cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:36px}
 .cal-sc{background:var(--cal-card);border:1px solid var(--cal-border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .15s,transform .15s}

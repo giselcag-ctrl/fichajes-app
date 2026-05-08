@@ -3558,7 +3558,7 @@ function renderMensual(data) {
     if (s.cumple === true) mm.semsOk++;
     (s.dias || []).forEach(d => {
       if (!d.esFinSemana && !d.justificado && !d.sinDatos && !esFestivoCal(d.fecha) && d.fichaje_h !== null) {
-        mm.diasLab++; if (d.fichaje_h >= 7.5) mm.diasOk++;
+        mm.diasLab++; if (d.fichaje_h >= 8) mm.diasOk++;
       }
     });
   });

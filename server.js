@@ -433,12 +433,12 @@ function computeLocalAnalysis(empleado, semanas, totalFichaje_h, totalTareas_h, 
       diasLaborables++;
       semDiasLab++;
 
-      if (d.fichaje_h >= 7.5) {
+      if (d.fichaje_h >= 8) {
         diasCumplen++;
         semDiasCumple++;
       } else {
         semCumple = false;
-        const faltanMin = Math.round((7.5 - d.fichaje_h) * 60);
+        const faltanMin = Math.round((8 - d.fichaje_h) * 60);
         diasProblema.push(`${d.dia} ${d.fecha}: ${fmtHServer(d.fichaje_h)} (faltan ${faltanMin}min)`);
         if (d.fichaje_h < 6) {
           alertas.push(`${d.fecha} (${d.dia?.toUpperCase()}): solo ${fmtHServer(d.fichaje_h)} fichados`);
@@ -903,6 +903,9 @@ function computeCombinedResumen(doc, fichsMap, tareasMap, justTareasMap = {}) {
     diasIncumple:    calResult.diasIncumple + manResult.diasIncumple,
     diasJustif:      calResult.diasJustif   + manResult.diasJustif,
     diasSinDatos:    calResult.diasSinDatos + manResult.diasSinDatos,
+    diasExceso:      (calResult.diasExceso  || 0) + (manResult.diasExceso  || 0),
+    horasExceso:     Math.round(((calResult.horasExceso  || 0) + (manResult.horasExceso  || 0)) * 100) / 100,
+    horasDeficit:    Math.round(((calResult.horasDeficit || 0) + (manResult.horasDeficit || 0)) * 100) / 100,
     cumplimientoPct: diasLab > 0 ? Math.round((diasOK / diasLab) * 100) : 0,
     // semanas manuales (más antiguas) primero, luego SIMECAL
     semanasData:     [...(manResult.semanasData || []), ...(calResult.semanasData || [])]

@@ -3947,64 +3947,37 @@ function renderCorreo(data) {
     }
   });
 
+  // Aplanar todas las incidencias
+  const todosExceso = semanasConInc.flatMap(s => s.diasExceso);
+  const todosCortos = semanasConInc.flatMap(s => s.diasCortos);
+
   // Construir cuerpo
   let body = `Estimado/a ${emp},\n\n`;
 
   if (semanasConInc.length === 0) {
-    body += `Tras la revisión del calendario de actividades y registros de jornada del periodo analizado, no se han detectado incidencias. Todos los días laborables cumplen con la jornada mínima establecida (8h).\n`;
+    body += `Revisión de jornada completada. No se han detectado incidencias en el periodo analizado: todos los días laborables cumplen ≥8h.\n`;
   } else {
-    body += `Tras la revisión del registro de jornada, hemos detectado los siguientes días que requieren atención:\n`;
+    const totalInc = todosExceso.length + todosCortos.length;
+    body += `Revisión de jornada — se han detectado ${totalInc} día${totalInc > 1 ? 's' : ''} con incidencias:\n`;
 
-    semanasConInc.forEach(s => {
-      // Compute week number + date range from Monday date
-      let semLabel = s.etiqueta || s.semana || '';
-      if (s.semana && /^\d{4}-\d{2}-\d{2}$/.test(s.semana)) {
-        const lun = new Date(s.semana + 'T00:00:00');
-        const vie = new Date(lun); vie.setDate(lun.getDate() + 4);
-        const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-        // ISO week number
-        const tmp = new Date(lun); tmp.setHours(0,0,0,0);
-        tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
-        const yearStart = new Date(tmp.getFullYear(), 0, 1);
-        const numSem = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
-        semLabel = `Semana ${numSem} — del ${fmt(lun)} al ${fmt(vie)}`;
-      }
-      body += `\n📋 ${semLabel}:\n`;
-      body += `  • Horas fichadas : ${fmtH(s.semFichaje_h)}  (objetivo 40h)\n`;
-      if (s.semExceso_h > 0)
-        body += `  • Exceso semanal : +${fmtH(s.semExceso_h)} sobre las 40h\n`;
-      body += '\n';
-
-      if (s.diasExceso.length > 0) {
-        body += `  ⏫ Días con exceso de jornada (>8h):\n`;
-        s.diasExceso.forEach(d => {
-          body += `${SEP}\n`;
-          const label = d.finSemana ? `    − ${fmtFecha(d.fecha)} (${d.dia} 📅FDS)  →  ${fmtH(d.fich)} fichadas  |  fin de semana trabajado\n`
-                                    : `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  +${fmtH(d.exceso)} sobre jornada\n`;
-          body += label;
-        });
-        body += `${SEP}\n\n`;
-      }
-
-      if (s.diasCortos.length > 0) {
-        body += `  ⏬ Días con jornada corta (<8h):\n`;
-        s.diasCortos.forEach(d => {
-          body += `${SEP}\n`;
-          body += `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  −${fmtH(d.deficit)} bajo jornada\n`;
-        });
-        body += `${SEP}\n\n`;
-      }
-    });
-
-    const totEx  = data.horasExceso  || 0;
-    const totDef = data.horasDeficit || 0;
-    if (totEx > 0 || totDef > 0) {
-      body += `Resumen del periodo:\n`;
-      if (totEx  > 0) body += `  • Horas extras acumuladas : +${fmtH(totEx)}\n`;
-      if (totDef > 0) body += `  • Horas en déficit        : −${fmtH(totDef)}\n`;
-      body += '\n';
+    if (todosCortos.length > 0) {
+      body += `\n⏬ Jornada corta (<8h) — ${todosCortos.length} día${todosCortos.length > 1 ? 's' : ''}:\n`;
+      todosCortos.forEach(d => {
+        body += `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  −${fmtH(d.deficit)}\n`;
+      });
     }
-    body += `Por favor, revisa estos registros y coméntame si hay alguna justificación pendiente.\n`;
+
+    if (todosExceso.length > 0) {
+      body += `\n⏫ Exceso de jornada (>8h) — ${todosExceso.length} día${todosExceso.length > 1 ? 's' : ''}:\n`;
+      todosExceso.forEach(d => {
+        const lbl = d.finSemana
+          ? `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  📅 fin de semana\n`
+          : `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  +${fmtH(d.exceso)}\n`;
+        body += lbl;
+      });
+    }
+
+    body += `\nPor favor revisa y coméntame si hay alguna justificación pendiente.\n`;
 
     // ── Resumen anual al final del correo ──────────────────────────────────
     const totalH  = data.totalFichaje_h || 0;

@@ -3591,7 +3591,8 @@ function renderDiario(data) {
   let html = '';
   (data.semanasData || []).forEach(s => {
     (s.dias || []).forEach(d => {
-      if (d.esFinSemana) return;
+      // Mostrar fin de semana solo si tiene horas fichadas
+      if (d.esFinSemana && !(d.fichaje_h > 0)) return;
       const fich    = d.fichaje_h;
       const tar     = d.tareas_h;
       const diff    = d.diferencia_h;
@@ -3621,15 +3622,17 @@ function renderDiario(data) {
       const fichHtml  = fich  !== null ? `<strong>${fmtH(fich)}</strong>` : '<span class="dz">—</span>';
 
       let tag = '';
-      if (d.justificado)           tag = '<span class="tag tag-justif">Justif.</span>';
-      else if (d.sinDatos)         tag = '<span class="tag tag-nd">Sin datos</span>';
-      else if (estadoDia === 'ok')     tag = '<span class="tag tag-ok">✓ OK</span>';
-      else if (estadoDia === 'corta')  tag = '<span class="tag tag-warn">⚠ Jornada corta</span>';
-      else if (estadoDia === 'exceso') tag = '<span class="tag tag-ko">✗ Exceso</span>';
-      else                         tag = '<span class="tag tag-nd">—</span>';
+      if (d.esFinSemana && fich > 0)   tag = '<span class="tag tag-ko">📅 Fin semana</span>';
+      else if (d.justificado)           tag = '<span class="tag tag-justif">Justif.</span>';
+      else if (d.sinDatos)              tag = '<span class="tag tag-nd">Sin datos</span>';
+      else if (estadoDia === 'ok')      tag = '<span class="tag tag-ok">✓ OK</span>';
+      else if (estadoDia === 'corta')   tag = '<span class="tag tag-warn">⚠ Jornada corta</span>';
+      else if (estadoDia === 'exceso')  tag = '<span class="tag tag-ko">✗ Exceso</span>';
+      else                              tag = '<span class="tag tag-nd">—</span>';
 
       let nota = '';
-      if (d.justificado && d.justDesc)   nota = d.justDesc;
+      if (d.esFinSemana && fich > 0)   nota = `Fin de semana trabajado (${fmtH(fich)})`;
+      else if (d.justificado && d.justDesc) nota = d.justDesc;
       else if (d.sinDatos)               nota = 'Sin datos de fichaje';
       else if (estadoDia === 'corta')    nota = `Faltan ${fmtH(8 - fich)} para completar jornada`;
       else if (estadoDia === 'exceso')   nota = `Exceso de jornada (+${fmtH(fich - 8)})`;
@@ -3786,11 +3789,15 @@ function renderCorreo(data) {
   (data.semanasData || []).forEach(s => {
     const diasExceso = [], diasCortos = [];
     (s.dias || []).forEach(d => {
-      if (d.esFinSemana || esFestivoCal(d.fecha)) return;
+      if (esFestivoCal(d.fecha)) return;
       if (d.justificado || d.sinDatos) return;
       const fich = d.fichaje_h;
-      if (fich === null || fich === undefined) return;
-      if (fich > 8) {
+      if (fich === null || fich === undefined || fich === 0) return;
+      if (d.esFinSemana) {
+        // Fin de semana trabajado → siempre exceso
+        diasExceso.push({ fecha: d.fecha, dia: d.dia, fich,
+          exceso: Math.round(fich * 100) / 100, finSemana: true });
+      } else if (fich > 8) {
         diasExceso.push({ fecha: d.fecha, dia: d.dia, fich,
           exceso: Math.round((fich - 8) * 100) / 100 });
       } else if (fich < 8) {
@@ -3842,7 +3849,9 @@ function renderCorreo(data) {
         body += `  ⏫ Días con exceso de jornada (>8h):\n`;
         s.diasExceso.forEach(d => {
           body += `${SEP}\n`;
-          body += `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  +${fmtH(d.exceso)} sobre jornada\n`;
+          const label = d.finSemana ? `    − ${fmtFecha(d.fecha)} (${d.dia} 📅FDS)  →  ${fmtH(d.fich)} fichadas  |  fin de semana trabajado\n`
+                                    : `    − ${fmtFecha(d.fecha)} (${d.dia})  →  ${fmtH(d.fich)} fichadas  |  +${fmtH(d.exceso)} sobre jornada\n`;
+          body += label;
         });
         body += `${SEP}\n\n`;
       }

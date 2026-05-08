@@ -800,6 +800,11 @@ function computeManualResumen(empCode, fichajesMap, tareasMap, justTareasMap = {
           totalFichaje_h += fichaje_h;
           if (tareas_h !== null) totalTareas_h += tareas_h;
         }
+      } else if (fichaje_h !== null && fichaje_h > 0) {
+        // Fin de semana trabajado → suma a totales y cuenta como exceso
+        totalFichaje_h += fichaje_h;
+        diasExceso++;
+        horasExceso += fichaje_h;
       }
       dias.push({ fecha, dia, esFinSemana, justificado,
         justDesc, sinDatos, fichaje_h, tareas_h, diferencia_h, eventos: [] });
@@ -962,6 +967,11 @@ function computeCalResumen(doc, tareasMap = {}) {
             horasDeficit += 8 - fichaje_h;
           }
         }
+      } else if (fichaje_h !== null && fichaje_h > 0) {
+        // Fin de semana trabajado → suma a totales y cuenta como exceso
+        totalFichaje_h += fichaje_h;
+        diasExceso++;
+        horasExceso += fichaje_h;
       }
 
       return {
@@ -1042,7 +1052,10 @@ function filterResultByAnio(result, anio) {
   semanas.forEach(s => {
     (s.dias || []).forEach(d => {
       if (!d.fecha || !d.fecha.startsWith(anio)) return;
-      if (d.esFinSemana) return;
+      if (d.esFinSemana) {
+        if (d.fichaje_h !== null && d.fichaje_h > 0) { diasExceso++; horasExceso += d.fichaje_h; totalFichaje_h += d.fichaje_h; }
+        return;
+      }
       if (d.justificado)  { diasJustif++;  return; }
       if (d.sinDatos)     { diasSinDatos++; return; }
       if (d.fichaje_h !== null && d.fichaje_h !== undefined) {

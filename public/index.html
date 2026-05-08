@@ -3950,6 +3950,8 @@ function renderCorreo(data) {
   // Aplanar todas las incidencias
   const todosExceso = semanasConInc.flatMap(s => s.diasExceso);
   const todosCortos = semanasConInc.flatMap(s => s.diasCortos);
+  const totEx  = data.horasExceso  || 0;
+  const totDef = data.horasDeficit || 0;
 
   // Construir cuerpo
   let body = `Estimado/a ${emp},\n\n`;
@@ -3963,38 +3965,40 @@ function renderCorreo(data) {
     if (todosCortos.length > 0) {
       body += `\n⏬ Jornada corta (<8h) — ${todosCortos.length} día${todosCortos.length > 1 ? 's' : ''}:\n`;
       todosCortos.forEach(d => {
-        body += `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  −${fmtH(d.deficit)}\n`;
+        const dia = (d.dia || '').padEnd(3);
+        body += `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  −${fmtH(d.deficit)}\n`;
       });
     }
 
     if (todosExceso.length > 0) {
       body += `\n⏫ Exceso de jornada (>8h) — ${todosExceso.length} día${todosExceso.length > 1 ? 's' : ''}:\n`;
       todosExceso.forEach(d => {
+        const dia = (d.dia || '').padEnd(3);
         const lbl = d.finSemana
-          ? `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  📅 fin de semana\n`
-          : `  ${fmtFecha(d.fecha)} ${d.dia.padEnd(3)}  ${fmtH(d.fich).padEnd(10)}  +${fmtH(d.exceso)}\n`;
+          ? `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  📅 fin de semana\n`
+          : `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  +${fmtH(d.exceso)}\n`;
         body += lbl;
       });
     }
 
     body += `\nPor favor revisa y coméntame si hay alguna justificación pendiente.\n`;
-
-    // ── Resumen anual al final del correo ──────────────────────────────────
-    const totalH  = data.totalFichaje_h || 0;
-    const diasLab = data.diasLaborables || 0;
-    const diasOK  = data.diasCumplen    || 0;
-    const pctOK   = diasLab > 0 ? Math.round(diasOK / diasLab * 100) : 0;
-    const anioLbl = _anioActual ? `año ${_anioActual}` : 'el periodo analizado';
-    body += `\n${'─'.repeat(52)}\n`;
-    body += `📊 TOTALES — ${anioLbl.toUpperCase()}\n`;
-    body += `${'─'.repeat(52)}\n`;
-    body += `  • Total horas fichadas     : ${fmtH(totalH)}\n`;
-    body += `  • Días laborables          : ${diasLab}\n`;
-    body += `  • Días con buen fichaje    : ${diasOK} de ${diasLab}  (${pctOK}% cumplimiento)\n`;
-    if (totEx  > 0) body += `  • Horas extra acumuladas   : +${fmtH(totEx)}\n`;
-    if (totDef > 0) body += `  • Horas en déficit total   : −${fmtH(totDef)}\n`;
-    body += `${'─'.repeat(52)}\n`;
   }
+
+  // ── Resumen anual al final (siempre) ──────────────────────────────────────
+  const totalH  = data.totalFichaje_h || 0;
+  const diasLab = data.diasLaborables || 0;
+  const diasOK  = data.diasCumplen    || 0;
+  const pctOK   = diasLab > 0 ? Math.round(diasOK / diasLab * 100) : 0;
+  const anioLbl = _anioActual ? `año ${_anioActual}` : 'el periodo analizado';
+  body += `\n${'─'.repeat(52)}\n`;
+  body += `📊 TOTALES — ${anioLbl.toUpperCase()}\n`;
+  body += `${'─'.repeat(52)}\n`;
+  body += `  • Total horas fichadas     : ${fmtH(totalH)}\n`;
+  body += `  • Días laborables          : ${diasLab}\n`;
+  body += `  • Días con buen fichaje    : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
+  if (totEx  > 0) body += `  • Horas extra acumuladas   : +${fmtH(totEx)}\n`;
+  if (totDef > 0) body += `  • Horas en déficit total   : −${fmtH(totDef)}\n`;
+  body += `${'─'.repeat(52)}\n`;
 
   const bodyEl = document.getElementById('cal-correo-body');
   if (bodyEl) bodyEl.value = body;

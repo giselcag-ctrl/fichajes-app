@@ -707,17 +707,52 @@ RESPONDE ÚNICAMENTE JSON (sin texto extra) con este formato:
   }
 });
 
-// ─── Festivos nacionales España (fijos) ───────────────────────────────────
+// ─── Festivos nacionales + Castilla y León + Valladolid ───────────────────
 const FESTIVOS_ES = new Set([
-  // 2025
-  '2025-01-01','2025-01-06','2025-04-18','2025-05-01','2025-08-15',
-  '2025-10-12','2025-11-01','2025-12-06','2025-12-08','2025-12-25',
-  // 2026
-  '2026-01-01','2026-01-06','2026-04-03','2026-05-01','2026-08-15',
-  '2026-10-12','2026-11-01','2026-12-06','2026-12-08','2026-12-25',
+  // ── 2025 nacionales ──
+  '2025-01-01', // Año Nuevo
+  '2025-01-06', // Reyes Magos
+  '2025-04-17', // Jueves Santo (CyL)
+  '2025-04-18', // Viernes Santo
+  '2025-04-23', // Día de Castilla y León
+  '2025-05-01', // Día del Trabajo
+  '2025-06-19', // Corpus Christi (Valladolid local)
+  '2025-08-15', // Asunción de la Virgen
+  '2025-09-08', // N.S. de San Lorenzo (Valladolid local)
+  '2025-10-12', // Día de la Hispanidad
+  '2025-11-01', // Todos los Santos
+  '2025-12-06', // Día de la Constitución
+  '2025-12-08', // Inmaculada Concepción
+  '2025-12-25', // Navidad
+  // ── 2026 nacionales ──
+  '2026-01-01', // Año Nuevo
+  '2026-01-06', // Reyes Magos
+  '2026-04-02', // Jueves Santo (CyL)
+  '2026-04-03', // Viernes Santo
+  '2026-04-23', // Día de Castilla y León
+  '2026-05-01', // Día del Trabajo
+  '2026-08-15', // Asunción de la Virgen
+  '2026-09-08', // N.S. de San Lorenzo (Valladolid local)
+  '2026-10-12', // Día de la Hispanidad
+  '2026-11-01', // Todos los Santos
+  '2026-12-06', // Día de la Constitución
+  '2026-12-08', // Inmaculada Concepción
+  '2026-12-25', // Navidad
 ]);
 function isFestivoNacional(fecha) {
   return fecha ? FESTIVOS_ES.has(fecha) : false;
+}
+
+// ─── Festivos extra configurados por el usuario (guardados en DB) ──────────
+async function getFestivosExtra() {
+  if (!db) return new Set();
+  try {
+    const docs = await db.collection('festivos_extra').find({}).toArray();
+    return new Set(docs.map(d => d.fecha));
+  } catch { return new Set(); }
+}
+function isFestivo(fecha, festExtras = new Set()) {
+  return isFestivoNacional(fecha) || festExtras.has(fecha);
 }
 
 // ─── Resumen Calendario (sin IA) ──────────────────────────────────────────
@@ -1526,6 +1561,97 @@ app.delete('/api/calendario-datos/:empleado', async (req, res) => {
     const emp    = req.params.empleado.toUpperCase();
     const filter = emp === 'ALL' ? {} : { empleado: emp };
     const r = await db.collection('calendario_datos').deleteMany(filter);
+    res.json({ ok: true, deleted: r.deletedCount });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── Ausencias (vacaciones, festivos locales, bajas) ─────────────────────
+// POST /api/ausencias  { empleados:[...], fechaInicio, fechaFin, tipo }
+// Guarda en tareas_manuales con horas=0, tipo=<tipo> → quedan como justificado
+app.post('/api/ausencias', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    let { empleados, fechaInicio, fechaFin, tipo } = req.body;
+    if (!empleados || !fechaInicio || !tipo)
+      return res.status(400).json({ ok: false, error: 'Faltan campos: empleados, fechaInicio, tipo' });
+    if (!fechaFin) fechaFin = fechaInicio;
+    if (!Array.isArray(empleados)) empleados = [empleados];
+    empleados = empleados.map(e => String(e).toUpperCase().trim()).filter(Boolean);
+
+    // Generar todas las fechas del rango
+    const fechas = [];
+    const cur = new Date(fechaInicio + 'T00:00:00Z');
+    const end = new Date(fechaFin   + 'T00:00:00Z');
+    while (cur <= end) {
+      const dow = cur.getUTCDay(); // 0=dom 6=sab
+      if (dow !== 0 && dow !== 6) {
+        fechas.push(cur.toISOString().slice(0, 10));
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    if (fechas.length === 0)
+      return res.json({ ok: true, total: 0, msg: 'Sin días laborables en el rango' });
+
+    const ops = [];
+    empleados.forEach(emp => {
+      fechas.forEach(fecha => {
+        ops.push({
+          updateOne: {
+            filter: { empleado: emp, fecha },
+            update: { $set: { empleado: emp, fecha, horas: 0, tipo: tipo.toUpperCase(), updatedAt: new Date() } },
+            upsert: true
+          }
+        });
+      });
+    });
+    await db.collection('tareas_manuales').bulkWrite(ops);
+    res.json({ ok: true, total: ops.length, empleados, dias: fechas.length, tipo });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GET /api/ausencias/:empleado  → lista de ausencias justificadas
+app.get('/api/ausencias/:empleado', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const emp = req.params.empleado.toUpperCase();
+    const filter = emp === 'ALL'
+      ? { tipo: { $exists: true, $ne: '' } }
+      : { empleado: emp, tipo: { $exists: true, $ne: '' } };
+    const docs = await db.collection('tareas_manuales')
+      .find(filter, { projection: { _id: 0, empleado: 1, fecha: 1, tipo: 1 } })
+      .sort({ fecha: 1 }).toArray();
+    // Solo las justificadas
+    const justificadas = docs.filter(d => JUSTIFIED_RE.test(d.tipo || ''));
+    res.json({ ok: true, total: justificadas.length, ausencias: justificadas });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// DELETE /api/ausencias  { empleado, fechaInicio, fechaFin, tipo }
+app.delete('/api/ausencias', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    let { empleado, fechaInicio, fechaFin, tipo } = req.body;
+    if (!empleado || !fechaInicio)
+      return res.status(400).json({ ok: false, error: 'Faltan campos: empleado, fechaInicio' });
+    if (!fechaFin) fechaFin = fechaInicio;
+    const emp = String(empleado).toUpperCase().trim();
+
+    const fechas = [];
+    const cur = new Date(fechaInicio + 'T00:00:00Z');
+    const end = new Date(fechaFin   + 'T00:00:00Z');
+    while (cur <= end) {
+      fechas.push(cur.toISOString().slice(0, 10));
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    const filter = { empleado: emp, fecha: { $in: fechas } };
+    if (tipo) filter.tipo = tipo.toUpperCase();
+    const r = await db.collection('tareas_manuales').deleteMany(filter);
     res.json({ ok: true, deleted: r.deletedCount });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

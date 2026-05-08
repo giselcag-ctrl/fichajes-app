@@ -357,10 +357,138 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="info-card"><div class="ic-num">∞</div><div class="ic-label">Empleados</div></div>
         <div class="info-card"><div class="ic-num">100%</div><div class="ic-label">Sin servidor</div></div>
       </div>
+
+      <!-- ── Gestión de Ausencias ───────────────────────────────────────── -->
+      <div class="animate-in" style="animation-delay:0.35s;margin-top:32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h3 style="font-size:15px;font-weight:500;color:var(--text);margin:0;">🗓 Registrar Ausencias</h3>
+          <span style="font-size:11px;color:var(--text3);">Vacaciones · Festivos locales · Bajas</span>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <!-- Empleados -->
+            <div style="grid-column:1/-1;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px;">EMPLEADO/S (separados por coma, o ALL para todos)</label>
+              <input id="aus-emp" type="text" placeholder="CVA, DVM, PSI  …  o ALL" style="width:100%;height:32px;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 10px;box-sizing:border-box;">
+            </div>
+            <!-- Fecha inicio -->
+            <div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px;">FECHA INICIO</label>
+              <input id="aus-ini" type="date" style="width:100%;height:32px;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;box-sizing:border-box;">
+            </div>
+            <!-- Fecha fin -->
+            <div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px;">FECHA FIN (opcional)</label>
+              <input id="aus-fin" type="date" style="width:100%;height:32px;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;box-sizing:border-box;">
+            </div>
+            <!-- Tipo -->
+            <div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px;">TIPO</label>
+              <select id="aus-tipo" style="width:100%;height:32px;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;box-sizing:border-box;">
+                <option value="VACACIONES">🏖 Vacaciones</option>
+                <option value="FESTIVO LOCAL">🎉 Festivo local</option>
+                <option value="BAJA">🏥 Baja / Enfermedad</option>
+                <option value="PERMISO">📋 Permiso / Asuntos propios</option>
+                <option value="LICENCIA">📄 Licencia</option>
+              </select>
+            </div>
+            <!-- Botón -->
+            <div style="display:flex;align-items:flex-end;">
+              <button onclick="registrarAusencia()" style="width:100%;height:32px;font-size:13px;font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;">Registrar</button>
+            </div>
+          </div>
+          <div id="aus-status" style="font-size:12px;color:var(--text3);min-height:18px;"></div>
+
+          <!-- Festivos nacionales info -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">✅ Festivos ya incluidos automáticamente</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;" id="aus-festivos-list">
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">01/01 Año Nuevo</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">06/01 Reyes</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">17/04 Jueves Santo (CyL)</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">18/04 Viernes Santo</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">23/04 Día de CyL</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">01/05 Día del Trabajo</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">19/06 Corpus (Valladolid)</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">15/08 Asunción</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">08/09 N.S. San Lorenzo (Valladolid)</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">12/10 Hispanidad</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">01/11 Todos los Santos</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">06/12 Constitución</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">08/12 Inmaculada</span>
+              <span style="font-size:11px;background:var(--bg3);padding:2px 8px;border-radius:99px;color:var(--text2);">25/12 Navidad</span>
+            </div>
+          </div>
+
+          <!-- Lista ausencias registradas -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Ausencias registradas</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input id="aus-view-emp" type="text" placeholder="empleado" style="height:26px;font-size:12px;width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;">
+                <button onclick="verAusencias()" style="height:26px;font-size:12px;padding:0 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">Ver</button>
+              </div>
+            </div>
+            <div id="aus-list" style="font-size:12px;color:var(--text3);">—</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Resumen unificado -->
 <div id="page-resumen" class="page">
+
+  <!-- ── MODO API: tabla anual desde servidor ─────────────────────────── -->
+  <div id="resumen-api-mode" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <select id="resumen-api-anio" onchange="loadResumenAnual()" style="height:32px;font-size:13px;font-weight:500;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 12px;min-width:100px;">
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+        <option value="">Todos</option>
+      </select>
+      <select id="resumen-api-emp" onchange="renderResumenApi()" style="height:32px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 10px;">
+        <option value="">Todos los empleados</option>
+      </select>
+      <select id="resumen-api-status" onchange="renderResumenApi()" style="height:32px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 10px;">
+        <option value="">Todos los estados</option>
+        <option value="ok">✅ Buen fichaje (≥8h)</option>
+        <option value="warn">⚠️ Exceso jornada</option>
+        <option value="bad">🔴 Jornada corta</option>
+      </select>
+      <button class="btn btn-ghost" onclick="loadResumenAnual()" style="height:32px;">🔄 Recargar</button>
+      <button class="btn btn-ghost" onclick="exportResumenApiCSV()" style="height:32px;margin-left:auto;">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+    <!-- KPIs globales -->
+    <div id="resumen-api-kpis" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
+    <!-- Tabla -->
+    <div class="table-container animate-in">
+      <div class="table-header"><h3 id="resumen-api-heading">Cargando empleados…</h3></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Empleado</th>
+            <th>Días lab.</th>
+            <th>Horas fichadas</th>
+            <th>Media/día</th>
+            <th>Días OK (≥8h)</th>
+            <th>Cumplimiento</th>
+            <th>H. extra</th>
+            <th>H. déficit</th>
+            <th>Estado</th>
+          </tr></thead>
+          <tbody id="resumen-api-tbody">
+            <tr><td colspan="9"><div class="empty-state"><div class="es-icon">⏳</div><p>Cargando…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODO LOCAL: calendario + tabla dia a dia ──────────────────────── -->
+  <div id="resumen-local-mode" style="display:none;">
   <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
     <!-- Columna izquierda: calendario -->
     <div class="cal-wrap animate-in">
@@ -401,7 +529,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         </button>
       </div>
       <div id="resumen-stats" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"></div>
-      <!-- Incidencias del empleado seleccionado -->
       <div id="resumen-inc-panel" style="display:none;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;">
         <div style="font-size:13px;font-weight:500;margin-bottom:10px;" id="resumen-inc-title">Incidencias</div>
         <div id="resumen-inc-list"></div>
@@ -417,6 +544,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
   </div>
+  </div>
+
 </div>
 
     <!-- Correos (diario + semanal unificado) -->
@@ -1432,6 +1561,7 @@ function showPage(name){
   if(name==='tareas')tareasLoadSummary();
   if(name==='historial')loadHistorial();
   if(name==='calendario'){CalModule.init();calTareasBarLoad();}
+  if(name==='resumen')initResumenMode();
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){
@@ -3866,7 +3996,7 @@ function renderCorreo(data) {
       }
     });
 
-    const totEx = data.horasExceso || 0;
+    const totEx  = data.horasExceso  || 0;
     const totDef = data.horasDeficit || 0;
     if (totEx > 0 || totDef > 0) {
       body += `Resumen del periodo:\n`;
@@ -3875,6 +4005,22 @@ function renderCorreo(data) {
       body += '\n';
     }
     body += `Por favor, revisa estos registros y coméntame si hay alguna justificación pendiente.\n`;
+
+    // ── Resumen anual al final del correo ──────────────────────────────────
+    const totalH  = data.totalFichaje_h || 0;
+    const diasLab = data.diasLaborables || 0;
+    const diasOK  = data.diasCumplen    || 0;
+    const pctOK   = diasLab > 0 ? Math.round(diasOK / diasLab * 100) : 0;
+    const anioLbl = _anioActual ? `año ${_anioActual}` : 'el periodo analizado';
+    body += `\n${'─'.repeat(52)}\n`;
+    body += `📊 TOTALES — ${anioLbl.toUpperCase()}\n`;
+    body += `${'─'.repeat(52)}\n`;
+    body += `  • Total horas fichadas     : ${fmtH(totalH)}\n`;
+    body += `  • Días laborables          : ${diasLab}\n`;
+    body += `  • Días con buen fichaje    : ${diasOK} de ${diasLab}  (${pctOK}% cumplimiento)\n`;
+    if (totEx  > 0) body += `  • Horas extra acumuladas   : +${fmtH(totEx)}\n`;
+    if (totDef > 0) body += `  • Horas en déficit total   : −${fmtH(totDef)}\n`;
+    body += `${'─'.repeat(52)}\n`;
   }
 
   const bodyEl = document.getElementById('cal-correo-body');
@@ -4080,7 +4226,7 @@ function exportListaCSV() {
 }
 
 /* ── API pública ───────────────────────────────────────────────────────── */
-window.CalModule = { init: cargarLista, verDetalle, volverLista, setVista, setAnio, setAnioLista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
+window.CalModule = { init: cargarLista, verDetalle, openEmp: (emp) => verDetalle(emp), volverLista, setVista, setAnio, setAnioLista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
 
 })(); // fin IIFE CalModule
 
@@ -4270,6 +4416,235 @@ async function fichDeleteEmp(emp) {
   } catch(e) { alert('Error al eliminar: ' + e.message); }
 }
 
+
+// ── Resumen API mode ────────────────────────────────────────────────────────
+let _resumenApiEmps = [];
+
+function initResumenMode() {
+  const tieneLocal = Object.keys(S.days || {}).length > 0;
+  document.getElementById('resumen-api-mode').style.display   = tieneLocal ? 'none' : 'block';
+  document.getElementById('resumen-local-mode').style.display = tieneLocal ? 'block' : 'none';
+  if (!tieneLocal) loadResumenAnual();
+}
+
+async function loadResumenAnual() {
+  const anio   = (document.getElementById('resumen-api-anio')?.value || '2025').trim();
+  const url    = anio ? `/api/resumen-calendario?anio=${anio}` : '/api/resumen-calendario';
+  const tbody  = document.getElementById('resumen-api-tbody');
+  const head   = document.getElementById('resumen-api-heading');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="es-icon">⏳</div><p>Cargando…</p></div></td></tr>';
+
+  try {
+    const data = await fetch(url).then(r => r.json());
+    if (!data.ok) throw new Error(data.error || 'Error API');
+    _resumenApiEmps = data.empleados || [];
+
+    // Poblar selector de empleados
+    const sel = document.getElementById('resumen-api-emp');
+    if (sel) {
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">Todos los empleados</option>' +
+        _resumenApiEmps.map(e => `<option value="${e.empleado}">${e.empleado}</option>`).join('');
+      if (prev) sel.value = prev;
+    }
+
+    // Años disponibles
+    const selAnio = document.getElementById('resumen-api-anio');
+    if (selAnio && data.aniosDisponibles && data.aniosDisponibles.length > 0) {
+      const cur = selAnio.value;
+      selAnio.innerHTML = data.aniosDisponibles.map(a =>
+        `<option value="${a}" ${a===cur?'selected':''}>${a}</option>`
+      ).join('') + '<option value="">Todos</option>';
+      if (!selAnio.value) selAnio.value = cur;
+    }
+
+    if (head) head.textContent = `${_resumenApiEmps.length} empleados${anio ? ' · ' + anio : ''}`;
+    renderResumenApi();
+    renderResumenApiKpis();
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red);text-align:center;padding:20px;">✗ ${e.message}</td></tr>`;
+    if (head)  head.textContent = 'Error al cargar';
+  }
+}
+
+function renderResumenApi() {
+  const tbody    = document.getElementById('resumen-api-tbody');
+  const empF     = (document.getElementById('resumen-api-emp')?.value   || '').toUpperCase();
+  const statusF  =  document.getElementById('resumen-api-status')?.value || '';
+  if (!tbody) return;
+
+  let emps = [..._resumenApiEmps];
+  if (empF)    emps = emps.filter(e => e.empleado === empF);
+  if (statusF === 'ok')   emps = emps.filter(e => (e.cumplimientoPct || 0) >= 90);
+  if (statusF === 'warn') emps = emps.filter(e => (e.horasExceso || 0) > 0);
+  if (statusF === 'bad')  emps = emps.filter(e => (e.diasIncumple || 0) > 0);
+
+  if (!emps.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="es-icon">🔍</div><p>Sin resultados con este filtro</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = emps.map(e => {
+    const pct   = e.cumplimientoPct ?? 0;
+    const media = e.diasLaborables > 0 ? Math.round(e.totalFichaje_h / e.diasLaborables * 100) / 100 : 0;
+    const stCls = pct >= 90 ? 'ok' : pct >= 70 ? 'warn' : 'bad';
+    const stLbl = pct >= 90 ? '✅ Bien' : pct >= 70 ? '⚠️ Regular' : '🔴 Bajo';
+    const barW  = Math.min(pct, 100);
+    const barC  = pct >= 90 ? 'var(--accent)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
+    return `<tr style="cursor:pointer;" onclick="showPage('calendario');CalModule.init();setTimeout(()=>CalModule.openEmp('${e.empleado}'),400)">
+      <td><span style="font-weight:500;">${e.empleado}</span></td>
+      <td style="font-family:'DM Mono',monospace;">${e.diasLaborables ?? '—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent);">${fmtH(e.totalFichaje_h)}</td>
+      <td style="font-family:'DM Mono',monospace;">${fmtH(media)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent);">${e.diasCumplen ?? 0} <span style="color:var(--text3);font-size:11px;">/ ${e.diasLaborables}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;min-width:60px;">
+            <div style="width:${barW}%;height:100%;border-radius:3px;background:${barC};"></div>
+          </div>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;color:${barC};min-width:32px;">${pct}%</span>
+        </div>
+      </td>
+      <td style="font-family:'DM Mono',monospace;color:${e.horasExceso>0?'var(--amber)':'var(--text3)'};">${e.horasExceso > 0 ? '+' + fmtH(e.horasExceso) : '—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:${e.horasDeficit>0?'var(--red)':'var(--text3)'};">${e.horasDeficit > 0 ? '−' + fmtH(e.horasDeficit) : '—'}</td>
+      <td><span class="tag tag-${stCls}" style="font-size:11px;">${stLbl}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderResumenApiKpis() {
+  const el = document.getElementById('resumen-api-kpis');
+  if (!el || !_resumenApiEmps.length) return;
+  const total  = _resumenApiEmps.length;
+  const sumH   = _resumenApiEmps.reduce((s,e) => s + (e.totalFichaje_h||0), 0);
+  const sumOK  = _resumenApiEmps.reduce((s,e) => s + (e.diasCumplen||0),    0);
+  const sumLab = _resumenApiEmps.reduce((s,e) => s + (e.diasLaborables||0), 0);
+  const pctGlb = sumLab > 0 ? Math.round(sumOK/sumLab*100) : 0;
+  const cOK    = _resumenApiEmps.filter(e => (e.cumplimientoPct||0) >= 90).length;
+  el.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;min-width:130px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">EMPLEADOS</div>
+      <div style="font-size:22px;font-weight:500;color:var(--accent);font-family:'DM Mono',monospace;">${total}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;min-width:160px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">TOTAL HORAS FICHADAS</div>
+      <div style="font-size:22px;font-weight:500;color:var(--accent);font-family:'DM Mono',monospace;">${fmtH(Math.round(sumH*100)/100)}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;min-width:160px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">CUMPLIMIENTO GLOBAL</div>
+      <div style="font-size:22px;font-weight:500;color:${pctGlb>=90?'var(--accent)':pctGlb>=70?'var(--amber)':'var(--red)'};font-family:'DM Mono',monospace;">${pctGlb}%</div>
+      <div style="font-size:11px;color:var(--text3);">${sumOK} / ${sumLab} días OK</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;min-width:160px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">EMPLEADOS CON ≥90%</div>
+      <div style="font-size:22px;font-weight:500;color:var(--accent);font-family:'DM Mono',monospace;">${cOK} <span style="font-size:14px;color:var(--text3);">/ ${total}</span></div>
+    </div>`;
+}
+
+function exportResumenApiCSV() {
+  if (!_resumenApiEmps.length) return;
+  const rows = [['Empleado','Días Lab.','Horas Fichadas','Media/Día','Días OK','Cumplimiento%','H.Extra','H.Déficit']];
+  _resumenApiEmps.forEach(e => {
+    const media = e.diasLaborables > 0 ? Math.round(e.totalFichaje_h / e.diasLaborables * 100) / 100 : 0;
+    rows.push([e.empleado, e.diasLaborables, e.totalFichaje_h, media, e.diasCumplen, e.cumplimientoPct, e.horasExceso||0, e.horasDeficit||0]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+  const anio = document.getElementById('resumen-api-anio')?.value || 'todos';
+  a.download = `resumen_${anio}.csv`;
+  a.click();
+}
+
+// ── Gestión de Ausencias ────────────────────────────────────────────────────
+async function registrarAusencia() {
+  const empRaw  = (document.getElementById('aus-emp')?.value  || '').trim();
+  const ini     = (document.getElementById('aus-ini')?.value  || '').trim();
+  const fin     = (document.getElementById('aus-fin')?.value  || '').trim();
+  const tipo    = document.getElementById('aus-tipo')?.value  || 'VACACIONES';
+  const statusEl = document.getElementById('aus-status');
+
+  if (!empRaw || !ini) {
+    if (statusEl) { statusEl.style.color='var(--red)'; statusEl.textContent='⚠ Indica empleado/s y fecha inicio.'; }
+    return;
+  }
+
+  // Parsear empleados: "CVA, DVM" → ['CVA','DVM'] o "ALL" → ['ALL']
+  const empleados = empRaw.toUpperCase() === 'ALL'
+    ? ['ALL']
+    : empRaw.split(/[\s,;]+/).map(e => e.trim().toUpperCase()).filter(Boolean);
+
+  if (statusEl) { statusEl.style.color='var(--text3)'; statusEl.textContent='⏳ Registrando…'; }
+
+  try {
+    const r = await fetch('/api/ausencias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ empleados, fechaInicio: ini, fechaFin: fin || ini, tipo })
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Error desconocido');
+    if (statusEl) {
+      statusEl.style.color = 'var(--accent)';
+      statusEl.textContent = `✅ Registrados ${d.total} día(s) de ${tipo} para ${empleados.join(', ')}`;
+    }
+    // Limpiar fechas
+    const iniEl = document.getElementById('aus-ini');
+    const finEl = document.getElementById('aus-fin');
+    if (iniEl) iniEl.value = '';
+    if (finEl) finEl.value = '';
+  } catch (e) {
+    if (statusEl) { statusEl.style.color='var(--red)'; statusEl.textContent='✗ ' + e.message; }
+  }
+}
+
+async function verAusencias() {
+  const empEl  = document.getElementById('aus-view-emp');
+  const listEl = document.getElementById('aus-list');
+  const emp    = (empEl?.value || 'ALL').trim().toUpperCase() || 'ALL';
+  if (!listEl) return;
+  listEl.textContent = '⏳ Cargando…';
+  try {
+    const r = await fetch(`/api/ausencias/${encodeURIComponent(emp)}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    if (!d.ausencias || d.ausencias.length === 0) {
+      listEl.textContent = 'Sin ausencias registradas.';
+      return;
+    }
+    // Agrupar por empleado
+    const byEmp = {};
+    d.ausencias.forEach(a => {
+      if (!byEmp[a.empleado]) byEmp[a.empleado] = [];
+      byEmp[a.empleado].push(a);
+    });
+    let html = '';
+    Object.entries(byEmp).sort().forEach(([e, rows]) => {
+      html += `<div style="margin-bottom:8px;"><span style="font-weight:500;color:var(--text);">${e}</span> <span style="color:var(--text3);">(${rows.length} días)</span><br>`;
+      // Agrupar por tipo
+      const porTipo = {};
+      rows.forEach(a => { if (!porTipo[a.tipo]) porTipo[a.tipo]=[]; porTipo[a.tipo].push(a.fecha); });
+      Object.entries(porTipo).forEach(([tipo, fechas]) => {
+        fechas.sort();
+        html += `<span style="color:var(--text2);margin-left:8px;">• ${tipo}: </span>`;
+        // Mostrar rangos compactos
+        const ranges = [];
+        let start = fechas[0], prev = fechas[0];
+        for (let i = 1; i < fechas.length; i++) {
+          const diff = (new Date(fechas[i]) - new Date(prev)) / 86400000;
+          if (diff <= 3) { prev = fechas[i]; }
+          else { ranges.push(start === prev ? start : start + ' → ' + prev); start = prev = fechas[i]; }
+        }
+        ranges.push(start === prev ? start : start + ' → ' + prev);
+        html += `<span style="color:var(--text3);">${ranges.join(', ')}</span><br>`;
+      });
+      html += '</div>';
+    });
+    listEl.innerHTML = html;
+  } catch (e) {
+    listEl.textContent = '✗ ' + e.message;
+  }
+}
 </script>
 </body>
 </html>

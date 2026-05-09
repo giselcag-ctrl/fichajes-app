@@ -1427,6 +1427,33 @@ app.delete('/api/fichajes-manuales/:empleado', async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// POST /api/fichajes-manuales-bulk  — carga masiva JSON [{empleado,fecha,horas}]
+app.post('/api/fichajes-manuales-bulk', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ ok: false, error: 'DB no disponible' });
+    const records = req.body;
+    if (!Array.isArray(records) || records.length === 0)
+      return res.status(400).json({ ok: false, error: 'Body debe ser array no vacío' });
+
+    const ops = records.map(r => ({
+      updateOne: {
+        filter: { empleado: String(r.empleado).toUpperCase().trim(), fecha: String(r.fecha).trim() },
+        update: { $set: { empleado: String(r.empleado).toUpperCase().trim(),
+                          fecha: String(r.fecha).trim(),
+                          horas: parseFloat(r.horas),
+                          updatedAt: new Date() } },
+        upsert: true
+      }
+    }));
+
+    const result = await db.collection('fichajes_manuales').bulkWrite(ops);
+    res.json({ ok: true,
+      upsertedCount: result.upsertedCount,
+      modifiedCount: result.modifiedCount,
+      matchedCount:  result.matchedCount });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ─── Tareas Manuales ──────────────────────────────────────────────────────
 // Formato Excel esperado: columna A = Empleado, B = Fecha, C = Horas
 // Fechas aceptadas: DD/MM/YYYY, YYYY-MM-DD o número serial de Excel

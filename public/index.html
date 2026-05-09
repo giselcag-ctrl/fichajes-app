@@ -3900,127 +3900,164 @@ function renderCorreo(data) {
   if (toEl) toEl.value = emailEmp;
   if (warnEl) { warnEl.style.display = emailEmp ? 'none' : 'inline'; }
 
+  const anioLbl = _anioActual ? `${_anioActual}` : new Date().getFullYear();
   const subjEl = document.getElementById('cal-correo-subject');
-  if (subjEl) subjEl.value = `Revisión de Fichajes — ${emp}`;
+  if (subjEl) subjEl.value = `Revisión de Registro de Jornada — ${emp} — ${anioLbl}`;
 
   const titEl = document.getElementById('cal-correo-titulo');
   if (titEl) titEl.textContent = `Correo de Incidencias — ${emp}`;
 
-  // Helpers
-  function fmtFecha(f) {
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const fmtFecha = f => {
     if (!f) return '—';
     const [y, m, d2] = f.split('-');
     return `${d2}/${m}/${y}`;
-  }
-  function fmtDiff(diff, tareas) {
-    if (diff === null || diff === undefined) {
-      return tareas === null || tareas === undefined
-        ? 'No calculable – faltan tareas'
-        : fmtH(diff, true);
-    }
-    return fmtH(diff, true);
-  }
+  };
+  // Nombre largo del día
+  const DIAS_LARGO = { lun:'Lunes', mar:'Martes', mié:'Miércoles', jue:'Jueves',
+                       vie:'Viernes', sáb:'Sábado', dom:'Domingo' };
+  const diaLargo = s => DIAS_LARGO[(s||'').toLowerCase().slice(0,3)] || (s || '');
 
-  // ── Clasificar todos los días laborables ordenados cronológicamente ─────────
+  // Pad izquierda para alinear columnas
+  const lpad = (s, n) => String(s).padStart(n);
+  const rpad = (s, n) => String(s).padEnd(n);
+
+  // ── Clasificar días ────────────────────────────────────────────────────────
   const diasExceso = [], diasCortos = [], diasNormales = [];
 
   (data.semanasData || []).forEach(s => {
     (s.dias || []).forEach(d => {
-      if (d.esFinSemana)               return; // fines de semana aparte
-      if (esFestivoCal(d.fecha))       return;
-      if (d.justificado || d.sinDatos) return;
       const fich = d.fichaje_h;
       if (fich === null || fich === undefined || fich === 0) return;
-      const row = { fecha: d.fecha, dia: d.dia || '', fich };
-      if (d.esFinSemana && fich > 0) {
-        diasExceso.push({ ...row, exceso: Math.round(fich * 100) / 100, finSemana: true });
-      } else if (fich > 8) {
-        diasExceso.push({ ...row, exceso: Math.round((fich - 8) * 100) / 100 });
-      } else if (fich < 8) {
-        diasCortos.push({ ...row, deficit: Math.round((8 - fich) * 100) / 100 });
-      } else {
-        diasNormales.push(row);
+      if (esFestivoCal(d.fecha))       return;
+      if (d.justificado || d.sinDatos) return;
+
+      if (d.esFinSemana) {
+        if (fich > 0)
+          diasExceso.push({ fecha: d.fecha, dia: d.dia || '', fich,
+            exceso: Math.round(fich * 100) / 100, finSemana: true });
+        return;
       }
-    });
-    // Fines de semana trabajados → exceso
-    (s.dias || []).forEach(d => {
-      if (!d.esFinSemana) return;
-      const fich = d.fichaje_h;
-      if (!fich || fich <= 0) return;
-      diasExceso.push({ fecha: d.fecha, dia: d.dia || '', fich,
-        exceso: Math.round(fich * 100) / 100, finSemana: true });
+
+      const row = { fecha: d.fecha, dia: d.dia || '', fich };
+      if      (fich > 8) diasExceso .push({ ...row, exceso : Math.round((fich - 8) * 100) / 100 });
+      else if (fich < 8) diasCortos .push({ ...row, deficit: Math.round((8 - fich) * 100) / 100 });
+      else               diasNormales.push(row);
     });
   });
 
-  // Ordenar cada grupo de menor a mayor fecha (ene → dic)
   const sortFecha = (a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1;
-  diasExceso.sort(sortFecha);
-  diasCortos.sort(sortFecha);
+  diasExceso  .sort(sortFecha);
+  diasCortos  .sort(sortFecha);
   diasNormales.sort(sortFecha);
 
-  const totEx  = data.horasExceso  || 0;
-  const totDef = data.horasDeficit || 0;
-
-  // Helper fila compacta
-  const fila = (d, tipo) => {
-    const dia  = d.dia.padEnd(3);
-    const h    = fmtH(d.fich).padEnd(10);
-    if (tipo === 'exceso')  return `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ⏫ +${fmtH(d.exceso)}${d.finSemana ? ' (FDS)' : ''}\n`;
-    if (tipo === 'corta')   return `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ⏬ −${fmtH(d.deficit)}\n`;
-    return                         `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ✅\n`;
-  };
-
-  // Construir cuerpo
-  let body = `Estimado/a ${emp},\n\n`;
-  body += `Registro de jornada — periodo analizado (ordenado por fecha):\n`;
-
-  // ── Exceso de jornada ──────────────────────────────────────────────────────
-  body += `\n${'─'.repeat(52)}\n`;
-  body += `⏫ EXCESO DE JORNADA (>8h) — ${diasExceso.length} día${diasExceso.length !== 1 ? 's' : ''}\n`;
-  body += `${'─'.repeat(52)}\n`;
-  if (diasExceso.length === 0) {
-    body += `  Sin días con exceso de jornada.\n`;
-  } else {
-    diasExceso.forEach(d => { body += fila(d, 'exceso'); });
-  }
-
-  // ── Jornada corta ──────────────────────────────────────────────────────────
-  body += `\n${'─'.repeat(52)}\n`;
-  body += `⏬ JORNADA CORTA (<8h) — ${diasCortos.length} día${diasCortos.length !== 1 ? 's' : ''}\n`;
-  body += `${'─'.repeat(52)}\n`;
-  if (diasCortos.length === 0) {
-    body += `  Sin días con jornada corta.\n`;
-  } else {
-    diasCortos.forEach(d => { body += fila(d, 'corta'); });
-  }
-
-  // ── Jornada normal ─────────────────────────────────────────────────────────
-  body += `\n${'─'.repeat(52)}\n`;
-  body += `✅ JORNADA NORMAL (≥8h exactas) — ${diasNormales.length} día${diasNormales.length !== 1 ? 's' : ''}\n`;
-  body += `${'─'.repeat(52)}\n`;
-  if (diasNormales.length === 0) {
-    body += `  Sin días con jornada exactamente normal.\n`;
-  } else {
-    diasNormales.forEach(d => { body += fila(d, 'normal'); });
-  }
-
-  body += `\nPor favor revisa y coméntame si hay alguna justificación pendiente.\n`;
-
-  // ── Resumen anual al final (siempre) ──────────────────────────────────────
+  // Totales
+  const totEx   = data.horasExceso    || 0;
+  const totDef  = data.horasDeficit   || 0;
   const totalH  = data.totalFichaje_h || 0;
   const diasLab = data.diasLaborables || 0;
   const diasOK  = data.diasCumplen    || 0;
   const pctOK   = diasLab > 0 ? Math.round(diasOK / diasLab * 100) : 0;
-  const anioLbl = _anioActual ? `año ${_anioActual}` : 'el periodo analizado';
-  body += `\n${'─'.repeat(52)}\n`;
-  body += `📊 TOTALES — ${anioLbl.toUpperCase()}\n`;
-  body += `${'─'.repeat(52)}\n`;
-  body += `  • Total horas fichadas     : ${fmtH(totalH)}\n`;
-  body += `  • Días laborables          : ${diasLab}\n`;
-  body += `  • Días con buen fichaje    : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
-  if (totEx  > 0) body += `  • Horas extra acumuladas   : +${fmtH(totEx)}\n`;
-  if (totDef > 0) body += `  • Horas en déficit total   : −${fmtH(totDef)}\n`;
-  body += `${'─'.repeat(52)}\n`;
+
+  // Fecha actual formateada
+  const hoy = new Date();
+  const fechaHoy = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+
+  const SEP  = '═'.repeat(56);
+  const sep2 = '─'.repeat(56);
+
+  // ── Cabecera tabla ─────────────────────────────────────────────────────────
+  const tblHeader = tipo => {
+    const col3 = tipo === 'normal' ? '' : (tipo === 'exceso' ? '  Exceso    ' : '  Déficit   ');
+    return `  ${'Fecha'.padEnd(12)}${'Día'.padEnd(12)}${'Fichado'.padEnd(10)}${col3}\n` +
+           `  ${sep2.slice(0, tipo === 'normal' ? 34 : 46)}\n`;
+  };
+
+  // ── Fila tabla ─────────────────────────────────────────────────────────────
+  const fila = (d, tipo) => {
+    const fecha = rpad(fmtFecha(d.fecha), 12);
+    const dia   = rpad(diaLargo(d.dia),   12);
+    const h     = rpad(fmtH(d.fich),      10);
+    if (tipo === 'exceso') {
+      const extra = d.finSemana ? `+${fmtH(d.exceso)}  (fin de semana)` : `+${fmtH(d.exceso)}`;
+      return `  ${fecha}${dia}${h}  ${extra}\n`;
+    }
+    if (tipo === 'corta') return `  ${fecha}${dia}${h}  -${fmtH(d.deficit)}\n`;
+    return                       `  ${fecha}${dia}${h}\n`;
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONSTRUCCIÓN DEL CUERPO
+  // ══════════════════════════════════════════════════════════════════════════
+  let body = '';
+
+  // Saludo
+  body += `Estimado/a ${emp}:\n\n`;
+
+  // Párrafo introductorio
+  body += `Me dirijo a usted para comunicarle el resultado de la revisión de su\n`;
+  body += `registro de jornada correspondiente al periodo analizado (${anioLbl}).\n`;
+  body += `A continuación se detalla el análisis por tipo de incidencia,\n`;
+  body += `ordenado cronológicamente del 1 de enero al 31 de diciembre.\n`;
+
+  // ── Bloque resumen ejecutivo ───────────────────────────────────────────────
+  body += `\n${SEP}\n`;
+  body += `  RESUMEN DEL PERIODO — ${anioLbl}\n`;
+  body += `${SEP}\n`;
+  body += `  Total de horas fichadas   : ${fmtH(totalH)}\n`;
+  body += `  Dias laborables           : ${diasLab}\n`;
+  body += `  Dias con jornada completa : ${diasOK} de ${diasLab}  (${pctOK} %)\n`;
+  if (totEx  > 0) body += `  Exceso acumulado          : +${fmtH(totEx)}\n`;
+  if (totDef > 0) body += `  Deficit acumulado         : -${fmtH(totDef)}\n`;
+  body += `${SEP}\n`;
+
+  // ── I. Exceso de jornada ───────────────────────────────────────────────────
+  body += `\n${sep2}\n`;
+  body += `  I.  DIAS CON EXCESO DE JORNADA  (mas de 8 horas)\n`;
+  body += `      Total: ${diasExceso.length} dia${diasExceso.length !== 1 ? 's' : ''}\n`;
+  body += `${sep2}\n`;
+  if (diasExceso.length === 0) {
+    body += `  No se han registrado dias con exceso de jornada en el periodo.\n`;
+  } else {
+    body += tblHeader('exceso');
+    diasExceso.forEach(d => { body += fila(d, 'exceso'); });
+  }
+
+  // ── II. Jornada incompleta ─────────────────────────────────────────────────
+  body += `\n${sep2}\n`;
+  body += `  II. DIAS CON JORNADA INCOMPLETA  (menos de 8 horas)\n`;
+  body += `      Total: ${diasCortos.length} dia${diasCortos.length !== 1 ? 's' : ''}\n`;
+  body += `${sep2}\n`;
+  if (diasCortos.length === 0) {
+    body += `  No se han registrado dias con jornada incompleta en el periodo.\n`;
+  } else {
+    body += tblHeader('corta');
+    diasCortos.forEach(d => { body += fila(d, 'corta'); });
+  }
+
+  // ── III. Jornada completa ──────────────────────────────────────────────────
+  body += `\n${sep2}\n`;
+  body += `  III. DIAS CON JORNADA COMPLETA  (exactamente 8 horas)\n`;
+  body += `       Total: ${diasNormales.length} dia${diasNormales.length !== 1 ? 's' : ''}\n`;
+  body += `${sep2}\n`;
+  if (diasNormales.length === 0) {
+    body += `  No se han registrado dias con jornada exactamente completa en el periodo.\n`;
+  } else {
+    body += tblHeader('normal');
+    diasNormales.forEach(d => { body += fila(d, 'normal'); });
+  }
+
+  // ── Cierre ─────────────────────────────────────────────────────────────────
+  body += `\n${sep2}\n\n`;
+  body += `Le rogamos revise los datos reflejados y nos comunique cualquier\n`;
+  body += `incidencia o justificacion pendiente en un plazo maximo de cinco (5)\n`;
+  body += `dias habiles a partir de la recepcion del presente correo.\n`;
+  body += `\n`;
+  body += `Quedamos a su disposicion para cualquier aclaracion.\n`;
+  body += `\n`;
+  body += `Atentamente,\n\n`;
+  body += `Departamento de Recursos Humanos\n`;
+  body += `Valladolid, ${fechaHoy}\n`;
 
   const bodyEl = document.getElementById('cal-correo-body');
   if (bodyEl) bodyEl.value = body;

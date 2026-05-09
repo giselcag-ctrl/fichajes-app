@@ -1077,9 +1077,18 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                 </div>
               </div>
               <div style="font-size:11px;color:var(--cal-text2);margin-bottom:6px;letter-spacing:.3px;">✎ Puedes editar el texto antes de enviar</div>
-              <textarea id="cal-correo-body"
-                placeholder="Selecciona un empleado para generar el borrador…"
-                style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+              <div style="position:relative;">
+                <textarea id="cal-correo-body"
+                  placeholder="Selecciona un empleado para generar el borrador…"
+                  style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+                <button id="cal-correo-copy-btn" onclick="CalModule.copiarCorreo()" title="Copiar cuerpo del correo"
+                  style="position:absolute;top:10px;right:10px;background:var(--cal-bg3,#1a2f4a);border:1px solid var(--cal-border);border-radius:7px;padding:5px 8px;cursor:pointer;opacity:0.7;transition:opacity .15s,background .15s;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cal-text2);"
+                  onmouseover="this.style.opacity='1';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderColor='var(--accent)'"
+                  onmouseout="this.style.opacity='0.7';this.style.background='var(--cal-bg3,#1a2f4a)';this.style.color='var(--cal-text2)';this.style.borderColor='var(--cal-border)'">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  Copiar
+                </button>
+              </div>
               <div style="display:flex;gap:10px;margin-top:14px;align-items:center;">
                 <button id="cal-correo-btn" onclick="CalModule.enviarCorreo()"
                   style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;">

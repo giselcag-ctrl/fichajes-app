@@ -3953,7 +3953,7 @@ function renderCorreo(data) {
     // Ignorar semanas anteriores al 01 de enero
     if (rawIdx < startWeekIdx) return;
 
-    const todosDias = (s.dias || []).sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
+    const todosDias = (s.dias || []).slice().sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
 
     // Días laborables con fichaje
     const diasFich = todosDias.filter(d => {

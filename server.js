@@ -1238,6 +1238,8 @@ app.get('/api/resumen-calendario/:empleado', async (req, res) => {
       return res.status(404).json({ ok: false, error: `No hay datos de ${empCode}` });
     }
 
+    // Garantizar que el nombre devuelto siempre coincide con el solicitado
+    result.empleado = empCode;
     res.json({ ok: true, ...result });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

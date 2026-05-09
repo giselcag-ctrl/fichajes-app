@@ -3938,61 +3938,88 @@ function renderCorreo(data) {
   let body = '';
 
   body += `Estimado/a ${emp}:\n\n`;
-  body += `Le informamos del detalle de su registro de jornada\n`;
-  body += `correspondiente al periodo ${anioLbl}, ordenado por semana.\n\n`;
+  body += `Le informamos del detalle de su registro de jornada correspondiente al periodo ${anioLbl}.\n\n`;
 
   let semIdx = 0;
 
   (data.semanasData || []).forEach(s => {
-    // Filtrar solo días con fichaje real (excluir festivos, justificados y sin datos)
-    const diasSemana = (s.dias || []).filter(d => {
+    const todosDias = (s.dias || []).sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
+
+    // Días laborables con fichaje
+    const diasFich = todosDias.filter(d => {
       if (esFestivoCal(d.fecha))       return false;
       if (d.justificado || d.sinDatos) return false;
       const f = d.fichaje_h;
-      if (f === null || f === undefined || f === 0) return false;
-      return true;
-    }).sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
-
-    if (diasSemana.length === 0) return;
-
-    semIdx++;
-    body += `SEMANA ${String(semIdx).padStart(2, '0')}\n`;
-
-    diasSemana.forEach(d => {
-      const fich    = d.fichaje_h;
-      const fecha   = fmtFecha(d.fecha);
-      const dia     = diaCorto(d.dia);
-      const hStr    = fmtH(fich);
-      let   etiq    = '';
-
-      if (d.esFinSemana && fich > 0) {
-        etiq = `Trabajo fin de semana (+${fmtH(Math.round(fich * 100) / 100)})`;
-      } else if (fich > 8) {
-        etiq = `Exceso de jornada (+${fmtH(Math.round((fich - 8) * 100) / 100)})`;
-      } else if (fich < 8) {
-        etiq = `Jornada corta (−${fmtH(Math.round((8 - fich) * 100) / 100)})`;
-      } else {
-        etiq = `Jornada normal`;
-      }
-
-      body += `${fecha} | ${dia} | ${hStr} | ${etiq}\n`;
+      return f !== null && f !== undefined && f > 0;
     });
 
-    body += `\n`;
+    if (diasFich.length === 0) return;
+
+    semIdx++;
+
+    // Rango de fechas de la semana
+    const fechaIni = fmtFecha(todosDias[0]?.fecha);
+    const fechaFin = fmtFecha(todosDias[todosDias.length - 1]?.fecha);
+
+    // Horas totales fichadas en la semana
+    const horasSem = diasFich.reduce((acc, d) => acc + (d.fichaje_h || 0), 0);
+
+    // Días laborables objetivo (no festivo, no fin de semana)
+    const diasLaborSem = todosDias.filter(d => !d.esFinSemana && !esFestivoCal(d.fecha)).length;
+    const objetivoSem  = diasLaborSem * 8;
+
+    body += `📋 Semana ${semIdx} — del ${fechaIni} al ${fechaFin}:\n`;
+    body += `  • Horas fichadas : ${fmtH(horasSem)}  (objetivo ${fmtH(objetivoSem)})\n\n`;
+
+    // Clasificar días
+    const exceso   = diasFich.filter(d =>  d.esFinSemana || d.fichaje_h > 8);
+    const cortos   = diasFich.filter(d => !d.esFinSemana && d.fichaje_h < 8);
+    const normales = diasFich.filter(d => !d.esFinSemana && d.fichaje_h === 8);
+
+    const lineaDia = d => {
+      const fich  = d.fichaje_h;
+      const fecha = fmtFecha(d.fecha);
+      const dia   = (d.dia || '').toLowerCase().slice(0, 3);
+      const h     = fmtH(fich);
+      if (d.esFinSemana) {
+        return `    − ${fecha} (${dia})  →  ${h} fichadas  |  fin de semana\n`;
+      } else if (fich > 8) {
+        return `    − ${fecha} (${dia})  →  ${h} fichadas  |  +${fmtH(Math.round((fich-8)*100)/100)} sobre jornada\n`;
+      } else if (fich < 8) {
+        return `    − ${fecha} (${dia})  →  ${h} fichadas  |  −${fmtH(Math.round((8-fich)*100)/100)} de jornada\n`;
+      } else {
+        return `    − ${fecha} (${dia})  →  ${h} fichadas\n`;
+      }
+    };
+
+    if (exceso.length > 0) {
+      body += `  ⏫ Días con exceso de jornada (>8h):\n`;
+      exceso.forEach(d => { body += lineaDia(d); });
+      body += `\n`;
+    }
+    if (cortos.length > 0) {
+      body += `  ⏬ Días con jornada incompleta (<8h):\n`;
+      cortos.forEach(d => { body += lineaDia(d); });
+      body += `\n`;
+    }
+    if (normales.length > 0) {
+      body += `  ✅ Días con jornada completa:\n`;
+      normales.forEach(d => { body += lineaDia(d); });
+      body += `\n`;
+    }
   });
 
   // ── Totales al final ───────────────────────────────────────────────────────
-  body += `RESUMEN DEL PERIODO — ${anioLbl}\n`;
-  body += `  Total horas fichadas    : ${fmtH(totalH)}\n`;
-  body += `  Dias laborables         : ${diasLab}\n`;
-  body += `  Jornadas completas      : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
-  if (totEx  > 0) body += `  Exceso acumulado        : +${fmtH(totEx)}\n`;
-  if (totDef > 0) body += `  Deficit acumulado       : −${fmtH(totDef)}\n`;
+  body += `📊 Resumen del periodo — ${anioLbl}\n`;
+  body += `  • Total horas fichadas    : ${fmtH(totalH)}\n`;
+  body += `  • Días laborables         : ${diasLab}\n`;
+  body += `  • Jornadas completas      : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
+  if (totEx  > 0) body += `  • Exceso acumulado        : +${fmtH(totEx)}\n`;
+  if (totDef > 0) body += `  • Déficit acumulado       : −${fmtH(totDef)}\n`;
   body += `\n`;
 
   // ── Cierre ─────────────────────────────────────────────────────────────────
-  body += `Le rogamos revise los datos y nos comunique cualquier\n`;
-  body += `justificacion pendiente en un plazo de 5 dias habiles.\n\n`;
+  body += `Le rogamos revise los datos y nos comunique cualquier justificación pendiente en un plazo de 5 días hábiles.\n\n`;
   body += `Carolina González Serrano\n`;
 
   const bodyEl = document.getElementById('cal-correo-body');

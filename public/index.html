@@ -3921,77 +3921,90 @@ function renderCorreo(data) {
     return fmtH(diff, true);
   }
 
-  const SEP = '─'.repeat(56);
+  // ── Clasificar todos los días laborables ordenados cronológicamente ─────────
+  const diasExceso = [], diasCortos = [], diasNormales = [];
 
-  // Agrupar incidencias por semana
-  const semanasConInc = [];
   (data.semanasData || []).forEach(s => {
-    const diasExceso = [], diasCortos = [];
     (s.dias || []).forEach(d => {
-      if (esFestivoCal(d.fecha)) return;
+      if (d.esFinSemana)               return; // fines de semana aparte
+      if (esFestivoCal(d.fecha))       return;
       if (d.justificado || d.sinDatos) return;
       const fich = d.fichaje_h;
       if (fich === null || fich === undefined || fich === 0) return;
-      if (d.esFinSemana) {
-        // Fin de semana trabajado → siempre exceso
-        diasExceso.push({ fecha: d.fecha, dia: d.dia, fich,
-          exceso: Math.round(fich * 100) / 100, finSemana: true });
+      const row = { fecha: d.fecha, dia: d.dia || '', fich };
+      if (d.esFinSemana && fich > 0) {
+        diasExceso.push({ ...row, exceso: Math.round(fich * 100) / 100, finSemana: true });
       } else if (fich > 8) {
-        diasExceso.push({ fecha: d.fecha, dia: d.dia, fich,
-          exceso: Math.round((fich - 8) * 100) / 100 });
+        diasExceso.push({ ...row, exceso: Math.round((fich - 8) * 100) / 100 });
       } else if (fich < 8) {
-        diasCortos.push({ fecha: d.fecha, dia: d.dia, fich,
-          deficit: Math.round((8 - fich) * 100) / 100 });
+        diasCortos.push({ ...row, deficit: Math.round((8 - fich) * 100) / 100 });
+      } else {
+        diasNormales.push(row);
       }
     });
-    if (diasExceso.length > 0 || diasCortos.length > 0) {
-      const semFich = s.semFichajeActivo_h || s.semFichaje_h || 0;
-      semanasConInc.push({
-        semana:       s.semana || '',        // YYYY-MM-DD lunes
-        etiqueta:     s.etiqueta || '',
-        semFichaje_h: semFich,
-        semExceso_h:  s.semExceso_h != null ? s.semExceso_h : Math.max(0, Math.round((semFich - 40) * 100) / 100),
-        diasExceso, diasCortos
-      });
-    }
+    // Fines de semana trabajados → exceso
+    (s.dias || []).forEach(d => {
+      if (!d.esFinSemana) return;
+      const fich = d.fichaje_h;
+      if (!fich || fich <= 0) return;
+      diasExceso.push({ fecha: d.fecha, dia: d.dia || '', fich,
+        exceso: Math.round(fich * 100) / 100, finSemana: true });
+    });
   });
 
-  // Aplanar todas las incidencias
-  const todosExceso = semanasConInc.flatMap(s => s.diasExceso);
-  const todosCortos = semanasConInc.flatMap(s => s.diasCortos);
+  // Ordenar cada grupo de menor a mayor fecha (ene → dic)
+  const sortFecha = (a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1;
+  diasExceso.sort(sortFecha);
+  diasCortos.sort(sortFecha);
+  diasNormales.sort(sortFecha);
+
   const totEx  = data.horasExceso  || 0;
   const totDef = data.horasDeficit || 0;
 
+  // Helper fila compacta
+  const fila = (d, tipo) => {
+    const dia  = d.dia.padEnd(3);
+    const h    = fmtH(d.fich).padEnd(10);
+    if (tipo === 'exceso')  return `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ⏫ +${fmtH(d.exceso)}${d.finSemana ? ' (FDS)' : ''}\n`;
+    if (tipo === 'corta')   return `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ⏬ −${fmtH(d.deficit)}\n`;
+    return                         `  ${fmtFecha(d.fecha)}  ${dia}  ${h}  ✅\n`;
+  };
+
   // Construir cuerpo
   let body = `Estimado/a ${emp},\n\n`;
+  body += `Registro de jornada — periodo analizado (ordenado por fecha):\n`;
 
-  if (semanasConInc.length === 0) {
-    body += `Revisión de jornada completada. No se han detectado incidencias en el periodo analizado: todos los días laborables cumplen ≥8h.\n`;
+  // ── Exceso de jornada ──────────────────────────────────────────────────────
+  body += `\n${'─'.repeat(52)}\n`;
+  body += `⏫ EXCESO DE JORNADA (>8h) — ${diasExceso.length} día${diasExceso.length !== 1 ? 's' : ''}\n`;
+  body += `${'─'.repeat(52)}\n`;
+  if (diasExceso.length === 0) {
+    body += `  Sin días con exceso de jornada.\n`;
   } else {
-    const totalInc = todosExceso.length + todosCortos.length;
-    body += `Revisión de jornada — se han detectado ${totalInc} día${totalInc > 1 ? 's' : ''} con incidencias:\n`;
-
-    if (todosCortos.length > 0) {
-      body += `\n⏬ Jornada corta (<8h) — ${todosCortos.length} día${todosCortos.length > 1 ? 's' : ''}:\n`;
-      todosCortos.forEach(d => {
-        const dia = (d.dia || '').padEnd(3);
-        body += `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  −${fmtH(d.deficit)}\n`;
-      });
-    }
-
-    if (todosExceso.length > 0) {
-      body += `\n⏫ Exceso de jornada (>8h) — ${todosExceso.length} día${todosExceso.length > 1 ? 's' : ''}:\n`;
-      todosExceso.forEach(d => {
-        const dia = (d.dia || '').padEnd(3);
-        const lbl = d.finSemana
-          ? `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  📅 fin de semana\n`
-          : `  ${fmtFecha(d.fecha)} ${dia}  ${fmtH(d.fich).padEnd(10)}  +${fmtH(d.exceso)}\n`;
-        body += lbl;
-      });
-    }
-
-    body += `\nPor favor revisa y coméntame si hay alguna justificación pendiente.\n`;
+    diasExceso.forEach(d => { body += fila(d, 'exceso'); });
   }
+
+  // ── Jornada corta ──────────────────────────────────────────────────────────
+  body += `\n${'─'.repeat(52)}\n`;
+  body += `⏬ JORNADA CORTA (<8h) — ${diasCortos.length} día${diasCortos.length !== 1 ? 's' : ''}\n`;
+  body += `${'─'.repeat(52)}\n`;
+  if (diasCortos.length === 0) {
+    body += `  Sin días con jornada corta.\n`;
+  } else {
+    diasCortos.forEach(d => { body += fila(d, 'corta'); });
+  }
+
+  // ── Jornada normal ─────────────────────────────────────────────────────────
+  body += `\n${'─'.repeat(52)}\n`;
+  body += `✅ JORNADA NORMAL (≥8h exactas) — ${diasNormales.length} día${diasNormales.length !== 1 ? 's' : ''}\n`;
+  body += `${'─'.repeat(52)}\n`;
+  if (diasNormales.length === 0) {
+    body += `  Sin días con jornada exactamente normal.\n`;
+  } else {
+    diasNormales.forEach(d => { body += fila(d, 'normal'); });
+  }
+
+  body += `\nPor favor revisa y coméntame si hay alguna justificación pendiente.\n`;
 
   // ── Resumen anual al final (siempre) ──────────────────────────────────────
   const totalH  = data.totalFichaje_h || 0;

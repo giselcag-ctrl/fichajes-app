@@ -3940,9 +3940,19 @@ function renderCorreo(data) {
   body += `Estimado/a ${emp}:\n\n`;
   body += `Le informamos del detalle de su registro de jornada correspondiente al periodo ${anioLbl}.\n\n`;
 
+  // Encontrar la semana que contiene el 01 de enero del año analizado
+  const jan1 = `${anioLbl}-01-01`;
+  const semanas = data.semanasData || [];
+  const startWeekIdx = Math.max(0,
+    semanas.findIndex(s => (s.dias || []).some(d => d.fecha >= jan1))
+  );
+
   let semIdx = 0;
 
-  (data.semanasData || []).forEach(s => {
+  semanas.forEach((s, rawIdx) => {
+    // Ignorar semanas anteriores al 01 de enero
+    if (rawIdx < startWeekIdx) return;
+
     const todosDias = (s.dias || []).sort((a, b) => (a.fecha || '') < (b.fecha || '') ? -1 : 1);
 
     // Días laborables con fichaje

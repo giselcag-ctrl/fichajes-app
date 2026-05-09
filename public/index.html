@@ -3957,7 +3957,6 @@ function renderCorreo(data) {
 
     semIdx++;
     body += `SEMANA ${String(semIdx).padStart(2, '0')}\n`;
-    body += `${sep}\n`;
 
     diasSemana.forEach(d => {
       const fich    = d.fichaje_h;
@@ -3979,19 +3978,17 @@ function renderCorreo(data) {
       body += `${fecha} | ${dia} | ${hStr} | ${etiq}\n`;
     });
 
-    body += `${sep}\n`;
+    body += `\n`;
   });
 
   // ── Totales al final ───────────────────────────────────────────────────────
-  body += `${SEP}\n`;
   body += `RESUMEN DEL PERIODO — ${anioLbl}\n`;
-  body += `${SEP}\n`;
   body += `  Total horas fichadas    : ${fmtH(totalH)}\n`;
   body += `  Dias laborables         : ${diasLab}\n`;
   body += `  Jornadas completas      : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
   if (totEx  > 0) body += `  Exceso acumulado        : +${fmtH(totEx)}\n`;
   if (totDef > 0) body += `  Deficit acumulado       : −${fmtH(totDef)}\n`;
-  body += `${SEP}\n\n`;
+  body += `\n`;
 
   // ── Cierre ─────────────────────────────────────────────────────────────────
   body += `Le rogamos revise los datos y nos comunique cualquier\n`;

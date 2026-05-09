@@ -3921,8 +3921,8 @@ function renderCorreo(data) {
   const hoy     = new Date();
   const fechaHoy= `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
 
-  const SEP  = '═'.repeat(44);
-  const sep  = '─'.repeat(44);
+  const SEP  = '═'.repeat(32);
+  const sep  = '─'.repeat(32);
 
   // ── Totales globales ───────────────────────────────────────────────────────
   const totEx   = data.horasExceso    || 0;

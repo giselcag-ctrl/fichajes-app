@@ -259,11 +259,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </svg>
       Control de Fichajes
     </a>
-    <a class="nav-item" onclick="showPage('emails')" href="#">
+    <a class="nav-item" onclick="showPage('correos')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Correos
     </a>
-    <a class="nav-item" onclick="showPage('all-emails')" href="#">
+    <a class="nav-item" onclick="showPage('all-emails')" href="#" style="display:none">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Todos los correos
     </a>
@@ -849,7 +849,15 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
 </div><!-- /page-fichajes -->
 
-    <!-- Correos (diario + semanal unificado) -->
+    <!-- ── Correos unificado ── -->
+    <div id="page-correos" class="page">
+      <!-- Pestañas internas -->
+      <div style="display:flex;gap:6px;margin-bottom:22px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
+        <button id="mc-tab-emails"     onclick="mcTab('emails')"     class="cf-tab cf-tab-active">✉ Correos</button>
+        <button id="mc-tab-all-emails" onclick="mcTab('all-emails')" class="cf-tab">📬 Todos los correos</button>
+      </div>
+      <!-- Panel Correos -->
+      <div id="mc-panel-emails">
     <div id="page-emails" class="page">
       <!-- Selector diario / semanal -->
       <div class="seg-tabs animate-in">
@@ -924,7 +932,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- Todos los correos -->
+      </div><!-- /mc-panel-emails -->
+      <!-- Panel Todos los correos -->
+      <div id="mc-panel-all-emails" style="display:none">
     <div id="page-all-emails" class="page">
       <div class="controls animate-in" style="margin-bottom:20px;">
         <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="all-email-day-select" onchange="renderAllEmails()"></select></div>
@@ -940,6 +950,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div class="all-emails-body" id="all-emails-body">Selecciona un día.</div>
       </div>
     </div>
+      </div><!-- /mc-panel-all-emails -->
+    </div><!-- /page-correos -->
 
     <!-- Directorio de empleados -->
     <div id="page-directorio" class="page">
@@ -1569,6 +1581,13 @@ function initApp(){
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
 function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
+function mcTab(tab){
+  ['emails','all-emails'].forEach(t=>{
+    document.getElementById('mc-panel-'+t).style.display=t===tab?'':'none';
+    document.getElementById('mc-tab-'+t).classList.toggle('cf-tab-active',t===tab);
+  });
+  if(tab==='all-emails'&&typeof renderAllEmails==='function')renderAllEmails();
+}
 function cfTab(tab){
   ['resumen','calendario','vacaciones'].forEach(t=>{
     document.getElementById('cf-panel-'+t).style.display=t===tab?'':'none';
@@ -1581,18 +1600,20 @@ function cfTab(tab){
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={fichajes:'page-fichajes',resumen:'page-fichajes',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-fichajes',historial:'page-historial','analisis-ia':'page-analisis-ia',calendario:'page-fichajes',tareas:'page-tareas'};
-  const tm={fichajes:'Control de Fichajes',resumen:'Control de Fichajes',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Control de Fichajes',historial:'Historial de envíos','analisis-ia':'Análisis IA',calendario:'Control de Fichajes',tareas:'Tareas Manuales'};
+  const pm={fichajes:'page-fichajes',resumen:'page-fichajes',correos:'page-correos',emails:'page-correos','all-emails':'page-correos',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-fichajes',historial:'page-historial','analisis-ia':'page-analisis-ia',calendario:'page-fichajes',tareas:'page-tareas'};
+  const tm={fichajes:'Control de Fichajes',resumen:'Control de Fichajes',correos:'Correos',emails:'Correos','all-emails':'Correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Control de Fichajes',historial:'Historial de envíos','analisis-ia':'Análisis IA',calendario:'Control de Fichajes',tareas:'Tareas Manuales'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['fichajes','emails','all-emails','pedidos','tareas','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['fichajes','correos','pedidos','tareas','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name||((name==='emails'||name==='all-emails')&&n==='correos'))ni[i]&&ni[i].classList.add('active')});
   if(name==='tareas')tareasLoadSummary();
   if(name==='historial')loadHistorial();
   if(name==='fichajes'){cfTab('resumen');}
   if(name==='resumen'){cfTab('resumen');}
   if(name==='vacaciones'){cfTab('vacaciones');}
   if(name==='calendario'){cfTab('calendario');}
+  if(name==='correos'||name==='emails'){mcTab('emails');}
+  if(name==='all-emails'){mcTab('all-emails');}
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){

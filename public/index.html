@@ -111,6 +111,10 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .seg-tab{height:30px;padding:0 18px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all 0.15s;}
 .seg-tab:hover{color:var(--text);}
 .seg-tab.active{background:var(--bg2);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,0.25);}
+/* ── Control Fichajes tab control ── */
+.cf-tab{height:34px;padding:0 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all 0.15s;}
+.cf-tab:hover{color:var(--text);}
+.cf-tab.cf-tab-active{background:var(--accent);color:#0e0f11;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
 .hours-bar{display:flex;align-items:center;gap:8px}
 .hours-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;max-width:80px}
 .hours-fill{height:100%;border-radius:99px;background:var(--accent);transition:width 0.3s}
@@ -245,9 +249,15 @@ tr:hover td{background:rgba(255,255,255,0.02)}
   </div>
   <nav class="nav">
     <div class="nav-section">Módulos</div>
-    <a class="nav-item active" onclick="showPage('resumen')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Resumen
+    <a class="nav-item active" onclick="showPage('fichajes')" href="#">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M1 6h14" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M5 2v4M11 2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <rect x="3" y="8.5" width="4" height="3" rx="0.5" fill="currentColor" opacity="0.5"/>
+        <rect x="9" y="8.5" width="4" height="3" rx="0.5" fill="currentColor" opacity="0.5"/>
+      </svg>
+      Control de Fichajes
     </a>
     <a class="nav-item" onclick="showPage('emails')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -260,14 +270,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <a class="nav-item" onclick="showPage('pedidos')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="10" r="2.5" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.3 10l.5.5.9-.9" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Auditoría pedidos
-    </a>
-    <a class="nav-item" onclick="showPage('vacaciones')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 5 4 9a4 4 0 0 0 8 0c0-4-4-7-4-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 13v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 15h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Vacaciones
-    </a>
-    <a class="nav-item" onclick="showPage('calendario')" href="#">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 7h13" stroke="currentColor" stroke-width="1.3"/><path d="M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="4" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.7"/><rect x="7" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.7"/><rect x="10" y="9" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.3"/></svg>
-      Análisis Calendario
     </a>
     <a class="nav-item" onclick="showPage('tareas')" href="#">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6h6M4 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="12.5" cy="11.5" r="2.8" fill="var(--bg2)" stroke="currentColor" stroke-width="1.3"/><path d="M11.5 11.5l.7.7 1.3-1.3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -435,8 +437,14 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- Resumen unificado -->
-<div id="page-resumen" class="page">
+    <!-- Control de Fichajes (Resumen + Análisis Calendario + Vacaciones) -->
+<div id="page-fichajes" class="page">
+  <div style="display:flex;gap:6px;margin-bottom:24px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
+    <button id="cf-tab-resumen"    onclick="cfTab('resumen')"    class="cf-tab cf-tab-active">📊 Resumen</button>
+    <button id="cf-tab-calendario" onclick="cfTab('calendario')" class="cf-tab">📅 Análisis</button>
+    <button id="cf-tab-vacaciones" onclick="cfTab('vacaciones')" class="cf-tab">🏖 Vacaciones</button>
+  </div>
+  <div id="cf-panel-resumen">
 
   <!-- ── MODO API: tabla anual desde servidor ─────────────────────────── -->
   <div id="resumen-api-mode" style="display:none;">
@@ -546,7 +554,297 @@ tr:hover td{background:rgba(255,255,255,0.02)}
   </div>
   </div>
 
-</div>
+  </div><!-- /cf-panel-resumen -->
+
+  <div id="cf-panel-calendario" style="display:none;">
+      <div class="animate-in" style="max-width:1200px;">
+
+        <!-- ── Barra de carga de tareas ── -->
+        <div id="cal-tareas-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:18px;">
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:180px;">
+            <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">Tareas manuales</span>
+            <span id="cal-tareas-bar-info" style="font-size:12px;color:var(--text2);">Cargando estado…</span>
+          </div>
+          <label style="cursor:pointer;display:inline-flex;">
+            <input type="file" id="cal-tareas-file" accept=".xlsx,.xls,.csv" multiple style="display:none;" onchange="calTareasUpload(this)">
+            <span class="btn btn-outline btn-sm" onclick="document.getElementById('cal-tareas-file').click()" style="gap:6px;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Subir tareas
+            </span>
+          </label>
+          <span id="cal-tareas-bar-status" style="font-size:12px;display:none;"></span>
+          <a onclick="showPage('tareas')" href="#" style="font-size:11px;color:var(--text3);text-decoration:none;white-space:nowrap;">Gestionar →</a>
+        </div>
+
+        <!-- ── CalModule: Resumen Calendario ── -->
+        <div id="cal-module">
+
+          <!-- Vista: lista de empleados -->
+          <div id="cal-lista">
+            <div class="cal-topbar">
+              <span class="cal-emp-title">📊 Resumen Calendario</span>
+              <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+                <select id="cal-year-lista" onchange="CalModule.setAnioLista(this.value)"
+                  style="background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--cal-text);cursor:pointer;outline:none;">
+                  <option value="">Todos los años</option>
+                </select>
+                <button class="cal-export-btn" onclick="CalModule.exportListaCSV()">⬇ Exportar CSV</button>
+              </div>
+            </div>
+            <div id="cal-lista-body">
+              <div class="cal-loader"><div class="cal-spinner"></div>Cargando empleados…</div>
+            </div>
+          </div>
+
+          <!-- Vista: detalle empleado -->
+          <div id="cal-detalle" class="cal-hidden">
+
+            <!-- Topbar -->
+            <div class="cal-topbar">
+              <button class="cal-back" onclick="CalModule.volverLista()">← Todos los empleados</button>
+              <span class="cal-emp-title" id="cal-det-titulo">—</span>
+              <span class="cal-badge cal-badge-g" id="cal-det-badge">—</span>
+              <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+                <select id="cal-year-select" onchange="CalModule.setAnio(this.value)"
+                  style="background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--cal-text);cursor:pointer;outline:none;">
+                </select>
+                <div class="cal-vbtns" style="margin-left:0">
+                  <button class="cal-vbtn active" onclick="CalModule.setVista('semanal',this)">Semanal</button>
+                  <button class="cal-vbtn"        onclick="CalModule.setVista('mensual',this)">Mensual</button>
+                  <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
+                  <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="cal-stats" id="cal-kpis"></div>
+            <div style="border-top:1px solid var(--cal-border);margin-bottom:28px;opacity:.5"></div>
+
+            <!-- Vista Semanal -->
+            <div id="cal-v-semanal">
+              <div class="cal-section">
+                <div class="cal-sec-header">
+                  <span class="cal-sec-title">Vista Semanal — Fichaje vs Tareas</span>
+                  <button class="cal-export-btn" onclick="CalModule.exportCSV('semanal')">⬇ Exportar CSV</button>
+                </div>
+                <div class="cal-table-wrap">
+                  <table class="cal-table">
+                    <thead><tr>
+                      <th>Semana</th><th>Etiqueta</th>
+                      <th>Fichaje</th><th>Objetivo 40h</th>
+                      <th>Exceso sem.</th><th class="td-c">Estado</th>
+                    </tr></thead>
+                    <tbody id="cal-tbody-s"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vista Mensual -->
+            <div id="cal-v-mensual" class="cal-hidden">
+              <div class="cal-section">
+                <div class="cal-sec-header">
+                  <span class="cal-sec-title">Vista Mensual — Resumen por Mes</span>
+                  <button class="cal-export-btn" onclick="CalModule.exportCSV('mensual')">⬇ Exportar CSV</button>
+                </div>
+                <div class="cal-table-wrap">
+                  <table class="cal-table">
+                    <thead><tr>
+                      <th>Mes</th><th class="td-c">Semanas</th>
+                      <th>Fichaje</th><th>Tareas</th>
+                      <th>Diferencia</th><th>Asertividad</th><th>Cumplimiento</th>
+                    </tr></thead>
+                    <tbody id="cal-tbody-m"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vista Diaria -->
+            <div id="cal-v-diario" class="cal-hidden">
+              <div class="cal-section">
+                <div class="cal-sec-header">
+                  <span class="cal-sec-title">Vista Diaria — Detalle por Día</span>
+                  <button class="cal-export-btn" onclick="CalModule.exportCSV('diario')">⬇ Exportar CSV</button>
+                </div>
+                <div class="cal-table-wrap">
+                  <table class="cal-table">
+                    <thead><tr>
+                      <th>Fecha</th><th>Día</th>
+                      <th>Fichaje</th><th>Tareas</th>
+                      <th>Diferencia</th><th>Horas extras</th>
+                      <th>Estado día</th><th>Incidencia / Eventos</th>
+                    </tr></thead>
+                    <tbody id="cal-tbody-d"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel Incidencias -->
+            <div class="cal-section" id="cal-inc-sec">
+              <div class="cal-sec-header">
+                <span class="cal-sec-title" id="cal-inc-titulo">Incidencias</span>
+                <button class="cal-export-btn" onclick="CalModule.exportCSV('incidencias')">⬇ Exportar CSV</button>
+              </div>
+              <div class="inc-stats" id="cal-inc-stats"></div>
+              <div id="cal-inc-list"></div>
+            </div>
+
+            <!-- Panel Correo -->
+            <div class="cal-section cal-hidden" id="cal-v-correo">
+              <div class="cal-sec-header">
+                <span class="cal-sec-title" id="cal-correo-titulo">Correo de Incidencias</span>
+              </div>
+              <div style="display:grid;gap:10px;margin-bottom:16px;">
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Para:</label>
+                  <input id="cal-correo-to" type="email" placeholder="email@empleado.com"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
+                  <span id="cal-correo-to-warn" style="font-size:11px;color:#fbbf24;display:none;">⚠ No en directorio</span>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">CC:</label>
+                  <input id="cal-correo-cc" type="text" placeholder="otro@email.com, otro2@email.com (opcional)"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Asunto:</label>
+                  <input id="cal-correo-subject" type="text"
+                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--cal-text2);margin-bottom:6px;letter-spacing:.3px;">✎ Puedes editar el texto antes de enviar</div>
+              <div style="position:relative;">
+                <textarea id="cal-correo-body"
+                  placeholder="Selecciona un empleado para generar el borrador…"
+                  style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+                <button id="cal-correo-copy-btn" onclick="CalModule.copiarCorreo()" title="Copiar cuerpo del correo"
+                  style="position:absolute;top:10px;right:10px;background:var(--cal-bg3,#1a2f4a);border:1px solid var(--cal-border);border-radius:7px;padding:5px 8px;cursor:pointer;opacity:0.7;transition:opacity .15s,background .15s;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cal-text2);"
+                  onmouseover="this.style.opacity='1';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderColor='var(--accent)'"
+                  onmouseout="this.style.opacity='0.7';this.style.background='var(--cal-bg3,#1a2f4a)';this.style.color='var(--cal-text2)';this.style.borderColor='var(--cal-border)'">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  Copiar
+                </button>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:14px;align-items:center;">
+                <button id="cal-correo-btn" onclick="CalModule.enviarCorreo()"
+                  style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;">
+                  📤 Enviar correo
+                </button>
+                <button onclick="CalModule.copiarCorreo()"
+                  style="background:var(--cal-bg2);color:var(--cal-text);border:1px solid var(--cal-border);border-radius:8px;padding:10px 18px;font-size:13px;cursor:pointer;">
+                  📋 Copiar
+                </button>
+                <span id="cal-correo-status" style="font-size:12px;color:var(--cal-text2);margin-left:4px;"></span>
+              </div>
+            </div>
+
+          </div><!-- /cal-detalle -->
+        </div><!-- /cal-module -->
+
+      </div>
+  </div><!-- /cf-panel-calendario -->
+
+  <div id="cf-panel-vacaciones" style="display:none;">
+      <div class="animate-in" style="max-width:1100px;">
+
+        <!-- Fuentes de datos -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <!-- Fichaje status -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">① Excel de Fichajes</div>
+            <div id="vac-fichaje-status" style="display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Sin fichaje cargado
+            </div>
+          </div>
+          <!-- Tareas upload -->
+          <div id="vac-tareas-drop" style="background:var(--bg2);border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:16px;cursor:pointer;position:relative;transition:border-color 0.2s;" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleVacTareasFile(event.dataTransfer.files[0])">
+            <input type="file" id="vac-tareas-input" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;" onchange="handleVacTareasFile(this.files[0])">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">② Excel de Tareas</div>
+            <div id="vac-tareas-empty" style="display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              Arrastra el Excel de tareas aquí
+            </div>
+            <div id="vac-tareas-loaded" style="display:none;align-items:center;gap:10px;font-size:13px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="vac-tareas-filename" style="color:var(--text2);"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mapeo de columnas -->
+        <div id="vac-col-map" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:20px;">
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Mapeo de columnas</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Estado</span>
+              <select id="vac-col-estado" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Empleado</span>
+              <select id="vac-col-emp" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:140px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Descripción / Tipo</span>
+              <select id="vac-col-desc" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:140px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Fecha inicio</span>
+              <select id="vac-col-fechaini" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Fecha fin</span>
+              <select id="vac-col-fechafin" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:var(--text3);">Palabra clave</span>
+              <input id="vac-keyword" value="Vacaciones" oninput="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;width:110px;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-end;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding-bottom:4px;">
+                <input type="checkbox" id="vac-match-exact" checked onchange="renderVacaciones()" style="accent-color:var(--accent);">
+                Coincidencia exacta
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Config bar -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text3);">Inicio año vacacional</span>
+            <input type="date" id="vac-inicio" style="height:30px;font-size:12px;background-image:none;" oninput="renderVacaciones()">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text3);">Días/mes</span>
+            <input type="number" id="vac-dias-mes" value="2.5" min="0.5" max="5" step="0.5" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text3);">Máx. anual</span>
+            <input type="number" id="vac-max-anual" value="22" min="1" max="60" step="1" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
+          </div>
+          <select id="vac-search" onchange="renderVacaciones()" style="height:30px;width:190px;font-size:12px;margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;">
+            <option value="">Todos los empleados</option>
+          </select>
+          <button class="btn btn-ghost" onclick="exportVacacionesCSV()" style="height:30px;font-size:12px;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+
+        <!-- Stats cards -->
+        <div id="vac-stats-cards" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
+        <!-- Tabla matricial -->
+        <div id="vac-table-wrap">
+          <div class="empty-state"><div class="es-icon">🏖️</div><p>Carga el Excel de tareas para ver las vacaciones</p></div>
+        </div>
+      </div>
+  </div><!-- /cf-panel-vacaciones -->
+
+</div><!-- /page-fichajes -->
 
     <!-- Correos (diario + semanal unificado) -->
     <div id="page-emails" class="page">
@@ -798,104 +1096,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
       </div>
     </div>
 
-    <!-- ── Vacaciones ── -->
-    <div id="page-vacaciones" class="page">
-      <div class="animate-in" style="max-width:1100px;">
-
-        <!-- Fuentes de datos -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-          <!-- Fichaje status -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
-            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">① Excel de Fichajes</div>
-            <div id="vac-fichaje-status" style="display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              Sin fichaje cargado
-            </div>
-          </div>
-          <!-- Tareas upload -->
-          <div id="vac-tareas-drop" style="background:var(--bg2);border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:16px;cursor:pointer;position:relative;transition:border-color 0.2s;" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleVacTareasFile(event.dataTransfer.files[0])">
-            <input type="file" id="vac-tareas-input" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;" onchange="handleVacTareasFile(this.files[0])">
-            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">② Excel de Tareas</div>
-            <div id="vac-tareas-empty" style="display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              Arrastra el Excel de tareas aquí
-            </div>
-            <div id="vac-tareas-loaded" style="display:none;align-items:center;gap:10px;font-size:13px;">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span id="vac-tareas-filename" style="color:var(--text2);"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mapeo de columnas -->
-        <div id="vac-col-map" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:20px;">
-          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Mapeo de columnas</div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Estado</span>
-              <select id="vac-col-estado" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Empleado</span>
-              <select id="vac-col-emp" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:140px;"></select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Descripción / Tipo</span>
-              <select id="vac-col-desc" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:140px;"></select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Fecha inicio</span>
-              <select id="vac-col-fechaini" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Fecha fin</span>
-              <select id="vac-col-fechafin" onchange="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;min-width:120px;"></select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:var(--text3);">Palabra clave</span>
-              <input id="vac-keyword" value="Vacaciones" oninput="renderVacaciones()" style="height:30px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;width:110px;">
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-end;">
-              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding-bottom:4px;">
-                <input type="checkbox" id="vac-match-exact" checked onchange="renderVacaciones()" style="accent-color:var(--accent);">
-                Coincidencia exacta
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Config bar -->
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;color:var(--text3);">Inicio año vacacional</span>
-            <input type="date" id="vac-inicio" style="height:30px;font-size:12px;background-image:none;" oninput="renderVacaciones()">
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;color:var(--text3);">Días/mes</span>
-            <input type="number" id="vac-dias-mes" value="2.5" min="0.5" max="5" step="0.5" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;color:var(--text3);">Máx. anual</span>
-            <input type="number" id="vac-max-anual" value="22" min="1" max="60" step="1" style="width:64px;height:30px;font-size:12px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:0 8px;" oninput="renderVacaciones()">
-          </div>
-          <select id="vac-search" onchange="renderVacaciones()" style="height:30px;width:190px;font-size:12px;margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 8px;">
-            <option value="">Todos los empleados</option>
-          </select>
-          <button class="btn btn-ghost" onclick="exportVacacionesCSV()" style="height:30px;font-size:12px;">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 12h10M8 3v7M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Exportar CSV
-          </button>
-        </div>
-
-        <!-- Stats cards -->
-        <div id="vac-stats-cards" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
-        <!-- Tabla matricial -->
-        <div id="vac-table-wrap">
-          <div class="empty-state"><div class="es-icon">🏖️</div><p>Carga el Excel de tareas para ver las vacaciones</p></div>
-        </div>
-      </div>
-    </div>
-
     <!-- ── Historial de envíos ── -->
     <div id="page-historial" class="page">
       <div class="animate-in" style="max-width:900px;">
@@ -913,198 +1113,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
         <div id="historial-table-wrap">
           <div class="empty-state"><div class="es-icon">📋</div><p>Cargando historial…</p></div>
         </div>
-      </div>
-    </div>
-
-    <!-- ── Resumen Calendario ── -->
-    <div id="page-calendario" class="page">
-      <div class="animate-in" style="max-width:1200px;">
-
-        <!-- ── Barra de carga de tareas ── -->
-        <div id="cal-tareas-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:18px;">
-          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:180px;">
-            <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">Tareas manuales</span>
-            <span id="cal-tareas-bar-info" style="font-size:12px;color:var(--text2);">Cargando estado…</span>
-          </div>
-          <label style="cursor:pointer;display:inline-flex;">
-            <input type="file" id="cal-tareas-file" accept=".xlsx,.xls,.csv" multiple style="display:none;" onchange="calTareasUpload(this)">
-            <span class="btn btn-outline btn-sm" onclick="document.getElementById('cal-tareas-file').click()" style="gap:6px;">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 11V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              Subir tareas
-            </span>
-          </label>
-          <span id="cal-tareas-bar-status" style="font-size:12px;display:none;"></span>
-          <a onclick="showPage('tareas')" href="#" style="font-size:11px;color:var(--text3);text-decoration:none;white-space:nowrap;">Gestionar →</a>
-        </div>
-
-        <!-- ── CalModule: Resumen Calendario ── -->
-        <div id="cal-module">
-
-          <!-- Vista: lista de empleados -->
-          <div id="cal-lista">
-            <div class="cal-topbar">
-              <span class="cal-emp-title">📊 Resumen Calendario</span>
-              <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
-                <select id="cal-year-lista" onchange="CalModule.setAnioLista(this.value)"
-                  style="background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--cal-text);cursor:pointer;outline:none;">
-                  <option value="">Todos los años</option>
-                </select>
-                <button class="cal-export-btn" onclick="CalModule.exportListaCSV()">⬇ Exportar CSV</button>
-              </div>
-            </div>
-            <div id="cal-lista-body">
-              <div class="cal-loader"><div class="cal-spinner"></div>Cargando empleados…</div>
-            </div>
-          </div>
-
-          <!-- Vista: detalle empleado -->
-          <div id="cal-detalle" class="cal-hidden">
-
-            <!-- Topbar -->
-            <div class="cal-topbar">
-              <button class="cal-back" onclick="CalModule.volverLista()">← Todos los empleados</button>
-              <span class="cal-emp-title" id="cal-det-titulo">—</span>
-              <span class="cal-badge cal-badge-g" id="cal-det-badge">—</span>
-              <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
-                <select id="cal-year-select" onchange="CalModule.setAnio(this.value)"
-                  style="background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--cal-text);cursor:pointer;outline:none;">
-                </select>
-                <div class="cal-vbtns" style="margin-left:0">
-                  <button class="cal-vbtn active" onclick="CalModule.setVista('semanal',this)">Semanal</button>
-                  <button class="cal-vbtn"        onclick="CalModule.setVista('mensual',this)">Mensual</button>
-                  <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
-                  <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- KPIs -->
-            <div class="cal-stats" id="cal-kpis"></div>
-            <div style="border-top:1px solid var(--cal-border);margin-bottom:28px;opacity:.5"></div>
-
-            <!-- Vista Semanal -->
-            <div id="cal-v-semanal">
-              <div class="cal-section">
-                <div class="cal-sec-header">
-                  <span class="cal-sec-title">Vista Semanal — Fichaje vs Tareas</span>
-                  <button class="cal-export-btn" onclick="CalModule.exportCSV('semanal')">⬇ Exportar CSV</button>
-                </div>
-                <div class="cal-table-wrap">
-                  <table class="cal-table">
-                    <thead><tr>
-                      <th>Semana</th><th>Etiqueta</th>
-                      <th>Fichaje</th><th>Objetivo 40h</th>
-                      <th>Exceso sem.</th><th class="td-c">Estado</th>
-                    </tr></thead>
-                    <tbody id="cal-tbody-s"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- Vista Mensual -->
-            <div id="cal-v-mensual" class="cal-hidden">
-              <div class="cal-section">
-                <div class="cal-sec-header">
-                  <span class="cal-sec-title">Vista Mensual — Resumen por Mes</span>
-                  <button class="cal-export-btn" onclick="CalModule.exportCSV('mensual')">⬇ Exportar CSV</button>
-                </div>
-                <div class="cal-table-wrap">
-                  <table class="cal-table">
-                    <thead><tr>
-                      <th>Mes</th><th class="td-c">Semanas</th>
-                      <th>Fichaje</th><th>Tareas</th>
-                      <th>Diferencia</th><th>Asertividad</th><th>Cumplimiento</th>
-                    </tr></thead>
-                    <tbody id="cal-tbody-m"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- Vista Diaria -->
-            <div id="cal-v-diario" class="cal-hidden">
-              <div class="cal-section">
-                <div class="cal-sec-header">
-                  <span class="cal-sec-title">Vista Diaria — Detalle por Día</span>
-                  <button class="cal-export-btn" onclick="CalModule.exportCSV('diario')">⬇ Exportar CSV</button>
-                </div>
-                <div class="cal-table-wrap">
-                  <table class="cal-table">
-                    <thead><tr>
-                      <th>Fecha</th><th>Día</th>
-                      <th>Fichaje</th><th>Tareas</th>
-                      <th>Diferencia</th><th>Horas extras</th>
-                      <th>Estado día</th><th>Incidencia / Eventos</th>
-                    </tr></thead>
-                    <tbody id="cal-tbody-d"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel Incidencias -->
-            <div class="cal-section" id="cal-inc-sec">
-              <div class="cal-sec-header">
-                <span class="cal-sec-title" id="cal-inc-titulo">Incidencias</span>
-                <button class="cal-export-btn" onclick="CalModule.exportCSV('incidencias')">⬇ Exportar CSV</button>
-              </div>
-              <div class="inc-stats" id="cal-inc-stats"></div>
-              <div id="cal-inc-list"></div>
-            </div>
-
-            <!-- Panel Correo -->
-            <div class="cal-section cal-hidden" id="cal-v-correo">
-              <div class="cal-sec-header">
-                <span class="cal-sec-title" id="cal-correo-titulo">Correo de Incidencias</span>
-              </div>
-              <div style="display:grid;gap:10px;margin-bottom:16px;">
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Para:</label>
-                  <input id="cal-correo-to" type="email" placeholder="email@empleado.com"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
-                  <span id="cal-correo-to-warn" style="font-size:11px;color:#fbbf24;display:none;">⚠ No en directorio</span>
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">CC:</label>
-                  <input id="cal-correo-cc" type="text" placeholder="otro@email.com, otro2@email.com (opcional)"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <label style="font-size:12px;color:var(--cal-text2);min-width:56px;">Asunto:</label>
-                  <input id="cal-correo-subject" type="text"
-                    style="flex:1;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--cal-text);outline:none;transition:border-color .15s;" />
-                </div>
-              </div>
-              <div style="font-size:11px;color:var(--cal-text2);margin-bottom:6px;letter-spacing:.3px;">✎ Puedes editar el texto antes de enviar</div>
-              <div style="position:relative;">
-                <textarea id="cal-correo-body"
-                  placeholder="Selecciona un empleado para generar el borrador…"
-                  style="width:100%;min-height:340px;background:var(--cal-bg2);border:1px solid var(--cal-border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;color:var(--cal-text);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
-                <button id="cal-correo-copy-btn" onclick="CalModule.copiarCorreo()" title="Copiar cuerpo del correo"
-                  style="position:absolute;top:10px;right:10px;background:var(--cal-bg3,#1a2f4a);border:1px solid var(--cal-border);border-radius:7px;padding:5px 8px;cursor:pointer;opacity:0.7;transition:opacity .15s,background .15s;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cal-text2);"
-                  onmouseover="this.style.opacity='1';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderColor='var(--accent)'"
-                  onmouseout="this.style.opacity='0.7';this.style.background='var(--cal-bg3,#1a2f4a)';this.style.color='var(--cal-text2)';this.style.borderColor='var(--cal-border)'">
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                  Copiar
-                </button>
-              </div>
-              <div style="display:flex;gap:10px;margin-top:14px;align-items:center;">
-                <button id="cal-correo-btn" onclick="CalModule.enviarCorreo()"
-                  style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;">
-                  📤 Enviar correo
-                </button>
-                <button onclick="CalModule.copiarCorreo()"
-                  style="background:var(--cal-bg2);color:var(--cal-text);border:1px solid var(--cal-border);border-radius:8px;padding:10px 18px;font-size:13px;cursor:pointer;">
-                  📋 Copiar
-                </button>
-                <span id="cal-correo-status" style="font-size:12px;color:var(--cal-text2);margin-left:4px;"></span>
-              </div>
-            </div>
-
-          </div><!-- /cal-detalle -->
-        </div><!-- /cal-module -->
-
       </div>
     </div>
 
@@ -1553,24 +1561,35 @@ function initApp(){
   document.getElementById('btn-reset').style.display='flex';
   document.getElementById('topbar-date').style.display='flex';
   const _cfn=document.getElementById('chip-file-name');if(_cfn)_cfn.textContent=S.fileName;
-  showPage('resumen');renderEmailList();renderAllEmails();renderWeeklyEmailList();renderVacaciones();initResumenCalendar();
+  showPage('fichajes');renderEmailList();renderAllEmails();renderWeeklyEmailList();renderVacaciones();initResumenCalendar();
   saveSession();
 }
 function pDateR(s){const[d,m,y]=s.split('/');return new Date(+y,+m-1,+d)}
 function fDay(d){try{const[dd,mm,yy]=d.split('/');return new Date(+yy,+mm-1,+dd).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}catch{return d}}
+function cfTab(tab){
+  ['resumen','calendario','vacaciones'].forEach(t=>{
+    document.getElementById('cf-panel-'+t).style.display=t===tab?'':'none';
+    document.getElementById('cf-tab-'+t).classList.toggle('cf-tab-active',t===tab);
+  });
+  if(tab==='calendario'){CalModule.init();calTareasBarLoad();}
+  if(tab==='resumen')initResumenMode();
+  if(tab==='vacaciones'&&typeof renderVacaciones==='function')renderVacaciones();
+}
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pm={resumen:'page-resumen',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-vacaciones',historial:'page-historial','analisis-ia':'page-analisis-ia',calendario:'page-calendario',tareas:'page-tareas'};
-  const tm={resumen:'Resumen',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Vacaciones por empleado',historial:'Historial de envíos','analisis-ia':'Análisis IA',calendario:'Análisis Calendario',tareas:'Tareas Manuales'};
+  const pm={fichajes:'page-fichajes',resumen:'page-fichajes',emails:'page-emails','all-emails':'page-all-emails',upload:'page-upload',directorio:'page-directorio',pedidos:'page-pedidos',vacaciones:'page-fichajes',historial:'page-historial','analisis-ia':'page-analisis-ia',calendario:'page-fichajes',tareas:'page-tareas'};
+  const tm={fichajes:'Control de Fichajes',resumen:'Control de Fichajes',emails:'Correos','all-emails':'Todos los correos',upload:'Carga tu archivo',directorio:'Directorio de empleados',pedidos:'Auditoría de pedidos',vacaciones:'Control de Fichajes',historial:'Historial de envíos','analisis-ia':'Análisis IA',calendario:'Control de Fichajes',tareas:'Tareas Manuales'};
   document.getElementById(pm[name]||'page-upload').classList.add('active');
   document.getElementById('topbar-title').textContent=tm[name]||name;
   const ni=document.querySelectorAll('.nav-item');
-  ['resumen','emails','all-emails','pedidos','vacaciones','calendario','tareas','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
+  ['fichajes','emails','all-emails','pedidos','tareas','analisis-ia','upload','directorio','historial'].forEach((n,i)=>{if(n===name)ni[i]&&ni[i].classList.add('active')});
   if(name==='tareas')tareasLoadSummary();
   if(name==='historial')loadHistorial();
-  if(name==='calendario'){CalModule.init();calTareasBarLoad();}
-  if(name==='resumen')initResumenMode();
+  if(name==='fichajes'){cfTab('resumen');}
+  if(name==='resumen'){cfTab('resumen');}
+  if(name==='vacaciones'){cfTab('vacaciones');}
+  if(name==='calendario'){cfTab('calendario');}
   const _ds=document.getElementById('day-select');if(name!=='upload'&&_ds){document.getElementById('topbar-date-val').textContent=fDay(_ds.value)}
 }
 function resetApp(){
@@ -4500,7 +4519,7 @@ function renderResumenApi() {
     const stLbl = pct >= 90 ? '✅ Bien' : pct >= 70 ? '⚠️ Regular' : '🔴 Bajo';
     const barW  = Math.min(pct, 100);
     const barC  = pct >= 90 ? 'var(--accent)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
-    return `<tr style="cursor:pointer;" onclick="showPage('calendario');CalModule.init();setTimeout(()=>CalModule.openEmp('${e.empleado}'),400)">
+    return `<tr style="cursor:pointer;" onclick="showPage('fichajes');setTimeout(()=>{cfTab('calendario');CalModule.openEmp('${e.empleado}');},400)">
       <td><span style="font-weight:500;">${e.empleado}</span></td>
       <td style="font-family:'DM Mono',monospace;">${e.diasLaborables ?? '—'}</td>
       <td style="font-family:'DM Mono',monospace;color:var(--accent);">${fmtH(e.totalFichaje_h)}</td>

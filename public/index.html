@@ -851,11 +851,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
     <!-- ── Correos unificado ── -->
     <div id="page-correos" class="page">
-      <!-- Pestañas internas -->
-      <div style="display:flex;gap:6px;margin-bottom:22px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
-        <button id="mc-tab-emails"     onclick="mcTab('emails')"     class="cf-tab cf-tab-active">✉ Correos</button>
-        <button id="mc-tab-all-emails" onclick="mcTab('all-emails')" class="cf-tab">📬 Todos los correos</button>
-      </div>
       <!-- Panel Correos -->
       <div id="mc-panel-emails">
     <div id="page-emails" class="page">
@@ -934,7 +929,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
       </div><!-- /mc-panel-emails -->
       <!-- Panel Todos los correos -->
-      <div id="mc-panel-all-emails" style="display:none">
+      <div id="mc-panel-all-emails">
     <div id="page-all-emails" class="page">
       <div class="controls animate-in" style="margin-bottom:20px;">
         <div class="ctrl-group"><span class="ctrl-label">Día</span><select id="all-email-day-select" onchange="renderAllEmails()"></select></div>

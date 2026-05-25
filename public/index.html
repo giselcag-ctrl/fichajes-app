@@ -614,6 +614,9 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                   <button class="cal-vbtn"        onclick="CalModule.setVista('diario',this)">Diario</button>
                   <button class="cal-vbtn cal-vbtn-correo" onclick="CalModule.setVista('correo',this)">📧 Correo</button>
                 </div>
+                <button class="cal-export-btn" onclick="CalModule.exportarInspeccion()" title="Exportar registro para Inspección de Trabajo" style="margin-left:4px;border-color:var(--accent);color:var(--accent)">
+                  📋 Exportar Inspección
+                </button>
               </div>
             </div>
 
@@ -3671,7 +3674,24 @@ function renderKPIs(data) {
       <div class="cal-sc-icon">🎯</div>
       <div class="cal-sc-lbl">Cumplimiento global</div>
       <div style="margin-top:6px">${barHtml(pct, pct >= 90 ? 'g' : pct >= 70 ? 'y' : 'r')}</div>
-    </div>`;
+    </div>
+    ${(()=>{
+      const MAX_EXTRA = 80;
+      const pctEx = Math.min(Math.round(exceso / MAX_EXTRA * 100), 100);
+      const colorEx = exceso >= MAX_EXTRA ? 'r' : exceso >= 60 ? 'y' : 'g';
+      const estadoEx = exceso >= MAX_EXTRA
+        ? '<span style="color:#f87171;font-size:11px;font-weight:600">⚠ LÍMITE LEGAL SUPERADO</span>'
+        : exceso >= 60
+        ? '<span style="color:#fbbf24;font-size:11px">⚠ Próximo al límite</span>'
+        : '<span style="font-size:11px;color:var(--cal-text3)">Límite legal: 80h/año</span>';
+      return `<div class="cal-sc ${exceso >= MAX_EXTRA ? 'bad' : exceso >= 60 ? 'warn' : 'ok'}" style="grid-column:span 1">
+        <div class="cal-sc-icon">⚖️</div>
+        <div class="cal-sc-lbl">Horas extra (límite legal)</div>
+        <div class="cal-sc-val ${colorEx}">${fmtH(exceso)} <span style="font-size:13px;font-weight:400;color:var(--cal-text3)">/ 80h</span></div>
+        <div style="margin:4px 0 2px">${barHtml(pctEx, colorEx)}</div>
+        ${estadoEx}
+      </div>`;
+    })()}`;
 }
 
 /* ── Vista Semanal ─────────────────────────────────────────────────────── */
@@ -4045,6 +4065,14 @@ function renderCorreo(data) {
   body += `  • Jornadas completas      : ${diasOK} de ${diasLab}  (${pctOK}%)\n`;
   if (totEx  > 0) body += `  • Exceso acumulado        : +${fmtH(totEx)}\n`;
   if (totDef > 0) body += `  • Déficit acumulado       : −${fmtH(totDef)}\n`;
+  // Aviso legal horas extra 80h/año (Art. 35 ET)
+  if (totEx >= 80) {
+    body += `\n  ⚠ AVISO LEGAL: Se han superado las 80 horas extraordinarias anuales\n`;
+    body += `  permitidas por el Art. 35 del Estatuto de los Trabajadores.\n`;
+    body += `  Horas extra acumuladas: ${fmtH(totEx)} / 80h máx.\n`;
+  } else if (totEx >= 60) {
+    body += `\n  ⚠ Aviso: ${fmtH(totEx)} de horas extra acumuladas (límite legal: 80h/año).\n`;
+  }
   body += `\n`;
 
   // ── Cierre ─────────────────────────────────────────────────────────────────
@@ -4253,8 +4281,72 @@ function exportListaCSV() {
   a.click();
 }
 
+/* ── Exportar para Inspección de Trabajo ──────────────────────────────── */
+function exportarInspeccion() {
+  if (!_detalle) return;
+  const d     = _detalleParaAnio();
+  const emp   = d.empleado || '';
+  const anio  = _anioActual || 'todos';
+  const hoy   = new Date();
+  const fechaExp = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+
+  // Cabecera del documento
+  const lines = [
+    `REGISTRO DE JORNADA LABORAL`,
+    `Empresa          : SIMECAL`,
+    `Empleado         : ${emp}`,
+    `Periodo          : ${anio}`,
+    `Fecha exportacion: ${fechaExp}`,
+    `Normativa        : Art. 34.9 Estatuto de los Trabajadores (RDL 8/2019)`,
+    ``,
+    `Fecha;Dia;Horas fichadas;Observacion`
+  ];
+
+  // Filas por día
+  (d.semanasData || []).forEach(s => {
+    (s.dias || []).forEach(dia => {
+      if (dia.esFinSemana && (!dia.fichaje_h || dia.fichaje_h <= 0)) return;
+      if (esFestivoCal(dia.fecha)) return;
+
+      const fecha = dia.fecha ? (() => { const [y,m,dd]=dia.fecha.split('-'); return `${dd}/${m}/${y}`; })() : '—';
+      const diaStr = (dia.dia || '').toUpperCase();
+      const horas  = dia.fichaje_h != null ? fmtH(dia.fichaje_h) : '—';
+      let obs = '';
+      if (dia.justificado)              obs = dia.justDesc || 'Justificado';
+      else if (dia.sinDatos)            obs = 'Sin registro';
+      else if (dia.esFinSemana)         obs = 'Fin de semana trabajado';
+      else if (dia.fichaje_h === null)  obs = 'Sin datos';
+      else if (dia.fichaje_h > 8)       obs = `Exceso +${fmtH(Math.round((dia.fichaje_h-8)*100)/100)}`;
+      else if (dia.fichaje_h < 8)       obs = `Jornada corta -${fmtH(Math.round((8-dia.fichaje_h)*100)/100)}`;
+      else                              obs = 'Jornada completa';
+
+      if (dia.sinDatos) return; // omitir días sin datos en el informe
+      lines.push(`${fecha};${diaStr};${horas};${obs}`);
+    });
+  });
+
+  // Totales al pie
+  lines.push(``);
+  lines.push(`RESUMEN`);
+  lines.push(`Total horas fichadas;${fmtH(d.totalFichaje_h||0)}`);
+  lines.push(`Dias laborables;${d.diasLaborables||0}`);
+  lines.push(`Jornadas completas (>=8h);${d.diasCumplen||0}`);
+  lines.push(`Jornadas cortas (<8h);${d.diasIncumple||0}`);
+  lines.push(`Horas extra acumuladas;${fmtH(d.horasExceso||0)}`);
+  lines.push(`Limite legal horas extra;80h/anio (Art.35 ET)`);
+  if ((d.horasExceso||0) >= 80) lines.push(`AVISO LEGAL;Superadas las 80h extra anuales`);
+  lines.push(``);
+  lines.push(`Documento generado el ${fechaExp} - SIMECAL`);
+
+  const csv = lines.join('\n');
+  const a   = document.createElement('a');
+  a.href     = 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(csv);
+  a.download = `inspeccion_${emp}_${anio}.csv`;
+  a.click();
+}
+
 /* ── API pública ───────────────────────────────────────────────────────── */
-window.CalModule = { init: cargarLista, verDetalle, openEmp: (emp) => verDetalle(emp), volverLista, setVista, setAnio, setAnioLista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo };
+window.CalModule = { init: cargarLista, verDetalle, openEmp: (emp) => verDetalle(emp), volverLista, setVista, setAnio, setAnioLista, exportCSV, exportListaCSV, enviarCorreo, copiarCorreo, exportarInspeccion };
 
 })(); // fin IIFE CalModule
 

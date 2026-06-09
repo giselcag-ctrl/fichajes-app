@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2149,8 +2148,10 @@ function validarLinea(linea,tipo,km){
   km=km||60;
   const errores=[];const d=linea._json||{};
   const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
-  const nifTitular=String(linea['NIF Titular']||'').trim();if(!nifTitular)errores.push('NIF del titular vacío');
-  const nombreTitular=String(linea['Titular']||'').trim();if(!nombreTitular)errores.push('Titular no asignado');
+  const nifTitular=String(linea['NIF Titular']||d.titularNif||(d.lineas&&d.lineas.titularNif)||'').trim();
+  if(!nifTitular)errores.push('NIF del titular vacío (obligatorio para acta de inspección — ITC-BT-05). Si el titular es el mismo cliente, copiar su NIF');
+  const nombreTitular=String(linea['Titular']||d.titular||(d.lineas&&d.lineas.titular)||'').trim();
+  if(!nombreTitular)errores.push('Titular no asignado — el titular es responsable del mantenimiento (RD 842/2002). Si es el mismo cliente, rellenar con su razón social');
   // ── Campos obligatorios para todos los servicios ──────────────────────────
   const dirInsp=String(linea['Dirección Inspección']||'').trim();
   if(!dirInsp)errores.push('Dirección de inspección vacía');
@@ -2214,11 +2215,86 @@ function validarLinea(linea,tipo,km){
   }
   if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
   if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
-  if(tipo==='AE'){if(!(d.mantenedor&&d.mantenedor.razonSocial))errores.push('Mantenedor no asignado');if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');}
-  if((tipo==='REBT_ZC'||tipo==='REBT_GARAJE')&&!(d.administrador&&d.administrador.razonSocial))errores.push('Administrador no asignado');
+  const mantenedorVal=String(linea['Mantenedor']||'').trim()||(d.mantenedor&&d.mantenedor.razonSocial)||'';
+  const administradorVal=String(linea['Administrador']||'').trim()||(d.administrador&&d.administrador.razonSocial)||'';
+  if(tipo==='AE'){
+    if(!mantenedorVal)errores.push('Mantenedor no asignado (obligatorio para ascensores — ITC AE)');
+    if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío (Registro de Aparatos Elevadores — obligatorio)');
+  }
+  if(tipo==='REBT_ZC'&&!administradorVal)errores.push('Administrador no asignado — necesario para zonas comunes (ITC-BT-05)');
+  if(tipo==='REBT_GARAJE'&&!administradorVal)errores.push('Administrador no asignado — necesario para garajes comunitarios (ITC-BT-29)');
   return errores;
 }
-function extraerJSON(row){const keys=Object.keys(row);for(let i=keys.length-1;i>=0;i--){const val=String(row[keys[i]]||'');if(val.startsWith('{')&&val.includes('cliente')){try{return JSON.parse(val);}catch(e){return{};}}}return{};}
+function extraerJSON(row){
+  const keys=Object.keys(row);
+  for(let i=keys.length-1;i>=0;i--){
+    const val=String(row[keys[i]]||'');
+    if(val.startsWith('{')&&val.includes('cliente')){
+      try{
+        const j=JSON.parse(val);
+        // Extraer campos útiles del JSON al row para que validarLinea los encuentre
+        const lin=j.lineas||{};
+        const dirInsp=lin.direccionInspeccion||{};
+        // NIF Titular: buscar en titular del JSON o cliente
+        if(!row['NIF Titular']||String(row['NIF Titular']).trim()===''){
+          const titNif=lin.titularNif||j.titularNif||'';
+          if(titNif)row['NIF Titular']=titNif;
+        }
+        // Titular: buscar en lineas.titular o cliente.razonSocial como fallback
+        if(!row['Titular']||String(row['Titular']).trim()===''){
+          const tit=lin.titular||j.titular||'';
+          if(tit)row['Titular']=tit;
+        }
+        // Dirección inspección desde JSON si columna vacía
+        if(!row['Dirección Inspección']||String(row['Dirección Inspección']).trim()===''){
+          if(dirInsp.direccion)row['Dirección Inspección']=dirInsp.direccion;
+        }
+        if(!row['Cód. Postal Inspección']||String(row['Cód. Postal Inspección']).trim()===''){
+          if(dirInsp.cp)row['Cód. Postal Inspección']=dirInsp.cp;
+        }
+        if(!row['Población Inspección']||String(row['Población Inspección']).trim()===''){
+          if(dirInsp.poblacion)row['Población Inspección']=dirInsp.poblacion;
+        }
+        // Contacto y teléfono desde JSON si vacíos
+        if(!row['Contacto']||String(row['Contacto']).trim()===''){
+          const cont=j.contactoCliente&&(j.contactoCliente.alias||j.contactoCliente.nombre)||'';
+          if(cont)row['Contacto']=cont;
+        }
+        if(!row['Teléfono']||String(row['Teléfono']).trim()===''){
+          if(j.telefono)row['Teléfono']=j.telefono;
+        }
+        if(!row['Email Comunicaciones']||String(row['Email Comunicaciones']).trim()===''){
+          if(j.emailContacto)row['Email Comunicaciones']=j.emailContacto.replace(/>$/,'').trim();
+        }
+        if(!row['Email Contacto']||String(row['Email Contacto']).trim()===''){
+          if(j.emailContacto)row['Email Contacto']=j.emailContacto.replace(/>$/,'').trim();
+        }
+        // Caract. Prales.: usar nombre del servicio si vacío
+        if(!row['Caract. Prales.']||String(row['Caract. Prales.']).trim()===''){
+          const serv=lin.servicio&&lin.servicio.nombre||'';
+          if(serv)row['Caract. Prales.']=serv;
+        }
+        // Mantenedor desde JSON
+        if(!row['Mantenedor']||String(row['Mantenedor']).trim()===''){
+          const mant=lin.mantenedor&&lin.mantenedor.razonSocial||'';
+          if(mant)row['Mantenedor']=mant;
+        }
+        // Administrador desde JSON
+        if(!row['Administrador']||String(row['Administrador']).trim()===''){
+          const adm=lin.administrador&&lin.administrador.razonSocial||'';
+          if(adm)row['Administrador']=adm;
+        }
+        // Km desde JSON prevision gastos o Km Prev.
+        if(!row['Km Prev.']||String(row['Km Prev.']).trim()===''||String(row['Km Prev.']).trim()==='0'){
+          const km=lin.previsionGastos&&lin.previsionGastos.km||j.km||0;
+          if(km)row['Km Prev.']=km;
+        }
+        return j;
+      }catch(e){return{};}
+    }
+  }
+  return{};
+}
 (function initPedidosDrops(){
   const dropCab=document.getElementById('ped-drop-cabeceras'),fileCab=document.getElementById('ped-file-cabeceras');
   const dropLin=document.getElementById('ped-drop-lineas'),fileLin=document.getElementById('ped-file-lineas');
@@ -2241,20 +2317,22 @@ function procesarPedidos(){
   if(!PS.lineas)return showToast('Falta el Excel de líneas de pedido');
   showLoading('Analizando pedidos…');
   setTimeout(()=>{try{
-    const km=parseFloat(document.getElementById('ped-km').value)||60;
+    const kmGlobal=parseFloat(document.getElementById('ped-km').value)||60;
     const pedidosMap={};
     PS.lineas.forEach(row=>{
       const codigo=String(row['Código']||'').trim();if(!codigo)return;
       const jsonData=extraerJSON(row);row._json=jsonData;
+      // Usar Km Prev. por línea si existe, si no el global
+      const kmLinea=parseFloat(String(row['Km Prev.']||'0').replace(',','.'))||kmGlobal;
       const servicio=String(row['Servicio']||'').trim();
       const tipo=tipoServicio(servicio.split(' - ')[0].trim()+' '+(row['Sub-Servicio']||''));
-      const errores=validarLinea(row,tipo,km);
+      const errores=validarLinea(row,tipo,kmLinea);
       const numSAP=String(row['Número SAP']||'').trim();
       const fechaRaw=parseFechaPed(row['Fecha Contratación']||row['Fecha Contratacion']||row['Fecha']||row['Fecha Creación']||row['Fecha Creacion']||row['Fecha Pedido']||row['F. Creación']||'');
       const precioLinea=parseFloat(String(row['Tot. Contratado']||'0').replace(',','.'))||0;
       const tpce=parseFloat(String(row['TPCE']||'0').replace(',','.'))||0;
       const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
-      const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,km,getTarifaHora(tipo)):0;
+      const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,kmLinea,getTarifaHora(tipo)):0;
       const emailCom=String(row['Email Comunicaciones']||row['Email Contacto']||'').trim();
       if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false,revisado:false};
       if(emailCom&&!pedidosMap[codigo].emailCom)pedidosMap[codigo].emailCom=emailCom;

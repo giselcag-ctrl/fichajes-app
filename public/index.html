@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -989,18 +990,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <h2 style="font-size:20px;font-weight:400;margin-bottom:6px;">Auditoría de <span style="color:var(--accent)">pedidos</span></h2>
             <p style="color:var(--text2);font-size:13px;">Sube los dos Excel exportados del ERP para detectar campos incompletos y generar correos de reclamación.</p>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+          <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:24px;">
             <div class="dir-drop" id="ped-drop-cabeceras" style="margin-bottom:0;">
               <input type="file" id="ped-file-cabeceras" accept=".xlsx,.xls">
               <div class="dir-drop-icon" id="ped-icon-cab">📋</div>
-              <h3 id="ped-label-cab">Excel de Pedidos</h3>
-              <p id="ped-sub-cab">Listado resumen de pedidos · .xlsx</p>
-            </div>
-            <div class="dir-drop" id="ped-drop-lineas" style="margin-bottom:0;">
-              <input type="file" id="ped-file-lineas" accept=".xlsx,.xls">
-              <div class="dir-drop-icon" id="ped-icon-lin">📄</div>
-              <h3 id="ped-label-lin">Excel de Líneas de Pedido</h3>
-              <p id="ped-sub-lin">Detalle por línea con JSON · .xlsx</p>
+              <h3 id="ped-label-cab">Excel de Líneas de Pedido</h3>
+              <p id="ped-sub-cab">Exportado de SAP · .xlsx</p>
             </div>
           </div>
           <!-- Campo km desplazamiento -->
@@ -1009,7 +1004,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
             <input type="number" id="ped-km" min="0" max="2000" value="60"
               oninput="document.getElementById('ped-km-coste').textContent=(parseFloat(this.value||0)*0.16).toFixed(2)+' €'"
               style="width:80px;height:32px;padding:0 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text1);font-family:'DM Mono',monospace;font-size:13px;">
-            <span style="font-size:12px;color:var(--text3)">Coste desplaz.: <b id="ped-km-coste" style="color:var(--text2)">9,60 €</b> · Tarifa mano de obra: <b style="color:var(--text2)">€106/h</b></span>
+            <span style="font-size:12px;color:var(--text3)">Km por defecto (cuando Km Prev. está vacío): <b id="ped-km-coste" style="color:var(--text2)">9,60 €</b> · Tarifa mano de obra: <b style="color:var(--text2)">€106/h</b></span>
           </div>
           <button class="btn btn-accent" onclick="procesarPedidos()" id="btn-procesar-ped" style="display:none;width:100%;justify-content:center;height:44px;font-size:14px;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l1.5 1.5L10 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2146,11 +2141,10 @@ function calcularPrecioEsperado(tpce,tpie,km,tarifaHora){
 }
 function validarLinea(linea,tipo,km){
   km=km||60;
-  const errores=[];const d=linea._json||{};
-  const nif=d.cliente&&d.cliente.nif;if(!nif||nif.trim()==='')errores.push('NIF del cliente vacío');
-  const nifTitular=String(linea['NIF Titular']||d.titularNif||(d.lineas&&d.lineas.titularNif)||'').trim();
+  const errores=[];
+  const nifTitular=String(linea['NIF Titular']||'').trim();
   if(!nifTitular)errores.push('NIF del titular vacío (obligatorio para acta de inspección — ITC-BT-05). Si el titular es el mismo cliente, copiar su NIF');
-  const nombreTitular=String(linea['Titular']||d.titular||(d.lineas&&d.lineas.titular)||'').trim();
+  const nombreTitular=String(linea['Titular']||'').trim();
   if(!nombreTitular)errores.push('Titular no asignado — el titular es responsable del mantenimiento (RD 842/2002). Si es el mismo cliente, rellenar con su razón social');
   // ── Campos obligatorios para todos los servicios ──────────────────────────
   const dirInsp=String(linea['Dirección Inspección']||'').trim();
@@ -2215,8 +2209,8 @@ function validarLinea(linea,tipo,km){
   }
   if(!tpce||tpce<=0)errores.push('Tiempo campo (TPCE) = 0');
   if(!tpie||tpie<=0)errores.push('Tiempo informe (TPIE) = 0');
-  const mantenedorVal=String(linea['Mantenedor']||'').trim()||(d.mantenedor&&d.mantenedor.razonSocial)||'';
-  const administradorVal=String(linea['Administrador']||'').trim()||(d.administrador&&d.administrador.razonSocial)||'';
+  const mantenedorVal=String(linea['Mantenedor']||'').trim();
+  const administradorVal=String(linea['Administrador']||'').trim();
   if(tipo==='AE'){
     if(!mantenedorVal)errores.push('Mantenedor no asignado (obligatorio para ascensores — ITC AE)');
     if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío (Registro de Aparatos Elevadores — obligatorio)');
@@ -2297,31 +2291,33 @@ function extraerJSON(row){
 }
 (function initPedidosDrops(){
   const dropCab=document.getElementById('ped-drop-cabeceras'),fileCab=document.getElementById('ped-file-cabeceras');
-  const dropLin=document.getElementById('ped-drop-lineas'),fileLin=document.getElementById('ped-file-lineas');
-  dropCab.addEventListener('dragover',e=>{e.preventDefault();dropCab.classList.add('over')});dropCab.addEventListener('dragleave',()=>dropCab.classList.remove('over'));dropCab.addEventListener('drop',e=>{e.preventDefault();dropCab.classList.remove('over');handlePedFile(e.dataTransfer.files[0],'cab')});fileCab.addEventListener('change',e=>handlePedFile(e.target.files[0],'cab'));
-  dropLin.addEventListener('dragover',e=>{e.preventDefault();dropLin.classList.add('over')});dropLin.addEventListener('dragleave',()=>dropLin.classList.remove('over'));dropLin.addEventListener('drop',e=>{e.preventDefault();dropLin.classList.remove('over');handlePedFile(e.dataTransfer.files[0],'lin')});fileLin.addEventListener('change',e=>handlePedFile(e.target.files[0],'lin'));
+  dropCab.addEventListener('dragover',e=>{e.preventDefault();dropCab.classList.add('over')});
+  dropCab.addEventListener('dragleave',()=>dropCab.classList.remove('over'));
+  dropCab.addEventListener('drop',e=>{e.preventDefault();dropCab.classList.remove('over');handlePedFile(e.dataTransfer.files[0])});
+  fileCab.addEventListener('change',e=>handlePedFile(e.target.files[0]));
 })();
-function handlePedFile(f,tipo){
+function handlePedFile(f){
   if(!f)return;
   const reader=new FileReader();
   reader.onload=e=>{try{
-    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true,raw:false});
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
-    if(tipo==='cab'){PS.cabeceras=rows;document.getElementById('ped-icon-cab').textContent='✅';document.getElementById('ped-label-cab').textContent=f.name;document.getElementById('ped-sub-cab').textContent=rows.length+' pedidos cargados';}
-    else{PS.lineas=rows;document.getElementById('ped-icon-lin').textContent='✅';document.getElementById('ped-label-lin').textContent=f.name;document.getElementById('ped-sub-lin').textContent=rows.length+' líneas cargadas';}
-    if(PS.cabeceras&&PS.lineas){document.getElementById('btn-procesar-ped').style.display='flex';document.getElementById('ped-km-row').style.display='flex';}
+    PS.lineas=rows;
+    document.getElementById('ped-icon-cab').textContent='✅';
+    document.getElementById('ped-label-cab').textContent=f.name;
+    document.getElementById('ped-sub-cab').textContent=rows.length+' líneas cargadas';
+    document.getElementById('btn-procesar-ped').style.display='flex';
+    document.getElementById('ped-km-row').style.display='flex';
   }catch(err){showToast('Error leyendo archivo: '+err.message);}};
   reader.readAsArrayBuffer(f);
 }
 function procesarPedidos(){
-  if(!PS.lineas)return showToast('Falta el Excel de líneas de pedido');
-  showLoading('Analizando pedidos…');
+  if(!PS.lineas)return showToast('Falta el Excel de líneas de pedido');  showLoading('Analizando pedidos…');
   setTimeout(()=>{try{
     const kmGlobal=parseFloat(document.getElementById('ped-km').value)||60;
     const pedidosMap={};
     PS.lineas.forEach(row=>{
       const codigo=String(row['Código']||'').trim();if(!codigo)return;
-      const jsonData=extraerJSON(row);row._json=jsonData;
       // Usar Km Prev. por línea si existe, si no el global
       const kmLinea=parseFloat(String(row['Km Prev.']||'0').replace(',','.'))||kmGlobal;
       const servicio=String(row['Servicio']||'').trim();
@@ -2334,9 +2330,9 @@ function procesarPedidos(){
       const tpie=parseFloat(String(row['TPIE']||'0').replace(',','.'))||0;
       const precioCalc=(tpce>0&&tpie>0&&tipo!=='AE'&&tipo!=='EICIAE')?calcularPrecioEsperado(tpce,tpie,kmLinea,getTarifaHora(tipo)):0;
       const emailCom=String(row['Email Comunicaciones']||row['Email Contacto']||'').trim();
-      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||jsonData.creationUserName||'').trim(),emailCreador:jsonData.emailContacto||'',emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false,revisado:false};
+      if(!pedidosMap[codigo])pedidosMap[codigo]={codigo,numeroSAP:numSAP,fecha:fechaRaw,cliente:String(row['Cliente']||'').trim(),creador:String(row['Empl. Contratación']||'').trim(),emailCreador:String(row['Email Comunicaciones']||'').trim(),emailCom:'',estado:String(row['Estado Pedido']||'').trim(),lineas:[],erroresTotales:0,totalContratado:0,totalCalculado:0,precioAlerta:false,revisado:false};
       if(emailCom&&!pedidosMap[codigo].emailCom)pedidosMap[codigo].emailCom=emailCom;
-      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:(jsonData.trabajoRealizar||'').substring(0,120),precio:precioLinea,precioCalc});
+      pedidosMap[codigo].lineas.push({servicio:servicio.length>50?servicio.substring(0,50)+'…':servicio,tipo,errores,trabajo:'',precio:precioLinea,precioCalc});
       pedidosMap[codigo].totalContratado+=precioLinea;
       pedidosMap[codigo].totalCalculado+=precioCalc;
       pedidosMap[codigo].erroresTotales+=errores.length;
@@ -2539,7 +2535,7 @@ function _doEnviarCorreoPedido(to,subject,body){
     .finally(()=>{btn.disabled=false;btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M14 2L2 7l5 2 2 5 5-12z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg> Enviar';});
 }
 function exportPedidosCSV(){if(!PS.filtrados.length)return showToast('Sin datos');const rows=PS.filtrados.flatMap(p=>p.lineas.map((l,i)=>`"${p.codigo}","${p.cliente}","Línea ${i}","${l.tipo}","${p.creador}","${l.errores.join(' | ')}"`));downloadText(['Código,Cliente,Línea,Tipo servicio,Creador,Errores',...rows].join('\n'),'auditoria_pedidos.csv');showToast('CSV exportado');}
-function resetPedidos(){PS.cabeceras=null;PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Pedidos';document.getElementById('ped-sub-cab').textContent='Listado resumen de pedidos · .xlsx';document.getElementById('ped-icon-lin').textContent='📄';document.getElementById('ped-label-lin').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-lin').textContent='Detalle por línea con JSON · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';document.getElementById('ped-file-lineas').value='';}
+function resetPedidos(){PS.lineas=null;PS.pedidos=[];PS.filtrados=[];PS.selectedPedido=null;document.getElementById('pedidos-upload-zone').style.display='block';document.getElementById('pedidos-results').style.display='none';document.getElementById('ped-icon-cab').textContent='📋';document.getElementById('ped-label-cab').textContent='Excel de Líneas de Pedido';document.getElementById('ped-sub-cab').textContent='Exportado de SAP · .xlsx';document.getElementById('btn-procesar-ped').style.display='none';document.getElementById('ped-file-cabeceras').value='';}
 function vacInicioDefault(){
   const y=new Date().getFullYear();
   return`${y}-01-01`;

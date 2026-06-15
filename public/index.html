@@ -1491,7 +1491,7 @@ const ddz=document.getElementById('dir-drop-zone'),dfi=document.getElementById('
 ddz.addEventListener('dragover',e=>{e.preventDefault();ddz.classList.add('over')});
 ddz.addEventListener('dragleave',()=>ddz.classList.remove('over'));
 ddz.addEventListener('drop',e=>{e.preventDefault();ddz.classList.remove('over');handleDirectorioFile(e.dataTransfer.files[0])});
-dfi.addEventListener('change',e=>handleDirectorioFile(e.target.files[0]));
+dfi.addEventListener('change',e=>handleFile(e.target.files[0]));
 renderDirectorioTable();
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));

@@ -2143,9 +2143,9 @@ function validarLinea(linea,tipo,km){
   km=km||60;
   const errores=[];
   const nifTitular=String(linea['NIF Titular']||'').trim();
-  if(!nifTitular)errores.push('NIF del titular vacío (obligatorio para acta de inspección — ITC-BT-05). Si el titular es el mismo cliente, copiar su NIF');
+  if(!nifTitular)errores.push('NIF del titular vacío');
   const nombreTitular=String(linea['Titular']||'').trim();
-  if(!nombreTitular)errores.push('Titular no asignado — el titular es responsable del mantenimiento (RD 842/2002). Si es el mismo cliente, rellenar con su razón social');
+  if(!nombreTitular)errores.push('Titular no asignado');
   // ── Campos obligatorios para todos los servicios ──────────────────────────
   const dirInsp=String(linea['Dirección Inspección']||'').trim();
   if(!dirInsp)errores.push('Dirección de inspección vacía');
@@ -2212,11 +2212,11 @@ function validarLinea(linea,tipo,km){
   const mantenedorVal=String(linea['Mantenedor']||'').trim();
   const administradorVal=String(linea['Administrador']||'').trim();
   if(tipo==='AE'){
-    if(!mantenedorVal)errores.push('Mantenedor no asignado (obligatorio para ascensores — ITC AE)');
-    if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío (Registro de Aparatos Elevadores — obligatorio)');
+    if(!mantenedorVal)errores.push('Mantenedor no asignado');
+    if(!(linea['RAE']||'').trim())errores.push('Nº RAE vacío');
   }
-  if(tipo==='REBT_ZC'&&!administradorVal)errores.push('Administrador no asignado — necesario para zonas comunes (ITC-BT-05)');
-  if(tipo==='REBT_GARAJE'&&!administradorVal)errores.push('Administrador no asignado — necesario para garajes comunitarios (ITC-BT-29)');
+  if(tipo==='REBT_ZC'&&!administradorVal)errores.push('Administrador no asignado');
+  if(tipo==='REBT_GARAJE'&&!administradorVal)errores.push('Administrador no asignado');
   return errores;
 }
 function extraerJSON(row){

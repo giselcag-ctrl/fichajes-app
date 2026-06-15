@@ -1060,8 +1060,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
                     <th>Servicio</th>
                     <th>Creador</th>
                     <th>Importe</th>
-                    <th title="Email Comunicaciones">📧 Email com.</th>
-                    <th>Incidencias</th>
+                                  <th>Incidencias</th>
                     <th>Estado</th>
                   </tr></thead>
                   <tbody id="ped-tbody"></tbody>
@@ -1491,7 +1490,7 @@ const ddz=document.getElementById('dir-drop-zone'),dfi=document.getElementById('
 ddz.addEventListener('dragover',e=>{e.preventDefault();ddz.classList.add('over')});
 ddz.addEventListener('dragleave',()=>ddz.classList.remove('over'));
 ddz.addEventListener('drop',e=>{e.preventDefault();ddz.classList.remove('over');handleDirectorioFile(e.dataTransfer.files[0])});
-dfi.addEventListener('change',e=>handleFile(e.target.files[0]));
+dfi.addEventListener('change',e=>handleDirectorioFile(e.target.files[0]));
 renderDirectorioTable();
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
@@ -2442,11 +2441,7 @@ function renderPedidosTable(){
         <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:${impColor}">${imp>0?fmtE(imp):'—'}</span>${diffStr}${p.precioAlerta?'<span title="Revisar precio" style="margin-left:3px;font-size:11px;">⚠️</span>':''}
         ${calcStr}
       </td>
-      <td style="text-align:center">${p.emailCom
-        ?`<span title="${p.emailCom}" style="color:var(--accent);font-size:14px;cursor:default">✅</span>`
-        :`<span title="Sin email de comunicaciones" style="color:var(--red);font-size:14px;cursor:default">✗</span>`
-      }</td>
-      <td>${p.lineas.map((l,i)=>l.errores.length>0?`<div style="font-size:11px;color:var(--red);margin-bottom:2px;"><span style="opacity:.6">Línea ${i}·</span> ${l.errores.join(' · ')}</div>`:'').join('')}${!tieneError?'<span style="font-size:11px;color:var(--accent)">Sin errores</span>':''}</td>
+      <td>${!tieneError?'<span style="font-size:11px;color:var(--accent)">✓ Sin errores</span>':p.lineas.flatMap(l=>l.errores).map(e=>`<div style="font-size:11px;color:var(--red);line-height:1.5;">• ${e}</div>`).join('')}</td>
       <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
     </tr>`;
   }).join('');
